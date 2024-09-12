@@ -1,6 +1,17 @@
 import matplotlib.pyplot as plt
+from matplotlib import colormaps
+import geopandas.geodataframe as gpd
+import pandas as pd
 
-def save_shp_figure(current_shp, path_result, figsize=None, **kwargs):
+def save_shp_figure(current_shp:gpd.GeoDataFrame, path_result:str, figsize:tuple=None, **kwargs):
+    """
+
+    :param current_shp:
+    :param path_result:
+    :param figsize:
+    :param kwargs:
+    :return:
+    """
     if figsize is not None:
         figsize = figsize
     else:
@@ -13,20 +24,44 @@ def save_shp_figure(current_shp, path_result, figsize=None, **kwargs):
     plt.clf()
 
 
-def plot_shp_figure(df, current_shp, path_result, figsize=None, **kwargs):
+def plot_shp_figure(path_result:str, shapefile:gpd.GeoDataFrame, shp_column:str=None, df:pd.DataFrame=None,
+                    df_column:str=None, figsize:tuple=None, palette:str='BrBG', **kwargs):
+    """
+
+    :param path_result:
+    :param shapefile:
+    :param df:
+    :param shp_column:
+    :param df_column:
+    :param figsize:
+    :param palette:
+    :param kwargs:
+    :return:
+    """
+
     if figsize is not None:
         figsize = figsize
     else:
         figsize = (30, 18)
 
-    cmap = plt.cm.get_cmap('jet', 5)
 
+    cmap = colormaps[palette]
+
+    # Init plot
     fig, ax = plt.subplots(figsize=figsize)
-    current_shp.plot(ax=ax, figsize=figsize, edgecolor='black')
-    ax.scatter(x=df['lat'], y=df['lon'], s=50, c=df['value'], cmap=cmap)
-    plt.savefig(path_result)
 
-    plt.clf()
+    # Plot Shapefile
+    if shp_column is not None:
+        shapefile.plot(ax=ax, figsize=figsize, edgecolor='black', column=shp_column)
+    else:
+        shapefile.plot(ax=ax, figsize=figsize, edgecolor='black', facecolor="none")
+
+    # Plot Scatter
+    if df is not None and df_column is not None:
+        ax.scatter(x=df['XL93'], y=df['YL93'], s=50, c=df[df_column], cmap=cmap)
+
+    # Save and delete
+    plt.savefig(path_result)
 
 
 # SAVE AS SVG
