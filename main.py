@@ -15,6 +15,11 @@ path_results = path_parent + '21_results' + os.sep
 ## Files names
 file_shp = 'france' + os.sep + 'régions_2016.shp'
 file_ncdf = 'hydro/VCN10_seas-MJJASON_1976-2100_TIMEseries_GEOstation_FR-Rhone-Loire_EXPLORE2-2024_MF-ADAMONT_historical-rcp85_NorESM1-M_WRF381P_J2000.nc'
+file_csv = 'climat' + os.sep + 'ETP' + os.sep + 'ETP_Hargreaves_coefficient_0.175_1970-1979.csv'
+file_stations = 'Selection_points_simulation.csv'
+path_climate_csv = path_data + file_csv
+path_stations = path_data + file_stations
+
 
 # Load ncdf
 dict_ncdf, dict_coord = load_ncdf(path_ncdf= path_data + file_ncdf, indicator='VCN10')

@@ -2,10 +2,41 @@ import pandas as pd
 import numpy as np
 import geopandas
 import netCDF4
+import re
 
 def open_shp(path_shp: str):
     current_shp = geopandas.read_file(path_shp)
     return current_shp
+
+def load_csv(path_csv, data_type='csv', sep=';'):
+    # Climatic csv has a specific format
+    if data_type == 'sqr':
+        current_csv = pd.read_csv(path_csv, sep=sep, header=None, engine="python",
+                                  names=[str(i) for i in range(3)])
+
+        data_csv = current_csv.loc[9:]
+        data_csv = data_csv.rename(columns={'0': 'date', '1': 'value', '2': 'indicator'}).reset_index(drop=True)
+
+        # Format info
+        resume_df = current_csv.iloc[:6, 0]
+        resume_name = ['titre', 'num_poste', 'nom_usuel', 'lat', 'lon', 'alt']
+        resume_dict = {}
+        for idx, row in resume_df.items():
+            value = re.split('= |#', row)[-1]
+            try:
+                value = float(value)
+            except ValueError:
+                pass
+            resume_dict[resume_name[idx]] = value
+
+        resume_dict['timeline'] = data_csv
+
+        return resume_dict
+
+    else:
+        current_csv = pd.read_csv(path_csv, sep=sep)
+        return current_csv
+
 
 def load_ncdf(path_ncdf: str, indicator: str, station_codes: list[str]=None) -> tuple[
     dict[str, float], dict[str, tuple[float, float]]]:
