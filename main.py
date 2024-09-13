@@ -1,6 +1,9 @@
 # General import
 import os
 import glob
+
+import pandas as pd
+
 # Local import
 from global_functions.load_data import *
 from global_functions.plot_data import *
@@ -36,20 +39,22 @@ path_indicator_files = glob.glob(path_data + f'hydro/{indicator}*.nc')
 
 # Get selected station (depends on the area)
 stations_data = load_csv(path_stations)
+valid_stations = pd.isna(stations_data['PointsSupprimes'])
+stations_data = stations_data[valid_stations].reset_index(drop=True)
+
 shapefile = open_shp(path_shp=path_shp)
 selected_id = [0, 1, 2, 3]
 selected_stations = stations_in_shape(shapefile, selected_id, stations_data)
 
 selected_stations['is_in'] = selected_stations[[str(i) for i in selected_id]].sum(axis=1) >= 1
 
-stations = list(selected_stations[selected_stations['is_in']].index)
-selected_stations.index[selected_stations['is_in'] == True].tolist()
+selected_stations_name = selected_stations.index[selected_stations['is_in'] == True].tolist()
 
 
-for path in path_indicator_files:
+for path_ncdf in path_indicator_files:
     # Load ncdf [HYDRO]
-    hydro_ncdf = load_ncdf(path_ncdf=path_ncdf, indicator=indicator)
-    hydro_data = format_data(hydro_ncdf, stations_data)
+    hydro_ncdf = load_ncdf(path_ncdf=path_ncdf, indicator=indicator, station_codes=selected_stations_name)
+    hydro_data = format_data(dict_ncdf=hydro_ncdf, stations_data=stations_data)
 
 
 # Load csv [CLIM]

@@ -45,6 +45,16 @@ def load_csv(path_csv, data_type='csv', sep=','):
         return current_csv
 
 
+def split_ncdf(path):
+    info = ['indicator', 'timestep', 'dates', 'timetype', 'geotype', 'localisation', 'project',
+            'bc', 'rcp', 'gcm', 'rcm', 'hm']
+    path_split = path.split('_')
+
+    dict_info = {info[i]: path_split[i] for i in range(len(path_split))}
+
+    return dict_info
+
+
 def load_ncdf(path_ncdf: str, indicator: str, station_codes: list[str]=None) -> dict:
     """
 
@@ -55,7 +65,7 @@ def load_ncdf(path_ncdf: str, indicator: str, station_codes: list[str]=None) -> 
     """
 
     # Read netCDF
-    file2read = netCDF4.Dataset(path_ncdf,'r')
+    file2read = netCDF4.Dataset(path_ncdf,'r', encoding='utf-8')
 
     # Get matching idx
     all_codes = file2read['code'][:].data
@@ -66,16 +76,17 @@ def load_ncdf(path_ncdf: str, indicator: str, station_codes: list[str]=None) -> 
     dict_data = {'time': file2read['time'][:].data}
     # dict_coord = {}
     for code in station_codes:
+        code_bytes = [i.encode('utf-8') for i in code]
+
         # Get matching code index
-        code_idx = np.where((all_codes==code).all(axis=1))[0]
+        code_idx = np.where((all_codes==code_bytes).all(axis=1))[0]
 
-        # Get data
-        data_indicator = file2read[indicator][:, code_idx].data
-        code_str = b''.join(code).decode('utf-8')
-        dict_data[code_str] = data_indicator.flatten()
-        # dict_coord[code_str] = (file2read['L93_X'][code_idx].data[0], file2read['L93_Y'][code_idx].data[0])
+        if len(code_idx) > 0:
+            # Get data
+            data_indicator = file2read[indicator][:, code_idx].data
+            dict_data[code] = data_indicator.flatten()
 
-    return dict_data#, dict_coord
+    return dict_data
 
 def format_data(dict_ncdf, stations_data):
 
