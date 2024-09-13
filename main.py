@@ -1,9 +1,10 @@
 # General import
 import os
-
+import glob
 # Local import
 from global_functions.load_data import *
 from global_functions.plot_data import *
+from global_functions.shp_geometry import *
 
 # Avoid crash with console when launched manually
 import matplotlib
@@ -14,6 +15,9 @@ path_parent = os.sep.join(os.getcwd().split(os.sep)[:-2]) + os.sep
 path_data = path_parent + '20_data' + os.sep
 path_contour = path_data + 'contours' + os.sep
 path_results = path_parent + '21_results' + os.sep
+
+
+indicator = 'VCN10'
 
 # Files names
 file_shp = 'france' + os.sep + 'régions_2016.shp'
@@ -27,19 +31,33 @@ path_stations = path_data + file_stations
 path_ncdf = path_data + file_ncdf
 path_shp = path_contour + file_shp
 
-# Load Stations
-stations_data = load_csv(path_stations)
+# Get indicator files
+path_indicator_files = glob.glob(path_data + f'hydro/{indicator}*.nc')
 
-# Load ncdf [HYDRO]
-hydro_ncdf = load_ncdf(path_ncdf=path_ncdf, indicator='VCN10')
-hydro_data = format_data(hydro_ncdf, stations_data)
+# Get selected station (depends on the area)
+stations_data = load_csv(path_stations)
+shapefile = open_shp(path_shp=path_shp)
+selected_id = [0, 1, 2, 3]
+selected_stations = stations_in_shape(shapefile, selected_id, stations_data)
+
+selected_stations['is_in'] = selected_stations[[str(i) for i in selected_id]].sum(axis=1) >= 1
+
+stations = list(selected_stations[selected_stations['is_in']].index)
+selected_stations.index[selected_stations['is_in'] == True].tolist()
+
+
+for path in path_indicator_files:
+    # Load ncdf [HYDRO]
+    hydro_ncdf = load_ncdf(path_ncdf=path_ncdf, indicator=indicator)
+    hydro_data = format_data(hydro_ncdf, stations_data)
+
 
 # Load csv [CLIM]
 clim_data = load_csv(path_clim_csv)
 
-# Load shapefile
+
+# PLOT
 dict_plot = {'dpi': 300}
-shapefile = open_shp(path_shp=path_shp)
 path_result = path_results+'test7.png'
 
 plot_shp_figure(path_result=path_result, shapefile=shapefile, shp_column=None, df=hydro_data, indicator='value',
