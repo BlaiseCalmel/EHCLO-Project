@@ -9,6 +9,13 @@ def open_shp(path_shp: str):
     return current_shp
 
 def load_csv(path_csv, data_type='csv', sep=','):
+    """
+
+    :param path_csv:
+    :param data_type:
+    :param sep:
+    :return:
+    """
     # Climatic csv has a specific format
     if data_type == 'sqr':
         current_csv = pd.read_csv(path_csv, sep=sep, header=None, engine="python",
@@ -38,8 +45,14 @@ def load_csv(path_csv, data_type='csv', sep=','):
         return current_csv
 
 
-def load_ncdf(path_ncdf: str, indicator: str, station_codes: list[str]=None) -> tuple[
-    dict[str, float], dict[str, tuple[float, float]]]:
+def load_ncdf(path_ncdf: str, indicator: str, station_codes: list[str]=None) -> dict:
+    """
+
+    :param path_ncdf:
+    :param indicator:
+    :param station_codes:
+    :return:
+    """
 
     # Read netCDF
     file2read = netCDF4.Dataset(path_ncdf,'r')

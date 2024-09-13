@@ -42,7 +42,7 @@ dict_plot = {'dpi': 300}
 shapefile = open_shp(path_shp=path_shp)
 path_result = path_results+'test7.png'
 
-plot_shp_figure(path_result=path_result, shapefile=shapefile, shp_column=None, df=hydro_data, df_column='value',
+plot_shp_figure(path_result=path_result, shapefile=shapefile, shp_column=None, df=hydro_data, indicator='value',
                 figsize=None, palette='BrBG')
 
 

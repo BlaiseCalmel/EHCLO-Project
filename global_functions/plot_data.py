@@ -1,5 +1,4 @@
 import matplotlib.pyplot as plt
-from matplotlib import colormaps
 import geopandas.geodataframe as gpd
 import pandas as pd
 
@@ -25,14 +24,15 @@ def save_shp_figure(current_shp:gpd.GeoDataFrame, path_result:str, figsize:tuple
 
 
 def plot_shp_figure(path_result:str, shapefile:gpd.GeoDataFrame, shp_column:str=None, df:pd.DataFrame=None,
-                    df_column:str=None, figsize:tuple=None, palette:str='BrBG', **kwargs):
+                    indicator:str=None, figsize:tuple=None, shp_palette:str=None, scatter_palette:str='BrBG',
+                    **kwargs):
     """
 
     :param path_result:
     :param shapefile:
     :param df:
     :param shp_column:
-    :param df_column:
+    :param indicator:
     :param figsize:
     :param palette:
     :param kwargs:
@@ -44,22 +44,28 @@ def plot_shp_figure(path_result:str, shapefile:gpd.GeoDataFrame, shp_column:str=
     else:
         figsize = (30, 18)
 
-
-    cmap = colormaps[palette]
-
     # Init plot
     fig, ax = plt.subplots(figsize=figsize)
 
     # Plot Shapefile
     if shp_column is not None:
-        shapefile.plot(ax=ax, figsize=figsize, edgecolor='black', column=shp_column)
+        ax = shapefile.plot(figsize=figsize, edgecolor='black', column=shp_column, cmap=shp_palette,
+                            legend=True, legend_kwds={"label": shp_column})
+
     else:
-        shapefile.plot(ax=ax, figsize=figsize, edgecolor='black', facecolor="none")
+        ax = shapefile.plot(figsize=figsize, edgecolor='black', facecolor="none", cmap=shp_palette)
 
     # Plot Scatter
-    if df is not None and df_column is not None:
-        ax.scatter(x=df['XL93'], y=df['YL93'], s=50, c=df[df_column], cmap=cmap)
+    if df is not None and indicator is not None:
+        # Color map for scatter
+        # scatter_cmap = colormaps[scatter_palette]
+        p1 = ax.scatter(x=df['XL93'], y=df['YL93'], s=50, c=df[indicator], cmap=scatter_palette)
+        fig.colorbar(p1, label=indicator)
 
+    # Legend
+    ax.legend()
+    # ax.get_legend().set_bbox_to_anchor((1.5, 1))
+    plt.axis('off')
     # Save and delete
     plt.savefig(path_result)
 
