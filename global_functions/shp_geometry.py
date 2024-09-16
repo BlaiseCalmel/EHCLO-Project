@@ -1,18 +1,17 @@
 import geopandas
 from shapely.geometry import Point, Polygon
 
-def stations_in_shape(shapefile, selected_id, stations_data):
-    # TODO function is really slow (use numba ?)
-    # Format polygons
-    selected_polygons = geopandas.GeoSeries({
-        str(i): shapefile.loc[shapefile['id_newregi'] == i, 'geometry'].values[0] for i in selected_id})
+def stations_in_shape(shapefile, stations_data):
+    # Station points L93
+    points = geopandas.GeoDataFrame(
+        stations_data, geometry=geopandas.points_from_xy(stations_data.XL93, stations_data.YL93),
+        crs={'init': 'epsg:2154'}
 
-    # Convert station coordinates to geometry Points
-    _station_points = [Point(x, y) for x, y in stations_data[['XL93', 'YL93']].itertuples(index=False)]
-    station_points = geopandas.GeoDataFrame(geometry=_station_points, index=stations_data['SuggestionCode'])
+    )
+    # Polygons to L93
+    shapefile_l93 = shapefile.to_crs(crs={'init': 'epsg:2154'})
 
-    # Find which stations is in selected polygons
-    selected_stations = station_points.assign(**{
-        key: station_points.within(geom) for key, geom in selected_polygons.items()})
+    # Join both
+    matched_points = points.sjoin(shapefile_l93, how='inner', predicate='intersects')
 
-    return selected_stations
+    return matched_points

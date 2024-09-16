@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pandas as pd
 import numpy as np
 import geopandas
@@ -92,7 +94,11 @@ def format_data(dict_ncdf, stations_data):
 
     df_data = pd.DataFrame(dict_ncdf)
 
-    df_data = df_data.drop('time', axis=1)
+    # df_data['time'] = pd.to_datetime(df_data['time'], unit='D', origin=pd.Timestamp('1950-01-01')
+    #                                  ).apply(lambda x: x.date())
+
+    # df_data = df_data.drop('time', axis=1)
+
     df_mean = pd.DataFrame(df_data.mean(axis=0)).set_axis(['value'], axis=1)
 
     stations_data = stations_data.set_index('SuggestionCode')

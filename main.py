@@ -19,11 +19,11 @@ path_data = path_parent + '20_data' + os.sep
 path_contour = path_data + 'contours' + os.sep
 path_results = path_parent + '21_results' + os.sep
 
-
+# Define indicator
 indicator = 'VCN10'
 
 # Files names
-file_shp = 'france' + os.sep + 'régions_2016.shp'
+file_shp = 'sage_metrople-shp' + os.sep + 'sage_shape.shp'
 file_ncdf = 'hydro/VCN10_seas-MJJASON_1976-2100_TIMEseries_GEOstation_FR-Rhone-Loire_EXPLORE2-2024_MF-ADAMONT_historical-rcp85_NorESM1-M_WRF381P_J2000.nc'
 file_csv = 'climat' + os.sep + 'ETP' + os.sep + 'ETP_Hargreaves_coefficient_0.175_1970-1979.csv'
 file_stations = 'Selection_points_simulation.csv'
@@ -37,24 +37,37 @@ path_shp = path_contour + file_shp
 # Get indicator files
 path_indicator_files = glob.glob(path_data + f'hydro/{indicator}*.nc')
 
-# Get selected station (depends on the area)
+# Select study area
+# TODO match station with multiple hydrographic areas
+selected_id = ['SAGE06020', 'SAGE01015', 'SAGE03027', 'SAGE01013']
+
+# Load stations info
 stations_data = load_csv(path_stations)
 valid_stations = pd.isna(stations_data['PointsSupprimes'])
-stations_data = stations_data[valid_stations].reset_index(drop=True)
+stations_data = stations_data[valid_stations].reset_index(drop=True).set_index('SuggestionCode')
 
+# Load shapefile
 shapefile = open_shp(path_shp=path_shp)
-selected_id = [0, 1, 2, 3]
-selected_stations = stations_in_shape(shapefile, selected_id, stations_data)
 
-selected_stations['is_in'] = selected_stations[[str(i) for i in selected_id]].sum(axis=1) >= 1
+# Create file matching shape and stations
+matched_stations = stations_in_shape(shapefile, stations_data)
 
-selected_stations_name = selected_stations.index[selected_stations['is_in'] == True].tolist()
+# Get stations in selected area
+selected_stations = matched_stations[matched_stations['code'].isin(selected_id)]
 
 
+# Get indicator info for each station and group them
 for path_ncdf in path_indicator_files:
     # Load ncdf [HYDRO]
     hydro_ncdf = load_ncdf(path_ncdf=path_ncdf, indicator=indicator, station_codes=selected_stations_name)
-    hydro_data = format_data(dict_ncdf=hydro_ncdf, stations_data=stations_data)
+    hydro_df = pd.DataFrame(hydro_ncdf)
+    hydro_df['time'] = pd.to_datetime(hydro_df['time'], unit='D', origin=pd.Timestamp('1950-01-01')
+                                     ).apply(lambda x: x.date())
+
+
+
+
+    # hydro_data = format_data(dict_ncdf=hydro_ncdf, stations_data=stations_data)
 
 
 # Load csv [CLIM]
