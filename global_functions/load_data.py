@@ -8,6 +8,11 @@ import re
 
 def open_shp(path_shp: str):
     current_shp = geopandas.read_file(path_shp)
+
+    # Correct if current shapefile is not from Lambert93 projection
+    if 'Lambert-93' not in current_shp.crs.name:
+        current_shp = current_shp.to_crs(crs={'init': 'epsg:2154'})
+
     return current_shp
 
 def load_csv(path_csv, data_type='csv', sep=','):
@@ -57,7 +62,7 @@ def split_ncdf(path):
     return dict_info
 
 
-def load_ncdf(path_ncdf: str, indicator: str, station_codes: list[str]=None) -> dict:
+def load_ncdf(path_ncdf: str, file_dict: dict, indicator: str, station_codes: list[str]=None) -> dict:
     """
 
     :param path_ncdf:
@@ -67,28 +72,30 @@ def load_ncdf(path_ncdf: str, indicator: str, station_codes: list[str]=None) -> 
     """
 
     # Read netCDF
-    file2read = netCDF4.Dataset(path_ncdf,'r', encoding='utf-8')
+    open_netcdf = netCDF4.Dataset(path_ncdf,'r', encoding='utf-8')
 
     # Get matching idx
-    all_codes = file2read['code'][:].data
+    netcdf_codes = open_netcdf['code'][:].data
 
     if station_codes is None:
-        station_codes = all_codes
+        station_codes = netcdf_codes
 
-    dict_data = {'time': file2read['time'][:].data}
-    # dict_coord = {}
+    file_dict['time'] = open_netcdf['time'][:].data
+
+    # dict_data = {'time': open_netcdf['time'][:].data, 'info': file_dict}
+
     for code in station_codes:
-        code_bytes = [i.encode('utf-8') for i in code]
+        code_to_bytes = [i.encode('utf-8') for i in code]
 
         # Get matching code index
-        code_idx = np.where((all_codes==code_bytes).all(axis=1))[0]
+        code_idx = np.where((netcdf_codes==code_to_bytes).all(axis=1))[0]
 
         if len(code_idx) > 0:
             # Get data
-            data_indicator = file2read[indicator][:, code_idx].data
-            dict_data[code] = data_indicator.flatten()
+            data_indicator = open_netcdf[indicator][:, code_idx].data
+            file_dict[code]= data_indicator.flatten()
 
-    return dict_data
+    return file_dict
 
 def format_data(dict_ncdf, stations_data):
 

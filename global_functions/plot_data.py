@@ -2,7 +2,9 @@ import matplotlib.pyplot as plt
 import geopandas.geodataframe as gpd
 import pandas as pd
 
-def save_shp_figure(current_shp:gpd.GeoDataFrame, path_result:str, figsize:tuple=None, **kwargs):
+def save_shp_figure(current_shp:gpd.GeoDataFrame, path_result:str, study_shapefile:gpd.GeoDataFrame=None,
+                    rivers_shp:gpd.GeoDataFrame=None,
+                    figsize:tuple=None, **kwargs):
     """
 
     :param current_shp:
@@ -17,10 +19,20 @@ def save_shp_figure(current_shp:gpd.GeoDataFrame, path_result:str, figsize:tuple
         figsize = (30, 18)
 
     fig, ax = plt.subplots(figsize=figsize)
-    current_shp.plot(ax=ax, figsize=figsize, edgecolor='black')
-    plt.savefig(path_result, **kwargs)
+    current_shp.plot(ax=ax, figsize=figsize, color='lightgray', edgecolor='black')
 
-    plt.clf()
+    if study_shapefile is not None:
+        study_shapefile.plot(ax=ax, color='lightgray', edgecolor='red', linestyle="--")
+
+    if rivers_shp is not None:
+        rivers_shp.plot(ax=ax, linewidth=2, color='royalblue', linestyle="--")
+
+    # ax.set_xlim(0, 1200000)
+    # ax.set_ylim(6000000, 7200000)
+
+    plt.savefig(path_result, **kwargs)
+    plt.close()
+    # plt.clf()
 
 
 def plot_shp_figure(path_result:str, shapefile:gpd.GeoDataFrame, shp_column:str=None, df:pd.DataFrame=None,
