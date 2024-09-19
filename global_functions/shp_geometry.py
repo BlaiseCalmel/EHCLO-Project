@@ -1,7 +1,7 @@
 import geopandas
 from shapely.geometry import Point, Polygon
 
-def data_in_shape(shapefile, data, cols=None, path_results=None):
+def is_data_in_shape(shapefile, data, cols=None, path_results=None):
     # Station points L93
     if cols is not None:
         x = data[cols[0]]

@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import geopandas.geodataframe as gpd
 import pandas as pd
+from fontTools.misc.plistlib import end_data
+import matplotlib.colors as mcolors
 
 def save_shp_figure(current_shp:gpd.GeoDataFrame, path_result:str, study_shapefile:gpd.GeoDataFrame=None,
                     rivers_shp:gpd.GeoDataFrame=None,
@@ -79,6 +81,26 @@ def plot_shp_figure(path_result:str, shapefile:gpd.GeoDataFrame, shp_column:str=
     # ax.get_legend().set_bbox_to_anchor((1.5, 1))
     plt.axis('off')
     # Save and delete
+    plt.savefig(path_result)
+
+def plot_scatter_on_map(path_result, region_shp, df, cols, indicator, figsize=(30, 18), nrow=1, ncol=1, palette='BrBG'):
+    # Compute min and max values
+    vmin = min(df[cols].min())
+    vmax = min(df[cols].max())
+    norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+
+    # Init plot
+    fig, axs = plt.subplots(nrow, ncol, figsize=figsize)
+
+    for i, col in enumerate(df[cols]):
+        region_shp.plot(ax=axs[i], figsize=figsize, color='lightgray', edgecolor='black')
+        p = axs[i].scatter(x=df['XL93'], y=df['YL93'], s=50, c=df[col], cmap=palette, norm=norm)
+        axs[i].set_title(col)
+        axs[i].set_axis_off()
+
+    cbar = fig.colorbar(p, ax=axs, orientation='vertical', fraction=0.02, pad=0.04)
+    cbar.set_label(indicator)
+    # Save
     plt.savefig(path_result)
 
 

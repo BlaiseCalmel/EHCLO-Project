@@ -1,10 +1,10 @@
-from datetime import datetime
-
+import datetime as dt
 import pandas as pd
 import numpy as np
 import geopandas
 import netCDF4
 import re
+
 
 def open_shp(path_shp: str):
     current_shp = geopandas.read_file(path_shp)
@@ -114,6 +114,30 @@ def format_data(dict_ncdf, stations_data):
     df = pd.merge(df_mean, stations_data[['XL93', 'YL93']], left_index=True, right_index=True)
 
     return df
+
+def convert_timedelta64(df):
+    start = dt.datetime(1950,1,1,0,0)
+    datetime_series = df['time'].astype('timedelta64[D]') + start
+    df['year'] = datetime_series.dt.year
+    return df
+
+def define_horizon(df):
+    df['Histo'] = df['year'] < 2006
+    df['H1'] = (df['year'] >= 2021) & (df['year'] <= 2050)
+    df['H2'] = (df['year'] >= 2041) & (df['year'] <= 2070)
+    df['H3'] = df['year'] >= 2070
+    return df
+
+def group_by_horizon(df, stations_name, function='median'):
+    df_stations = [i for i in stations_name if i in df.columns]
+
+    groupby_dict = {k: function for k in df_stations}
+    df_histo = df[df['Histo'] == True].groupby(['sim']).agg(groupby_dict)
+    df_H1 = df[df['H1'] == True].groupby(['sim']).agg(groupby_dict)
+    df_H2 = df[df['H2'] == True].groupby(['sim']).agg(groupby_dict)
+    df_H3 = df[df['H3'] == True].groupby(['sim']).agg(groupby_dict)
+
+    return df_histo, df_H1, df_H2, df_H3
 
 
 
