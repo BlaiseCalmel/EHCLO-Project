@@ -1,10 +1,8 @@
 import matplotlib.pyplot as plt
 import geopandas.geodataframe as gpd
-import pandas as pd
-from fontTools.misc.plistlib import end_data
-import matplotlib.colors as mcolors
+import numpy as np
 
-def save_shp_figure(current_shp:gpd.GeoDataFrame, path_result:str, study_shapefile:gpd.GeoDataFrame=None,
+def save_shp_figure(back_shp:gpd.GeoDataFrame, path_result:str, study_shp:gpd.GeoDataFrame=None,
                     rivers_shp:gpd.GeoDataFrame=None,
                     figsize:tuple=None, **kwargs):
     """
@@ -18,90 +16,113 @@ def save_shp_figure(current_shp:gpd.GeoDataFrame, path_result:str, study_shapefi
     if figsize is not None:
         figsize = figsize
     else:
-        figsize = (30, 18)
+        figsize = (18, 18)
 
     fig, ax = plt.subplots(figsize=figsize)
-    current_shp.plot(ax=ax, figsize=figsize, color='lightgray', edgecolor='black')
+    back_shp.plot(ax=ax, figsize=figsize, color='gainsboro', edgecolor='black')
 
-    if study_shapefile is not None:
-        study_shapefile.plot(ax=ax, color='lightgray', edgecolor='red', linestyle="--")
+    if study_shp is not None:
+        study_shp.plot(ax=ax, color='gainsboro', linewidth=2, edgecolor='firebrick', linestyle="--")
+        bounds = study_shp.geometry.total_bounds
+    else:
+        bounds = back_shp.geometry.total_bounds
 
     if rivers_shp is not None:
-        rivers_shp.plot(ax=ax, linewidth=2, color='royalblue', linestyle="--")
+        rivers_tresh = 0.5 * ((bounds[2] - bounds[0])**2 + (bounds[3] - bounds[1])**2)**0.5
+        long_rivers_idx = rivers_shp.geometry.length > rivers_tresh
 
-    # ax.set_xlim(0, 1200000)
-    # ax.set_ylim(6000000, 7200000)
+        long_rivers_shp = rivers_shp[long_rivers_idx]
+
+        long_rivers_shp.plot(ax=ax, linewidth=2, color='royalblue')
+
+    ax.set_xlim(bounds[0] - 5000, bounds[2] + 5000)
+    ax.set_ylim(bounds[1] - 5000, bounds[3] + 5000)
 
     plt.savefig(path_result, **kwargs)
     plt.close()
-    # plt.clf()
 
 
-def plot_shp_figure(path_result:str, shapefile:gpd.GeoDataFrame, shp_column:str=None, df:pd.DataFrame=None,
-                    indicator:str=None, figsize:tuple=None, shp_palette:str=None, scatter_palette:str='BrBG',
-                    **kwargs):
+def plot_scatter_on_map(path_result, back_shp, df_plot, cols, indicator, study_shp=None, rivers_shp=None,
+                        figsize=(18, 18), nrow=1, ncol=1, palette='BrBG', discretize=None, zoom=5000):
     """
-
+    Function to plot scatter data with a colorbar (continuous/discrete) on a shapefile background
     :param path_result:
-    :param shapefile:
-    :param df:
-    :param shp_column:
+    :param back_shp:
+    :param df_plot:
+    :param cols:
     :param indicator:
+    :param study_shp:
+    :param rivers_shp:
     :param figsize:
+    :param nrow:
+    :param ncol:
     :param palette:
-    :param kwargs:
+    :param discretize:
+    :param zoom:
     :return:
     """
-
-    if figsize is not None:
-        figsize = figsize
-    else:
-        figsize = (30, 18)
-
-    # Init plot
-    fig, ax = plt.subplots(figsize=figsize)
-
-    # Plot Shapefile
-    if shp_column is not None:
-        ax = shapefile.plot(figsize=figsize, edgecolor='black', column=shp_column, cmap=shp_palette,
-                            legend=True, legend_kwds={"label": shp_column})
-
-    else:
-        ax = shapefile.plot(figsize=figsize, edgecolor='black', facecolor="none", cmap=shp_palette)
-
-    # Plot Scatter
-    if df is not None and indicator is not None:
-        # Color map for scatter
-        # scatter_cmap = colormaps[scatter_palette]
-        p1 = ax.scatter(x=df['XL93'], y=df['YL93'], s=50, c=df[indicator], cmap=scatter_palette)
-        fig.colorbar(p1, label=indicator)
-
-    # Legend
-    ax.legend()
-    # ax.get_legend().set_bbox_to_anchor((1.5, 1))
-    plt.axis('off')
-    # Save and delete
-    plt.savefig(path_result)
-
-def plot_scatter_on_map(path_result, region_shp, df, cols, indicator, figsize=(30, 18), nrow=1, ncol=1, palette='BrBG'):
     # Compute min and max values
-    vmin = min(df[cols].min())
-    vmax = min(df[cols].max())
-    norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+    vmin = min(df_plot[cols].min())
+    vmax = max(df_plot[cols].max())
+    # norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
+
+    if discretize is not None:
+        ticks = np.arange(vmin, vmax+discretize, discretize)
+        cm = plt.get_cmap(palette, len(ticks))
+        vmin = vmin - discretize * 0.5
+        vmax = vmax + discretize * 0.5
+    else:
+        cm = plt.get_cmap(palette)
+
+    if study_shp is not None:
+        bounds = study_shp.geometry.total_bounds
+    else:
+        bounds = back_shp.geometry.total_bounds
+
+    if rivers_shp is not None:
+        rivers_thresh = 0.5 * ((bounds[2] - bounds[0])**2 + (bounds[3] - bounds[1])**2)**0.5
+        long_rivers_idx = rivers_shp.geometry.length > rivers_thresh
+        long_rivers_shp = rivers_shp[long_rivers_idx]
 
     # Init plot
-    fig, axs = plt.subplots(nrow, ncol, figsize=figsize)
+    fig, axs = plt.subplots(nrow, ncol, figsize=figsize, layout='compressed')
 
-    for i, col in enumerate(df[cols]):
-        region_shp.plot(ax=axs[i], figsize=figsize, color='lightgray', edgecolor='black')
-        p = axs[i].scatter(x=df['XL93'], y=df['YL93'], s=50, c=df[col], cmap=palette, norm=norm)
-        axs[i].set_title(col)
-        axs[i].set_axis_off()
+    count_idx = -1
+    for row_idx in range(nrow):
+        for col_idx in range(ncol):
+            count_idx += 1
 
-    cbar = fig.colorbar(p, ax=axs, orientation='vertical', fraction=0.02, pad=0.04)
+            if nrow > 1:
+                if isinstance(axs, (np.ndarray, np.generic) ):
+                    ax = axs[row_idx, col_idx]
+                else:
+                    ax = axs
+            else:
+                ax = axs[col_idx]
+
+            back_shp.plot(ax=ax, figsize=figsize, color='gainsboro', edgecolor='black', zorder=0)
+
+            if study_shp is not None:
+                study_shp.plot(ax=ax, figsize=figsize, color='white', edgecolor='firebrick', zorder=1)
+
+            if rivers_shp is not None:
+                long_rivers_shp.plot(ax=ax, linewidth=1, color='royalblue', zorder=2)
+
+            p = ax.scatter(x=df_plot['XL93'], y=df_plot['YL93'], s=30, c=df_plot[cols[count_idx]], cmap=cm, zorder=3,
+                           vmin=vmin, vmax=vmax)
+            ax.set_xlim(bounds[0] - zoom, bounds[2] + zoom)
+            ax.set_ylim(bounds[1] - zoom, bounds[3] + zoom)
+            ax.set_title(cols[count_idx])
+            ax.set_axis_off()
+
+    if discretize is not None:
+        cbar = fig.colorbar(p, ax=axs, orientation='vertical', ticks=ticks)
+    else:
+        cbar = fig.colorbar(p, ax=axs, orientation='vertical')
     cbar.set_label(indicator)
+    # fig.tight_layout()
     # Save
-    plt.savefig(path_result)
+    plt.savefig(path_result, bbox_inches='tight')
 
 
 # SAVE AS SVG

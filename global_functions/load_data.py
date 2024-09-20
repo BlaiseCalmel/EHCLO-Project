@@ -4,6 +4,8 @@ import numpy as np
 import geopandas
 import netCDF4
 import re
+import time
+import os
 
 
 def open_shp(path_shp: str):
@@ -97,22 +99,48 @@ def load_ncdf(path_ncdf: str, file_dict: dict, indicator: str, station_codes: li
 
     return file_dict
 
-def format_data(dict_ncdf, stations_data):
+def iterate_over_path(path_indicator_files, param_type, parameters, selected_stations_name):
+    dict_data = {}
+    time_start = time.time()
+    estimate_timestep = 0
+    i = -1
+    for path_ncdf in path_indicator_files:
+        i += 1
+        timedelta = (time.time() - time_start)
+        files_to_open = (len(path_indicator_files) - i)
+        if i > 1:
+            estimate_timestep = timedelta / i
+        # Get current file info
+        file_name = os.path.basename(path_ncdf)[:-3]
+        split_name = file_name.split('_')
+        split_name += [''] * (len(parameters) - len(split_name))
 
-    df_data = pd.DataFrame(dict_ncdf)
+        # Save them in dict
+        file_dict = dict(zip(parameters, split_name))
 
-    # df_data['time'] = pd.to_datetime(df_data['time'], unit='D', origin=pd.Timestamp('1950-01-01')
-    #                                  ).apply(lambda x: x.date())
+        # Load ncdf [HYDRO]
+        if param_type == 'hydro':
+            dict_data[file_name] = load_ncdf(path_ncdf=path_ncdf, file_dict=file_dict,
+                                             indicator=parameters['param_indicator'],
+                                             station_codes=selected_stations_name)
 
-    # df_data = df_data.drop('time', axis=1)
+        print(f'============= {file_name} =============\n'
+              f'Running for {dt.timedelta(seconds=round(timedelta))}\n'
+              f'Ends in {dt.timedelta(seconds=round(files_to_open*estimate_timestep))} '
+              f'[{i+1} files/{len(path_indicator_files)}]')
 
-    df_mean = pd.DataFrame(df_data.mean(axis=0)).set_axis(['value'], axis=1)
+    return dict_data
 
-    stations_data = stations_data.set_index('SuggestionCode')
-    # df_coord = pd.DataFrame(dict_coord).T.set_axis(['lat', 'lon'], axis=1)
+def from_dict_to_df(data_dict):
+    # Transform dict to DataFrame
+    df = pd.concat({k: pd.DataFrame(v) for k, v in data_dict.items()})
+    df = df.reset_index().rename(columns={'level_0': 'sim', 'level_1': 'iteration'})
 
-    df = pd.merge(df_mean, stations_data[['XL93', 'YL93']], left_index=True, right_index=True)
+    # Convert number of days since 01-01-1950 to year
+    df = convert_timedelta64(df)
 
+    # Define Horizon
+    df = define_horizon(df)
     return df
 
 def convert_timedelta64(df):
@@ -128,14 +156,19 @@ def define_horizon(df):
     df['H3'] = df['year'] >= 2070
     return df
 
-def group_by_horizon(df, stations_name, function='median'):
+def group_by_horizon(df, stations_name, col_by=['sim'], function='median', relative=False):
     df_stations = [i for i in stations_name if i in df.columns]
 
     groupby_dict = {k: function for k in df_stations}
-    df_histo = df[df['Histo'] == True].groupby(['sim']).agg(groupby_dict)
-    df_H1 = df[df['H1'] == True].groupby(['sim']).agg(groupby_dict)
-    df_H2 = df[df['H2'] == True].groupby(['sim']).agg(groupby_dict)
-    df_H3 = df[df['H3'] == True].groupby(['sim']).agg(groupby_dict)
+    df_histo = df[df['Histo'] == True].groupby(col_by).agg(groupby_dict)
+    df_H1 = df[df['H1'] == True].groupby(col_by).agg(groupby_dict)
+    df_H2 = df[df['H2'] == True].groupby(col_by).agg(groupby_dict)
+    df_H3 = df[df['H3'] == True].groupby(col_by).agg(groupby_dict)
+
+    if relative:
+        df_H1 = df_H1 / df_histo
+        df_H2 = df_H2 / df_histo
+        df_H3 = df_H3 / df_histo
 
     return df_histo, df_H1, df_H2, df_H3
 
