@@ -43,7 +43,8 @@ def save_shp_figure(back_shp:gpd.GeoDataFrame, path_result:str, study_shp:gpd.Ge
 
 
 def plot_scatter_on_map(path_result, back_shp, df_plot, cols, indicator, study_shp=None, rivers_shp=None,
-                        figsize=(18, 18), nrow=1, ncol=1, palette='BrBG', discretize=None, zoom=5000):
+                        figsize=(18, 18), nrow=1, ncol=1, palette='BrBG', discretize=None, zoom=5000, s=30,
+                        title=None):
     """
     Function to plot scatter data with a colorbar (continuous/discrete) on a shapefile background
     :param path_result:
@@ -108,11 +109,14 @@ def plot_scatter_on_map(path_result, back_shp, df_plot, cols, indicator, study_s
             if rivers_shp is not None:
                 long_rivers_shp.plot(ax=ax, linewidth=1, color='royalblue', zorder=2)
 
-            p = ax.scatter(x=df_plot['XL93'], y=df_plot['YL93'], s=30, c=df_plot[cols[count_idx]], cmap=cm, zorder=3,
+            p = ax.scatter(x=df_plot['XL93'], y=df_plot['YL93'], s=s, c=df_plot[cols[count_idx]], cmap=cm, zorder=3,
                            vmin=vmin, vmax=vmax)
             ax.set_xlim(bounds[0] - zoom, bounds[2] + zoom)
             ax.set_ylim(bounds[1] - zoom, bounds[3] + zoom)
-            ax.set_title(cols[count_idx])
+            if title is None:
+                ax.set_title(cols[count_idx])
+            else:
+                ax.set_title(title[count_idx])
             ax.set_axis_off()
 
     if discretize is not None:

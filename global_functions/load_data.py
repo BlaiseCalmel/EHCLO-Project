@@ -156,21 +156,44 @@ def define_horizon(df):
     df['H3'] = df['year'] >= 2070
     return df
 
-def group_by_horizon(df, stations_name, col_by=['sim'], function='median', relative=False):
+def group_by_function(df, stations_name, col_by=['sim'], function='mean', function2='median', bool_cols=None,
+                     relative=False, matched_stations=None):
     df_stations = [i for i in stations_name if i in df.columns]
 
     groupby_dict = {k: function for k in df_stations}
-    df_histo = df[df['Histo'] == True].groupby(col_by).agg(groupby_dict)
-    df_H1 = df[df['H1'] == True].groupby(col_by).agg(groupby_dict)
-    df_H2 = df[df['H2'] == True].groupby(col_by).agg(groupby_dict)
-    df_H3 = df[df['H3'] == True].groupby(col_by).agg(groupby_dict)
+    dict_temp = {}
+
+    if bool_cols is not None:
+        for col in bool_cols:
+            # Apply function on selected columns
+            df_temp = df[df[col] == True].groupby(col_by).agg(groupby_dict)
+            # Apply function2
+            df_temp = df_temp.agg(function2).to_frame().set_axis([col], axis=1)
+            dict_temp[col] = df_temp
+        df_plot = pd.concat([val for val in dict_temp.values()], axis=1)
+    else:
+        df_plot = df.groupby(col_by).agg(groupby_dict).T
 
     if relative:
-        df_H1 = df_H1 / df_histo
-        df_H2 = df_H2 / df_histo
-        df_H3 = df_H3 / df_histo
+        print('Warning: first column is used as reference')
+        for col in bool_cols:
+            dict_temp[col] = dict_temp[col][col] / dict_temp[bool_cols[0]][bool_cols[0]]
 
-    return df_histo, df_H1, df_H2, df_H3
+
+    if matched_stations is not None:
+        df_plot = pd.concat([matched_stations[['XL93', 'YL93']], df_plot], axis=1)
+
+    # df_histo = df[df['Histo'] == True].groupby(col_by).agg(groupby_dict)
+    # df_H1 = df[df['H1'] == True].groupby(col_by).agg(groupby_dict)
+    # df_H2 = df[df['H2'] == True].groupby(col_by).agg(groupby_dict)
+    # df_H3 = df[df['H3'] == True].groupby(col_by).agg(groupby_dict)
+    #
+    # if relative:
+    #     df_H1 = df_H1 / df_histo
+    #     df_H2 = df_H2 / df_histo
+    #     df_H3 = df_H3 / df_histo
+
+    return df_plot
 
 
 

@@ -17,7 +17,6 @@ def is_data_in_shape(shapefile, data, cols=None, path_results=None):
     # Join both
     matched_points = data.sjoin(shapefile, how='inner', predicate='intersects')
 
-    matched_points.columns
     matched_points = matched_points.drop('index_right', axis=1)
 
     if path_results is not None:
