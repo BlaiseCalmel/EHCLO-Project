@@ -17,7 +17,7 @@ def open_shp(path_shp: str):
 
     return current_shp
 
-def load_csv(path_csv, data_type='csv', sep=','):
+def load_csv(path_files, data_type='csv', sep=','):
     """
 
     :param path_csv:
@@ -25,33 +25,53 @@ def load_csv(path_csv, data_type='csv', sep=','):
     :param sep:
     :return:
     """
-    # Climatic csv has a specific format
+    data_dict = {}
+    time_start = time.time()
+    estimate_timestep = 0
+    i = -1
     if data_type == 'sqr':
-        current_csv = pd.read_csv(path_csv, sep=sep, header=None, engine="python",
-                                  names=[str(i) for i in range(3)])
+        for path_csv in path_files :
+            i += 1
+            timedelta = (time.time() - time_start)
+            files_to_open = (len(path_files) - i)
+            if i > 1:
+                estimate_timestep = timedelta / i
+            # Climatic csv has a specific format
+            name = os.path.splitext(os.path.basename(path_csv))[0]
+            current_csv = pd.read_csv(path_csv, sep=sep, header=None, engine="python",
+                                      names=[str(i) for i in range(3)])
 
-        data_csv = current_csv.loc[9:]
-        data_csv = data_csv.rename(columns={'0': 'date', '1': 'value', '2': 'indicator'}).reset_index(drop=True)
-
-        # Format info
-        resume_df = current_csv.iloc[:6, 0]
-        resume_name = ['titre', 'num_poste', 'nom_usuel', 'lat', 'lon', 'alt']
-        resume_dict = {}
-        for idx, row in resume_df.items():
-            value = re.split('= |#', row)[-1]
-            try:
-                value = float(value)
-            except ValueError:
-                pass
-            resume_dict[resume_name[idx]] = value
-
-        resume_dict['timeline'] = data_csv
-
-        return resume_dict
-
+            data_csv = current_csv.loc[9:]
+            data_csv = data_csv.rename(columns={'0': 'date_'+name, '1': 'value_'+name, '2': 'indicator'+name
+                                                }).reset_index(drop=True)
+            data_dict[name] = data_csv
+            # Format info
+            # resume_df = current_csv.iloc[:6, 0]
+            # resume_name = ['titre', 'num_poste', 'nom_usuel', 'lat', 'lon', 'alt']
+            # resume_dict = {}
+            # for idx, row in resume_df.items():
+            #     value = re.split('= |#', row)[-1]
+            #     try:
+            #         value = float(value)
+            #     except ValueError:
+            #         pass
+            #     resume_dict[resume_name[idx]] = value
+            #
+            # data_csv['date'] = pd.to_datetime(data_csv['date'])
+            # resume_dict['timeline'] = data_csv
+            print(f'============= {name} =============\n'
+                  f'Running for {dt.timedelta(seconds=round(timedelta))}\n'
+                  f'Ends in {dt.timedelta(seconds=round(files_to_open*estimate_timestep))} '
+                  f'[{i+1} files/{len(path_files)}]')
     else:
-        current_csv = pd.read_csv(path_csv, sep=sep)
-        return current_csv
+        resume_dict = pd.read_csv(path_files, sep=sep)
+        # name = os.path.splitext(os.path.basename(path_files))[0]
+        #
+        # data_dict[name] = resume_dict
+        # df = pd.DataFrame.from_dict(data_dict).T
+        # df.index = [i.split('_')[1] for i in df.index]
+
+    return resume_dict
 
 
 def split_ncdf(path):
@@ -124,6 +144,11 @@ def iterate_over_path(path_indicator_files, param_type, parameters, selected_sta
                                              indicator=parameters['param_indicator'],
                                              station_codes=selected_stations_name)
 
+        elif param_type == 'climat':
+            dict_data[file_name] = load_ncdf(path_ncdf=path_ncdf, file_dict=file_dict,
+                                             indicator=parameters['param_indicator'],
+                                             station_codes=selected_stations_name)
+
         print(f'============= {file_name} =============\n'
               f'Running for {dt.timedelta(seconds=round(timedelta))}\n'
               f'Ends in {dt.timedelta(seconds=round(files_to_open*estimate_timestep))} '
@@ -176,9 +201,9 @@ def group_by_function(df, stations_name, col_by=['sim'], function='mean', functi
 
     if relative:
         print('Warning: first column is used as reference')
-        for col in bool_cols:
-            dict_temp[col] = dict_temp[col][col] / dict_temp[bool_cols[0]][bool_cols[0]]
-
+        for col in bool_cols[1:]:
+            df_plot[col]  = 100 * (df_plot[col] - df_plot[bool_cols[0]]) / df_plot[bool_cols[0]]
+            # dict_temp[col] = dict_temp[col][col] / dict_temp[bool_cols[0]][bool_cols[0]]
 
     if matched_stations is not None:
         df_plot = pd.concat([matched_stations[['XL93', 'YL93']], df_plot], axis=1)
@@ -194,6 +219,8 @@ def group_by_function(df, stations_name, col_by=['sim'], function='mean', functi
     #     df_H3 = df_H3 / df_histo
 
     return df_plot
+
+
 
 
 

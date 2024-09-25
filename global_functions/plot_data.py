@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import geopandas.geodataframe as gpd
 import numpy as np
 
+
+
 def save_shp_figure(back_shp:gpd.GeoDataFrame, path_result:str, study_shp:gpd.GeoDataFrame=None,
                     rivers_shp:gpd.GeoDataFrame=None,
                     figsize:tuple=None, **kwargs):
@@ -44,7 +46,7 @@ def save_shp_figure(back_shp:gpd.GeoDataFrame, path_result:str, study_shp:gpd.Ge
 
 def plot_scatter_on_map(path_result, back_shp, df_plot, cols, indicator, study_shp=None, rivers_shp=None,
                         figsize=(18, 18), nrow=1, ncol=1, palette='BrBG', discretize=None, zoom=5000, s=30,
-                        title=None):
+                        title=None, vmin=None, vmax=None):
     """
     Function to plot scatter data with a colorbar (continuous/discrete) on a shapefile background
     :param path_result:
@@ -63,8 +65,10 @@ def plot_scatter_on_map(path_result, back_shp, df_plot, cols, indicator, study_s
     :return:
     """
     # Compute min and max values
-    vmin = min(df_plot[cols].min())
-    vmax = max(df_plot[cols].max())
+    if vmin is None:
+        vmin = min(df_plot[cols].min())
+    if vmax is None:
+        vmax = max(df_plot[cols].max())
     # norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
 
     if discretize is not None:
@@ -93,13 +97,13 @@ def plot_scatter_on_map(path_result, back_shp, df_plot, cols, indicator, study_s
         for col_idx in range(ncol):
             count_idx += 1
 
-            if nrow > 1:
-                if isinstance(axs, (np.ndarray, np.generic) ):
+            if isinstance(axs, (np.ndarray, np.generic)):
+                if len(axs.shape) > 1:
                     ax = axs[row_idx, col_idx]
                 else:
-                    ax = axs
+                    ax =axs[col_idx]
             else:
-                ax = axs[col_idx]
+                ax = axs
 
             back_shp.plot(ax=ax, figsize=figsize, color='gainsboro', edgecolor='black', zorder=0)
 
@@ -128,63 +132,19 @@ def plot_scatter_on_map(path_result, back_shp, df_plot, cols, indicator, study_s
     # Save
     plt.savefig(path_result, bbox_inches='tight')
 
+def plot_timeline(df_station, station_name, path_result=None, figsize=(18, 18), selected_sim=None, name='red'):
+    # Init plot
+    fig, ax = plt.subplots(figsize=figsize, layout='compressed')
 
-# SAVE AS SVG
-# ## Import libraries
-# import geopandas as gpd
-# from bs4 import BeautifulSoup
-# import random
-# import textwrap
-#
-# ## Read data obtained from European Council as GeoPandas Dataframe
-# fp = path
-# data = gpd.read_file(fp)
-#
-# ## Define function that converts shapefile row to path
-# def process_to_svg_group(row):
-#     rd = row.to_dict()
-#     del rd["geometry"]
-#
-#     # Keep dataframe columns as attributes of the path
-#     to_add = []
-#     for key, val in rd.items():
-#         to_add.append('data-{}="{}"'.format(key, val))
-#
-#     # Convert geometry column to SVG paths
-#     ps = BeautifulSoup(row.geometry._repr_svg_(), "xml").find_all("path")
-#     paths = []
-#     for p in ps:
-#         new_path = f"""<g {' '.join(to_add)}>{str(p)}</g>"""
-#         paths.append(new_path)
-#
-#     return "\n\n".join(paths)
-#
-# ## Convert each row of the dataframe to an SVG path
-# processed_rows = []
-# for i, row in data.sample(frac=1).iterrows():
-#     p = process_to_svg_group(row)
-#     processed_rows.append(p)
-#
-# ## Setup svg attributes
-# props = {
-#     "viewBox": f"{data.total_bounds[0]} {data.total_bounds[1]} {data.total_bounds[2] - data.total_bounds[0]} {data.total_bounds[3] -data.total_bounds[1] }",
-#     "xmlns": "http://www.w3.org/2000/svg",
-#     "xmlns:xlink": "http://www.w3.org/1999/xlink",
-#     "transform": "scale(1, -1)",
-#     "preserveAspectRatio":"XMinYMin meet"
-# }
-#
-# ## Add attributes
-# template = '{key:s}="{val:s}"'
-# attrs = " ".join([template.format(key=key, val=props[key]) for key in props])
-#
-# ## Create SVG
-# raw_svg_str = textwrap.dedent(r"""
-# 	<?xml version="1.0" encoding="utf-8" ?>
-# 	<svg {attrs:s}>
-# 	{data:s}
-# 	</svg>""").format(attrs=attrs, data="".join(processed_rows)).strip()
-#
-# ## Save SVG
-# with open("map.svg", "w") as f:
-#     f.write(raw_svg_str)
+    for key, grp in df_station[df_station['sim'] != selected_sim].groupby(['sim']):
+        ax.plot(grp['year'], grp[station_name], c='grey', linewidth=1, )
+
+    selected_df = df_station[df_station['sim'] == selected_sim]
+    ax.plot(grp['year'], grp[station_name], c='r', linewidth=1, label=name)
+
+    ax.set_title(station_name)
+    ax.legend()
+
+    # Save
+    if path_result is not None:
+        plt.savefig(path_result, bbox_inches='tight')

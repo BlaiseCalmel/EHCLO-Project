@@ -26,17 +26,31 @@ path_results = path_parent + '3_results' + os.sep
 regions_shp = 'map' + os.sep + 'regionHydro' + os.sep + 'regionHydro.shp'
 rivers_shp = 'france_rivers' + os.sep + 'france_rivers.shp'
 file_stations = 'Selection_points_simulation.csv'
+file_climpoints = 'climpoints.csv'
 
 # Paths
 path_stations = path_contour + file_stations
+path_climpoints = path_contour + file_climpoints
 path_regions_shp = path_contour + regions_shp
 path_rivers_shp = path_contour + rivers_shp
 
 # Define data type to analyse
 # TODO define it for climate data
-param_type = 'hydro'
-parameters = {'param_indicator': 'VCN10',
-              'param_timestep': 'seas-MJJASON',
+param_type = 'climat'
+# parameters = {'param_indicator': 'SQR/SQR_RR_metropole/SQR_',
+#               'param_timestep': '',
+#               'param_timeperiod': '',
+#               'param_time': '',
+#               'param_geo': '',
+#               'param_area': '',
+#               'param_project': '',
+#               'param_bc': '',
+#               'param_rcp': '',
+#               'param_gcm': '',
+#               'param_rcm': '',
+#               'param_hm': ''}
+parameters = {'param_indicator': 'QA',
+              'param_timestep': 'seas-JJA',
               'param_timeperiod': '',
               'param_time': '',
               'param_geo': '',
@@ -47,7 +61,10 @@ parameters = {'param_indicator': 'VCN10',
               'param_gcm': '',
               'param_rcm': '',
               'param_hm': ''}
-extension = 'nc'
+if param_type == 'hydro':
+    extension = 'nc'
+else:
+    extension = 'csv'
 
 print(f'################################ DEFINE STUDY AREA ################################')
 
@@ -69,13 +86,20 @@ stations_data = load_csv(path_stations)
 valid_stations = pd.isna(stations_data['PointsSupprimes'])
 stations_data = stations_data[valid_stations].reset_index(drop=True).set_index('SuggestionCode')
 
-stations_ref = stations_data[stations_data['Référence'] == 1]
-# stations_four = stations_data[stations_data['n'] >= 4]
-
+stations_data = stations_data[stations_data['Référence'] == 1]
 
 # Create file matching shape and stations
 matched_stations = is_data_in_shape(selected_regions_shp, stations_data, cols=['XL93', 'YL93'],
-                                 path_results=None)
+                                 path_result=None)
+
+
+# Load climat simpoints info
+climpoints_data = load_csv(path_climpoints)
+climpoints_data = climpoints_data.reset_index(drop=True).set_index('name')
+matched_climpoints = is_data_in_shape(shapefile=selected_regions_shp, data=climpoints_data, cols=['XL93', 'YL93'],
+                                      path_result=None)
+
+
 # matched_stations[matched_stations['n'] < 4] #23
 # matched_rivers = is_data_in_shape(selected_regions_shapefile, rivers_shapefile,
 #                                  path_results=path_contour+os.sep+'shapefiles'+os.sep+'rivers.shp')
@@ -83,6 +107,7 @@ matched_stations = is_data_in_shape(selected_regions_shp, stations_data, cols=['
 # Get stations in selected area
 # selected_stations = matched_stations[matched_stations['code'].isin(selected_id)]
 selected_stations_name = matched_stations.index.to_list()
+selected_climpoints_name = matched_climpoints.index.to_list()
 
 
 print(f'################################ EXTRACT DATA ################################')
@@ -96,7 +121,11 @@ path_indicator_files = glob.glob(path_data + f"{param_type}/{parameters['param_i
                                              f"{parameters['param_rcm']}*{parameters['param_hm']}.{extension}")
 
 # Load data from each files
-dict_data = iterate_over_path(path_indicator_files, param_type, parameters, selected_stations_name)
+if param_type == 'hydro':
+    dict_data = iterate_over_path(path_indicator_files, param_type, parameters, selected_stations_name)
+else:
+    dict_data = load_csv(path_files=path_indicator_files, data_type='sqr', sep=';')
+    # df.to_csv(path_contour+'maillage_climat.csv', sep=',')
 
 print(f'################################ FORMAT DATA ################################')
 # Convert to df and define horizon
@@ -116,6 +145,10 @@ cols = ['Histo', 'H1', 'H2', 'H3']
 # df_H3 = df_H3.mean(axis=0).to_frame().set_axis(['H3'], axis=1)
 #
 # df_plot = pd.concat([matched_stations, df_H1, df_H2, df_H3], axis=1)
+
+df_plot = group_by_function(df=df_data, stations_name=selected_stations_name,
+                            col_by=['sim'], function='mean', relative=True, bool_cols=cols,
+                            matched_stations=matched_stations)
 
 df_plot = group_by_function(df=df_data, stations_name=selected_stations_name,
                             col_by=['param_hm'], function='any', relative=False,
@@ -139,6 +172,54 @@ plot_scatter_on_map(path_result=path_results+'HM_by_stations_ref.pdf', back_shp=
                     indicator='HM by station', figsize=(10, 10), nrow=3, ncol=3, palette='Dark2_r', discretize=1, s=20,
                     title=title)
 
-# Scatter plot on a map
-plot_scatter_on_map(path_result=path_result, back_shp=selected_regions_shp, df_plot=df_plot, cols=cols,
-                    indicator=parameters['param_indicator'], figsize=None, palette='BrBG')
+# Scatter indicator plot on a map
+plot_scatter_on_map(path_result=path_results+parameters['param_indicator']+parameters['param_timestep']+'.pdf',
+                    back_shp=regions_shapefile, study_shp=selected_regions_shp, rivers_shp=rivers_shp, nrow=1, ncol=3,
+                    cols=['H1', 'H2', 'H3'], df_plot=df_plot, figsize=(12, 6), palette='BrBG', vmin=-100, vmax=100,
+                    indicator=f"Relvative {parameters['param_indicator']} {parameters['param_timestep']} variation (%)")
+
+
+# Graphique 2 : Dispersion des résultats sur une stations : trajectoires
+my_station = 'K002000101'
+# X = time
+# Y = param_indicator
+
+df_station = df_data[['year', 'sim', my_station]]
+my_sim = 'QA_seas-JJA_1975-2100_TIMEseries_GEOstation_FR-METRO_EXPLORE2-2024_MF-ADAMONT_historical-rcp85_EC-EARTH_RACMO22E_SMASH'
+
+file_test = 'prtotAdjust_France_MPI-M-MPI-ESM-LR_historical_r1i1p1_CLMcom-CCLM4-8-17_v1_LSCE-IPSL-CDFt-L-1V-0L-1976-2005_day_19500101-20051231.nc'
+path_test = path_data + file_test
+# Read netCDF
+open_netcdf = netCDF4.Dataset(path_test,'r', encoding='utf-8')
+test = is_data_in_shape(shapefile=selected_regions_shp, data=open_netcdf, cols=['lon', 'lat'],
+                        path_results=path_contour+'meteo_sim_point_in.shp')
+
+for coordx, coordy in zip(test['coordx'], test['coordy']):
+    open_netcdf['prtotAdjust'][coordx,coordy,:].data
+
+test[['coordx', 'coordy']]
+
+test.lon
+open_netcdf['lon'][:].shape
+open_netcdf['lat'][:].shape
+
+x = open_netcdf['time'][:].data.flatten()
+
+df = pd.DataFrame({'time': open_netcdf['time'][:].data.flatten()})
+
+len(open_netcdf['prtotAdjust'][0,1,:].data)
+open_netcdf['prtotAdjust'].shape
+
+len(open_netcdf['time'])
+open_netcdf['time'][0:10].data
+dir(open_netcdf)
+open_netcdf.variables
+open_netcdf['lon'][:].data
+open_netcdf['prtotAdjust']
+open_netcdf['x'][:].data #lat(y, x)
+
+plt.scatter(open_netcdf['x'][:].data, open_netcdf['y'][:].data)
+
+open_netcdf['lon'][:1,:3].data
+open_netcdf['lat'][:1,:3].data
+open_netcdf['LambertParisII'][:].data
