@@ -8,18 +8,24 @@ def is_data_in_shape(shapefile, data, cols=None, path_result=None):
     # Station points L93
     if cols is not None:
         if isinstance(data, netCDF4.Dataset):
-            x = data[cols[0]][:].data
-            y = data[cols[1]][:].data
-            x_flat = x.flatten()
-            y_flat = y.flatten()
+            col1 = data[cols[0]][:].data
+            col2 = data[cols[1]][:].data
+            col1_flat = col1.flatten()
+            col2_flat = col2.flatten()
 
-            coordx = np.tile(np.arange(x.shape[1]), (x.shape[0], 1)).flatten()
-            coordy = np.tile(np.arange(x.shape[0]), (x.shape[1], 1)).T.flatten()
+            coordx = np.tile(np.arange(col1.shape[1]), (col1.shape[0], 1)).flatten()
+            coordy = np.tile(np.arange(col1.shape[0]), (col1.shape[1], 1)).T.flatten()
+
+
+            x = np.tile(data['x'][:].data.flatten(), (col1.shape[0], 1)).flatten()
+            y = np.tile(data['y'][:].data.flatten(), (col1.shape[1], 1)).T.flatten()
+
             names = [str(i)+'_'+str(j) for i, j in zip(coordx, coordy)]
 
-            data = pd.DataFrame({'name': names, 'coordx': coordx, 'coordy': coordy})
+            data = pd.DataFrame({'name': names, 'coordx': coordx, 'coordy': coordy, 'lat': col2_flat, 'lon': col1_flat,
+                                 'x': x, 'y': y})
 
-            data = geopandas.GeoDataFrame(data, geometry=geopandas.points_from_xy(x_flat, y_flat),
+            data = geopandas.GeoDataFrame(data, geometry=geopandas.points_from_xy(col1_flat, col2_flat),
                                           crs={'init': 'epsg:4326'})
             data = data.to_crs(crs={'init': 'epsg:2154'})
 

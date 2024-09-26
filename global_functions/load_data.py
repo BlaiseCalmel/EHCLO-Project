@@ -168,9 +168,10 @@ def from_dict_to_df(data_dict):
     df = define_horizon(df)
     return df
 
-def convert_timedelta64(df):
-    start = dt.datetime(1950,1,1,0,0)
-    datetime_series = df['time'].astype('timedelta64[D]') + start
+def convert_timedelta64(df, reference_date='1950-01-01'):
+    reference_date = pd.to_datetime(reference_date)
+    # start = dt.datetime(1950,1,1,0,0)
+    datetime_series = df['time'].astype('timedelta64[D]') + reference_date
     df['year'] = datetime_series.dt.year
     return df
 

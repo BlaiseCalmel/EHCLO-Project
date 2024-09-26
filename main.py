@@ -1,3 +1,5 @@
+import os
+
 print(f'################################ IMPORT & INITIALIZATION ################################')
 # General import
 
@@ -17,20 +19,36 @@ matplotlib.use('TkAgg')
 plt.switch_backend('agg')
 
 # Define current main paths environment
+study_name = 'HMUC_Loire_Bretagne'
 path_parent = os.sep.join(os.getcwd().split(os.sep)[:-2]) + os.sep
 path_data = path_parent + '2_data' + os.sep
 path_contour = path_data + 'contours' + os.sep
-path_results = path_parent + '3_results' + os.sep
+
+path_study_results = path_parent + '3_results' + os.sep + study_name + os.sep
+path_study_contour = path_study_results + 'contours' + os.sep
 
 # Files names
+study_name = 'HMUC_Loire_Bretagne'
+if not os.path.isdir(path_study_results):
+    os.makedirs(path_study_results)
+
+# Data to load
+# Background region & rivers shapefiles
+id_regions = [23, 27, 30]
 regions_shp = 'map' + os.sep + 'regionHydro' + os.sep + 'regionHydro.shp'
 rivers_shp = 'france_rivers' + os.sep + 'france_rivers.shp'
-file_stations = 'Selection_points_simulation.csv'
-file_climpoints = 'climpoints.csv'
+
+# Data in study area
+if not os.path.isdir(path_study_contour):
+    os.makedirs(path_study_contour)
+    file_stations = 'Selection_points_simulation.csv'
+    file_climpoints = 'climpoints.csv'
+
 
 # Paths
 path_stations = path_contour + file_stations
-path_climpoints = path_contour + file_climpoints
+# path_climpoints = path_contour + file_climpoints
+path_climpoints = path_contour+'meteo_sim_point_in.csv'
 path_regions_shp = path_contour + regions_shp
 path_rivers_shp = path_contour + rivers_shp
 
@@ -69,7 +87,7 @@ else:
 print(f'################################ DEFINE STUDY AREA ################################')
 
 # Load Regions shapefile
-id_regions = [23, 27, 30]
+
 regions_shapefile = open_shp(path_shp=path_regions_shp)
 selected_regions_shp = regions_shapefile[regions_shapefile['gid'].isin(id_regions)]
 
@@ -108,6 +126,66 @@ matched_climpoints = is_data_in_shape(shapefile=selected_regions_shp, data=climp
 # selected_stations = matched_stations[matched_stations['code'].isin(selected_id)]
 selected_stations_name = matched_stations.index.to_list()
 selected_climpoints_name = matched_climpoints.index.to_list()
+
+
+########################################################################
+file_test = 'prtotAdjust_France_MPI-M-MPI-ESM-LR_historical_r1i1p1_CLMcom-CCLM4-8-17_v1_LSCE-IPSL-CDFt-L-1V-0L-1976-2005_day_19500101-20051231.nc'
+path_test = path_data + file_test
+# Read netCDF
+open_netcdf = netCDF4.Dataset(path_test,'r', encoding='utf-8')
+
+test = is_data_in_shape(shapefile=selected_regions_shp, data=open_netcdf, cols=['lon', 'lat'],
+                        path_result=path_contour+'meteo_sim_point_in.csv')
+
+
+start_date = pd.to_datetime('1850-01-01')
+dates = start_date + pd.to_timedelta(open_netcdf.variables['time'][:].data, unit='D')
+reference_date = pd.to_datetime('1976-01-01')
+
+convert_timedelta64(dates, reference_date='1850-01-01')
+
+valid_dates = dates[dates > reference_date].to_list()
+positions_idx = np.where(dates > reference_date)[0]
+dict_test = {'time': valid_dates}
+start_day = 46021
+
+
+i = 0
+duration = len(matched_climpoints)
+open_netcdf = netCDF4.Dataset(path_test,'r', encoding='utf-8')
+dict_netcdf = {}
+start_time = time.time()
+for index, row in matched_climpoints[:10].iterrows():
+    i += 1
+    # dict_test[index] = open_netcdf.variables['prtotAdjust'][positions_idx, row['coordx'], row['coordy']].data
+    dict_netcdf[index] = open_netcdf.variables['prtotAdjust'][:, row['coordx'], row['coordy']].data
+    # timedelta = (time.time() - start_time)
+    # print(f'Loaded {i} files/{duration} for {dt.timedelta(seconds=round(timedelta))}')
+timedelta = (time.time() - start_time)
+print(f'10 files loaded by netcdf4 in {dt.timedelta(seconds=round(timedelta))}')
+
+import xarray as xr
+ds = xr.open_dataset(path_test)
+df = load_csv(path_climpoints)
+df = df.reset_index(drop=True).set_index('name')
+start_time = time.time()
+ds_after_1976 = ds.sel(time=slice('1976-01-01', None))
+value = ds_after_1976['prtotAdjust'].sel(x=xr.DataArray(df.iloc[:10]['coordx'], dims="z"),
+                      y=xr.DataArray(df.iloc[:10]['coordy'], dims="z"),
+                      method="nearest")
+value_df = value.to_dataframe()
+timedelta = (time.time() - start_time)
+print(f'10 files loaded by xarray in {dt.timedelta(seconds=round(timedelta))}')
+
+
+
+
+
+
+
+open_netcdf['time'][:].data.shape
+dict_test[index].shape
+df = pd.concat({k: pd.DataFrame(v) for k, v in dict_test2.items()})
 
 
 print(f'################################ EXTRACT DATA ################################')
@@ -186,40 +264,3 @@ my_station = 'K002000101'
 
 df_station = df_data[['year', 'sim', my_station]]
 my_sim = 'QA_seas-JJA_1975-2100_TIMEseries_GEOstation_FR-METRO_EXPLORE2-2024_MF-ADAMONT_historical-rcp85_EC-EARTH_RACMO22E_SMASH'
-
-file_test = 'prtotAdjust_France_MPI-M-MPI-ESM-LR_historical_r1i1p1_CLMcom-CCLM4-8-17_v1_LSCE-IPSL-CDFt-L-1V-0L-1976-2005_day_19500101-20051231.nc'
-path_test = path_data + file_test
-# Read netCDF
-open_netcdf = netCDF4.Dataset(path_test,'r', encoding='utf-8')
-test = is_data_in_shape(shapefile=selected_regions_shp, data=open_netcdf, cols=['lon', 'lat'],
-                        path_results=path_contour+'meteo_sim_point_in.shp')
-
-for coordx, coordy in zip(test['coordx'], test['coordy']):
-    open_netcdf['prtotAdjust'][coordx,coordy,:].data
-
-test[['coordx', 'coordy']]
-
-test.lon
-open_netcdf['lon'][:].shape
-open_netcdf['lat'][:].shape
-
-x = open_netcdf['time'][:].data.flatten()
-
-df = pd.DataFrame({'time': open_netcdf['time'][:].data.flatten()})
-
-len(open_netcdf['prtotAdjust'][0,1,:].data)
-open_netcdf['prtotAdjust'].shape
-
-len(open_netcdf['time'])
-open_netcdf['time'][0:10].data
-dir(open_netcdf)
-open_netcdf.variables
-open_netcdf['lon'][:].data
-open_netcdf['prtotAdjust']
-open_netcdf['x'][:].data #lat(y, x)
-
-plt.scatter(open_netcdf['x'][:].data, open_netcdf['y'][:].data)
-
-open_netcdf['lon'][:1,:3].data
-open_netcdf['lat'][:1,:3].data
-open_netcdf['LambertParisII'][:].data
