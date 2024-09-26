@@ -53,13 +53,16 @@ if not os.path.isfile(dict_paths['file_study_points_sim']):
 
 # Load selected sim points from study area
 sim_points_df = load_csv(dict_paths['file_study_points_sim'])
+# Stations de references pour hydro uniquement
+# stations_data = stations_data[stations_data['Référence'] == 1]
+
 
 # is_data_in_shape(shapefile, data, cols=None, path_result=None)
 stations_data = load_csv(path_stations)
 valid_stations = pd.isna(stations_data['PointsSupprimes'])
 stations_data = stations_data[valid_stations].reset_index(drop=True).set_index('SuggestionCode')
 
-stations_data = stations_data[stations_data['Référence'] == 1]
+
 
 # Create file matching shape and stations
 matched_stations = is_data_in_shape(selected_regions_shp, stations_data, cols=['XL93', 'YL93'],
@@ -95,35 +98,23 @@ path_rivers_shp = path_contour + rivers_shp
 
 # Define data type to analyse
 # TODO define it for climate data
-param_type = 'climat'
-# parameters = {'param_indicator': 'SQR/SQR_RR_metropole/SQR_',
-#               'param_timestep': '',
+# param_type = 'climat'
+# parameters = {'param_indicator': 'QA',
+#               'param_timestep': 'seas-JJA',
 #               'param_timeperiod': '',
 #               'param_time': '',
 #               'param_geo': '',
 #               'param_area': '',
 #               'param_project': '',
-#               'param_bc': '',
-#               'param_rcp': '',
+#               'param_bc': 'ADAMONT',
+#               'param_rcp': 'historical-rcp85',
 #               'param_gcm': '',
 #               'param_rcm': '',
 #               'param_hm': ''}
-parameters = {'param_indicator': 'QA',
-              'param_timestep': 'seas-JJA',
-              'param_timeperiod': '',
-              'param_time': '',
-              'param_geo': '',
-              'param_area': '',
-              'param_project': '',
-              'param_bc': 'ADAMONT',
-              'param_rcp': 'historical-rcp85',
-              'param_gcm': '',
-              'param_rcm': '',
-              'param_hm': ''}
-if param_type == 'hydro':
-    extension = 'nc'
-else:
-    extension = 'csv'
+# if param_type == 'hydro':
+#     extension = 'nc'
+# else:
+#     extension = 'csv'
 
 print(f'################################ DEFINE STUDY AREA ################################')
 
