@@ -1,9 +1,8 @@
-import os
-
 print(f'################################ IMPORT & INITIALIZATION ################################')
 # General import
-
+import os
 import glob
+import json
 # import pyfiglet
 # ascii_banner = pyfiglet.figlet_format("Hello")
 # print(ascii_banner)
@@ -12,37 +11,79 @@ import glob
 from global_functions.load_data import *
 from global_functions.plot_data import *
 from global_functions.shp_geometry import *
+from global_functions.path_functions import  *
 
 # Avoid crash with console when launched manually
 import matplotlib
 matplotlib.use('TkAgg')
 plt.switch_backend('agg')
 
+# Load environments variables
+with open('config.json') as config_file:
+    config = json.load(config_file)
+
 # Define current main paths environment
-study_name = 'HMUC_Loire_Bretagne'
-path_parent = os.sep.join(os.getcwd().split(os.sep)[:-2]) + os.sep
-path_data = path_parent + '2_data' + os.sep
-path_contour = path_data + 'contours' + os.sep
+cwd = os.sep.join(os.getcwd().split(os.sep)[:-2]) + os.sep
+dict_paths = define_paths(cwd, config)
 
-path_study_results = path_parent + '3_results' + os.sep + study_name + os.sep
-path_study_contour = path_study_results + 'contours' + os.sep
 
-# Files names
-study_name = 'HMUC_Loire_Bretagne'
-if not os.path.isdir(path_study_results):
-    os.makedirs(path_study_results)
+#%% Files names
+# Study folder
+if not os.path.isdir(dict_paths['folder_study_results']):
+    os.makedirs(dict_paths['folder_study_results'])
+
+# Study figures folder
+if not os.path.isdir(dict_paths['folder_study_figures']):
+    os.makedirs(dict_paths['folder_study_figures'])
+
+# Study contour folder
+if not os.path.isdir(dict_paths['folder_study_contour']):
+    os.makedirs(dict_paths['folder_study_contour'])
+
+#%% LOAD STUDY REGION SHAPEFILE
+regions_shp = open_shp(path_shp=dict_paths['file_regions_shp'])
+study_regions_shp = regions_shp[regions_shp['gid'].isin(config['regions'])]
+rivers_shp = open_shp(path_shp=dict_paths['file_rivers_shp'])
+
+# Check if study area is already matched with sim points
+if not os.path.isfile(dict_paths['file_study_points_sim']):
+    sim_all_points_info = load_csv(path_files=dict_paths['file_data_points_sim'])
+    is_data_in_shape(shapefile=study_regions_shp, data=sim_all_points_info, cols=['XL93', 'YL93'],
+                     path_result=dict_paths['file_study_points_sim'])
+
+# Load selected sim points from study area
+sim_points_df = load_csv(dict_paths['file_study_points_sim'])
+
+# is_data_in_shape(shapefile, data, cols=None, path_result=None)
+stations_data = load_csv(path_stations)
+valid_stations = pd.isna(stations_data['PointsSupprimes'])
+stations_data = stations_data[valid_stations].reset_index(drop=True).set_index('SuggestionCode')
+
+stations_data = stations_data[stations_data['Référence'] == 1]
+
+# Create file matching shape and stations
+matched_stations = is_data_in_shape(selected_regions_shp, stations_data, cols=['XL93', 'YL93'],
+                                    path_result=None)
+
+
+
+
+#%% IF NO CSV = LOAD NETCDF AND FIND POINTS INSIDE STUDY AREA
 
 # Data to load
 # Background region & rivers shapefiles
-id_regions = [23, 27, 30]
+id_regions = config['regions']
+
 regions_shp = 'map' + os.sep + 'regionHydro' + os.sep + 'regionHydro.shp'
 rivers_shp = 'france_rivers' + os.sep + 'france_rivers.shp'
 
 # Data in study area
 if not os.path.isdir(path_study_contour):
     os.makedirs(path_study_contour)
-    file_stations = 'Selection_points_simulation.csv'
-    file_climpoints = 'climpoints.csv'
+
+file_hydro = 'hydro_points_sim.csv'
+file_climpoints = 'clim_points_sim.csv'
+
 
 
 # Paths

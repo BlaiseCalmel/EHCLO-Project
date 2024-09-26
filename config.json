@@ -1,0 +1,11 @@
+{
+  "study_name":  "HMUC_Loire_Bretagne",
+  "param_type": "climat",
+  "regions": [23, 27, 30],
+  "folder_data": "2_data",
+  "folder_results": "3_results",
+  "folder_contours": "contours",
+  "folder_figures": "folder_figures",
+  "regions_shp": "regionHydro.shp",
+  "rivers_shp": "france_rivers.shp"
+}
