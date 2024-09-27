@@ -23,7 +23,7 @@ def load_csv(path_files, sep=','):
     :param sep:
     :return:
     """
-    df = pd.read_csv(path_files, sep=sep, index_col=0)
+    df = pd.read_csv(path_files, sep=sep)
 
     return df
 
@@ -98,7 +98,7 @@ def iterate_over_path(path_indicator_files, param_type, parameters, selected_sta
                                              indicator=parameters['param_indicator'],
                                              station_codes=selected_stations_name)
 
-        elif param_type == 'climat':
+        elif param_type == 'climate':
             dict_data[file_name] = load_ncdf(path_ncdf=path_ncdf, file_dict=file_dict,
                                              indicator=parameters['param_indicator'],
                                              station_codes=selected_stations_name)

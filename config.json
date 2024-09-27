@@ -1,11 +1,13 @@
 {
   "study_name":  "HMUC_Loire_Bretagne",
-  "param_type": "climat",
+  "param_type": ["hydro", "climate"],
   "regions": [23, 27, 30],
-  "folder_data": "2_data",
-  "folder_results": "3_results",
+  "parent_folder": "D:",
+  "folder_hydro_data": "D:\\hydro\\by_chain\\netcdf\\hydrological-projection_daily-time-series_by-chain_merged-netcdf",
+  "folder_climate_data": "D:\\climate\\climatological-projection_daily-time-series_by-chain_netcdf",
+  "folder_results": "results",
   "folder_contours": "contours",
-  "folder_figures": "folder_figures",
+  "folder_figures": "figures",
   "regions_shp": "regionHydro.shp",
   "rivers_shp": "france_rivers.shp"
 }

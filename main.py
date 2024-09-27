@@ -23,9 +23,8 @@ with open('config.json') as config_file:
     config = json.load(config_file)
 
 # Define current main paths environment
-cwd = os.sep.join(os.getcwd().split(os.sep)[:-2]) + os.sep
-dict_paths = define_paths(cwd, config)
-
+# cwd = os.sep.join(os.getcwd().split(os.sep)[:-2]) + os.sep
+dict_paths = define_paths(config)
 
 #%% Files names
 # Study folder
@@ -41,95 +40,44 @@ if not os.path.isdir(dict_paths['folder_study_contour']):
     os.makedirs(dict_paths['folder_study_contour'])
 
 #%% LOAD STUDY REGION SHAPEFILE
+print(f'################################ STUDY AREA ################################')
 regions_shp = open_shp(path_shp=dict_paths['file_regions_shp'])
 study_regions_shp = regions_shp[regions_shp['gid'].isin(config['regions'])]
 rivers_shp = open_shp(path_shp=dict_paths['file_rivers_shp'])
 
 # Check if study area is already matched with sim points
-if not os.path.isfile(dict_paths['file_study_points_sim']):
-    sim_all_points_info = load_csv(path_files=dict_paths['file_data_points_sim'])
-    is_data_in_shape(shapefile=study_regions_shp, data=sim_all_points_info, cols=['XL93', 'YL93'],
-                     path_result=dict_paths['file_study_points_sim'])
+for i in range(len(dict_paths['list_global_points_sim'])):
+    if not os.path.isfile(dict_paths['list_study_points_sim'][i]):
+        print(f'Find {config["param_type"][i]} data points in study area')
+        sim_all_points_info = load_csv(path_files=dict_paths['list_global_points_sim'][i])
+        is_data_in_shape(shapefile=study_regions_shp, data=sim_all_points_info, cols=['XL93', 'YL93'],
+                         path_result=dict_paths['list_study_points_sim'][i])
 
 # Load selected sim points from study area
-sim_points_df = load_csv(dict_paths['file_study_points_sim'])
-# Stations de references pour hydro uniquement
-# stations_data = stations_data[stations_data['Référence'] == 1]
+sim_points_df = load_csv(dict_paths['list_study_points_sim'][i])
+
+if config["param_type"][i] == "hydro":
+    # Stations de references pour hydro uniquement
+    sim_points_df = sim_points_df[sim_points_df['Référence'] == 1]
+    valid_stations = pd.isna(sim_points_df['PointsSupprimes'])
+    sim_points_df = sim_points_df[valid_stations].reset_index(drop=True).set_index('SuggestionCode')
+    sim_points_df.index.names = ['Name']
+
+    data_path = dict_paths['folder_hydro_data']
+else:
+    data_path = dict_paths['folder_climate_data']
+
+#%% GET PATHS OF FILES FOR EACH SIM
+path_files = get_files_path(path=data_path, extension='.nc')
+
+dict_data = iterate_over_path(path_files, config["param_type"][i])
+
+if param_type == 'hydro':
+    dict_data = iterate_over_path(path_indicator_files, param_type, parameters, selected_stations_name)
+else:
+    dict_data = load_csv(path_files=path_indicator_files, data_type='sqr', sep=';')
 
 
-# is_data_in_shape(shapefile, data, cols=None, path_result=None)
-stations_data = load_csv(path_stations)
-valid_stations = pd.isna(stations_data['PointsSupprimes'])
-stations_data = stations_data[valid_stations].reset_index(drop=True).set_index('SuggestionCode')
-
-
-
-# Create file matching shape and stations
-matched_stations = is_data_in_shape(selected_regions_shp, stations_data, cols=['XL93', 'YL93'],
-                                    path_result=None)
-
-
-
-
-#%% IF NO CSV = LOAD NETCDF AND FIND POINTS INSIDE STUDY AREA
-
-# Data to load
-# Background region & rivers shapefiles
-id_regions = config['regions']
-
-regions_shp = 'map' + os.sep + 'regionHydro' + os.sep + 'regionHydro.shp'
-rivers_shp = 'france_rivers' + os.sep + 'france_rivers.shp'
-
-# Data in study area
-if not os.path.isdir(path_study_contour):
-    os.makedirs(path_study_contour)
-
-file_hydro = 'hydro_points_sim.csv'
-file_climpoints = 'clim_points_sim.csv'
-
-
-
-# Paths
-path_stations = path_contour + file_stations
-# path_climpoints = path_contour + file_climpoints
-path_climpoints = path_contour+'meteo_sim_point_in.csv'
-path_regions_shp = path_contour + regions_shp
-path_rivers_shp = path_contour + rivers_shp
-
-# Define data type to analyse
-# TODO define it for climate data
-# param_type = 'climat'
-# parameters = {'param_indicator': 'QA',
-#               'param_timestep': 'seas-JJA',
-#               'param_timeperiod': '',
-#               'param_time': '',
-#               'param_geo': '',
-#               'param_area': '',
-#               'param_project': '',
-#               'param_bc': 'ADAMONT',
-#               'param_rcp': 'historical-rcp85',
-#               'param_gcm': '',
-#               'param_rcm': '',
-#               'param_hm': ''}
-# if param_type == 'hydro':
-#     extension = 'nc'
-# else:
-#     extension = 'csv'
-
-print(f'################################ DEFINE STUDY AREA ################################')
-
-# Load Regions shapefile
-
-regions_shapefile = open_shp(path_shp=path_regions_shp)
-selected_regions_shp = regions_shapefile[regions_shapefile['gid'].isin(id_regions)]
-
-# Load Rivers shapefile
-rivers_shp = open_shp(path_shp=path_rivers_shp)
-
-# Test current shapefile
-path_result = path_results+'test15.png'
-save_shp_figure(back_shp=regions_shapefile, path_result=path_result, study_shp=selected_regions_shp,
-                rivers_shp=rivers_shp)
 
 # Load stations info
 stations_data = load_csv(path_stations)
