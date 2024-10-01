@@ -36,8 +36,8 @@ if not os.path.isdir(dict_paths['folder_study_figures']):
     os.makedirs(dict_paths['folder_study_figures'])
 
 # Study contour folder
-if not os.path.isdir(dict_paths['folder_study_contour']):
-    os.makedirs(dict_paths['folder_study_contour'])
+if not os.path.isdir(dict_paths['folder_study_data']):
+    os.makedirs(dict_paths['folder_study_data'])
 
 #%% LOAD STUDY REGION SHAPEFILE
 print(f'################################ STUDY AREA ################################')
@@ -54,17 +54,19 @@ for i in range(len(dict_paths['list_global_points_sim'])):
                          path_result=dict_paths['list_study_points_sim'][i])
 
 # Load selected sim points from study area
-sim_points_df = load_csv(dict_paths['list_study_points_sim'][i])
+# sim_points_df = load_csv(dict_paths['list_study_points_sim'][i], index_col=0)
 
 if config["param_type"][i] == "hydro":
+    sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][i], index_col=None)
     # Stations de references pour hydro uniquement
     sim_points_df = sim_points_df[sim_points_df['Référence'] == 1]
     valid_stations = pd.isna(sim_points_df['PointsSupprimes'])
     sim_points_df = sim_points_df[valid_stations].reset_index(drop=True).set_index('SuggestionCode')
-    sim_points_df.index.names = ['Name']
+    sim_points_df.index.names = ['name']
 
     data_path = dict_paths['folder_hydro_data']
 else:
+    sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][i], index_col=0)
     data_path = dict_paths['folder_climate_data']
 
 
@@ -84,8 +86,14 @@ else:
 indicator = list(path_files.keys())[0]
 pathes_indicator = path_files[indicator]
 dict_data = {}
-dict_data[indicator] = extract_ncdf_indicator(path_files=pathes_indicator, param_type=config["param_type"][i],
-                              sim_points_df=sim_points_df)
+
+if os.path.isfile(f"{dict_paths['folder_study_data']}{os.sep}{indicator}'.nc'"):
+    dict_data[indicator] = extract_ncdf_indicator(
+        path_files=pathes_indicator, param_type=config["param_type"][i],sim_points_df=sim_points_df,
+        indicator=indicator, path_result=dict_paths['folder_study_data']
+    )
+else:
+    dict_data[indicator] = xr.open_dataset(f"{dict_paths['folder_study_data']}{os.sep}{indicator}'.nc'")
 
 
 # Load stations info
@@ -98,7 +106,7 @@ stations_data = stations_data[stations_data['Référence'] == 1]
 # Create file matching shape and stations
 matched_stations = is_data_in_shape(selected_regions_shp, stations_data, cols=['XL93', 'YL93'],
                                  path_result=None)
-
+dict_paths['folder_study_results']
 
 # Load climat simpoints info
 climpoints_data = load_csv(path_climpoints)

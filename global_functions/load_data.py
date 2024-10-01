@@ -19,56 +19,61 @@ def open_shp(path_shp: str):
 
     return current_shp
 
-def load_csv(path_files, sep=','):
+def load_csv(path_file, sep=',', index_col=None):
     """
     :param path_csv:
     :param sep:
     :return:
     """
-    df = pd.read_csv(path_files, sep=sep)
+    df = pd.read_csv(path_file, sep=sep, index_col=index_col)
 
     return df
-
-
-def split_ncdf(path):
-    info = ['indicator', 'timestep', 'dates', 'timetype', 'geotype', 'localisation', 'project',
-            'bc', 'rcp', 'gcm', 'rcm', 'hm']
-    path_split = path.split('_')
-
-    dict_info = {info[i]: path_split[i] for i in range(len(path_split))}
-
-    return dict_info
 
 def resample_df(df, timestep, operation):
     return df.resample(timestep).agg(operation)
 
-def rename_variables(dataset, suffix):
-    return dataset.rename({var: var + '_' + suffix for var in dataset.data_vars if var != 'LambertParisII'})
+def rename_variables(dataset, suffix, indicator):
+    return dataset.rename({var: var + '_' + suffix for var in dataset.data_vars if var == indicator})
 
-def extract_ncdf_indicator(path_files, param_type, sim_points_df, resample_tmsp=None, resamble_op=None):
+def extract_ncdf_indicator(path_files, param_type, sim_points_df, indicator, resample_tmsp=None, resamble_op=None,
+                           path_result=None):
     datasets = []
-    for i, file in enumerate(path_files):
-        split_name = file.split(os.sep)[-5:-1]
-        # split_name[-1] = split_name[-1].split('_')[0]
+    code_bytes = None
+
+    if param_type == 'hydro':
+        code_bytes = [i.encode('utf-8') for i in sim_points_df.index]
+
+    for i, file in enumerate(path_files[:5]):
+        if code_bytes is None:
+            split_name = file.split(os.sep)[-5:-1]
+        else:
+            split_name = file.split(os.sep)[-6:-1]
         file_name = '_'.join(split_name)
 
         ds = xr.open_dataset(file)
         # Add sim suffix
-        ds_renamed = rename_variables(ds, file_name)
+        ds_renamed = rename_variables(ds, file_name, indicator)
         ds_formated = ds_renamed.sel(time=slice('1976-01-01', None))
 
         if resample_tmsp is not None and resamble_op is not None:
             resample_df(ds_formated, resample_tmsp, resamble_op)
 
-        ds_selection = ds_formated.sel(
-            x=xr.DataArray(sim_points_df.iloc[:]['x'], dims="z"),
-            y=xr.DataArray(sim_points_df.iloc[:]['y'], dims="z"),
-            method="nearest")
+        if code_bytes is None:
+            ds_selection = ds_formated.sel(
+                x=xr.DataArray(sim_points_df.iloc[:]['x'], dims="z"),
+                y=xr.DataArray(sim_points_df.iloc[:]['y'], dims="z"),
+                method="nearest")
+        else:
+            idx_stations = ds_formated['code'].isin(code_bytes)
+            val_station = ds_formated['station'].where(idx_stations, drop=True)
+            ds_selection = ds_formated.sel(
+                station=val_station,
+                method="nearest")
 
         datasets.append(ds_selection)
 
     # Merge datasets
-    combined_dataset = xr.merge(datasets)
+    combined_dataset = xr.merge(datasets, compat='override')
 
     # if climate data merge historical and sim data
     if param_type == 'climate':
@@ -88,9 +93,8 @@ def extract_ncdf_indicator(path_files, param_type, sim_points_df, resample_tmsp=
                 combined_dataset[col] = combined_dataset[col].fillna(combined_dataset[columns_sorted[0]])
             combined_dataset = combined_dataset.drop_vars(columns_sorted[0])
 
-
-
-    # combined_dataset.to_netcdf(path=os.getcwd()+os.sep+'large_file_mean.nc', compute=True)
+    if path_result is not None:
+        combined_dataset.to_netcdf(path=f"{path_result}{os.sep}{indicator}'.nc'", compute=True)
     # print(f'{dt.timedelta(seconds=round(time.time() - start_time))}')
 
     # print(f'============= {file_name} =============\n'

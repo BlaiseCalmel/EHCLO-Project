@@ -1,5 +1,5 @@
 {
-  "select_indicator": ["tasminAdjust"],
+  "select_indicator": ["Q10A", "tasminAdjust"],
   "select_rcp": ["rcp85", "historical"],
   "select_gcm": [],
   "select_rcm": ["ALADIN63"],
