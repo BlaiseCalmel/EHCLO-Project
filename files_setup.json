@@ -1,0 +1,8 @@
+{
+  "select_indicator": ["tasminAdjust"],
+  "select_rcp": ["rcp85", "historical"],
+  "select_gcm": [],
+  "select_rcm": ["ALADIN63"],
+  "select_bs": ["ADAMONT"],
+  "select_hm": []
+}

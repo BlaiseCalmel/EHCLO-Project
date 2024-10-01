@@ -67,16 +67,25 @@ if config["param_type"][i] == "hydro":
 else:
     data_path = dict_paths['folder_climate_data']
 
+
 #%% GET PATHS OF FILES FOR EACH SIM
-path_files = get_files_path(path=data_path, extension='.nc')
+with open('files_setup.json') as files_setup:
+    files_setup = json.load(files_setup)
 
-dict_data = iterate_over_path(path_files, config["param_type"][i])
+path_files = get_files_path(path=data_path, extension='.nc', setup=files_setup)
 
-if param_type == 'hydro':
-    dict_data = iterate_over_path(path_indicator_files, param_type, parameters, selected_stations_name)
+if config["param_type"][i] == 'hydro':
+    sim_info = ['indicator_info', 'timestep_info', 'period_info', 'timetype_info', 'geotype_info', 'location_info',
+                'project_info', 'bc_info', 'rcp_info', 'gcm_info', 'rcm_info', 'hm_info']
 else:
-    dict_data = load_csv(path_files=path_indicator_files, data_type='sqr', sep=';')
+    sim_info = ['rcp_info', 'gcm_info', 'rcm_info', 'bc_info', 'indicator_info']
 
+
+indicator = list(path_files.keys())[0]
+pathes_indicator = path_files[indicator]
+dict_data = {}
+dict_data[indicator] = extract_ncdf_indicator(path_files=pathes_indicator, param_type=config["param_type"][i],
+                              sim_points_df=sim_points_df)
 
 
 # Load stations info
@@ -135,24 +144,30 @@ duration = len(matched_climpoints)
 open_netcdf = netCDF4.Dataset(path_test,'r', encoding='utf-8')
 dict_netcdf = {}
 start_time = time.time()
-for index, row in matched_climpoints[:10].iterrows():
+for index, row in matched_climpoints[:1].iterrows():
     i += 1
     # dict_test[index] = open_netcdf.variables['prtotAdjust'][positions_idx, row['coordx'], row['coordy']].data
-    dict_netcdf[index] = open_netcdf.variables['prtotAdjust'][:, row['coordx'], row['coordy']].data
+    dict_netcdf[index] = open_netcdf.variables['prtotAdjust'][:, row['x_idx'], row['y_idx']].data
     # timedelta = (time.time() - start_time)
     # print(f'Loaded {i} files/{duration} for {dt.timedelta(seconds=round(timedelta))}')
 timedelta = (time.time() - start_time)
 print(f'10 files loaded by netcdf4 in {dt.timedelta(seconds=round(timedelta))}')
 
 import xarray as xr
-ds = xr.open_dataset(path_test)
-df = load_csv(path_climpoints)
+ds = xr.open_dataset(path_ncdf)
+df = matched_climpoints
+# df = load_csv(path_climpoints)
 df = df.reset_index(drop=True).set_index('name')
 start_time = time.time()
 ds_after_1976 = ds.sel(time=slice('1976-01-01', None))
-value = ds_after_1976['prtotAdjust'].sel(x=xr.DataArray(df.iloc[:10]['coordx'], dims="z"),
-                      y=xr.DataArray(df.iloc[:10]['coordy'], dims="z"),
+value = ds_after_1976['prtotAdjust'].sel(x=xr.DataArray(df.iloc[:1]['x_idx'], dims="z"),
+                      y=xr.DataArray(df.iloc[:1]['y_idx'], dims="z"),
                       method="nearest")
+
+value = ds_after_1976['prtotAdjust'].sel(x=xr.DataArray([708000], dims="z"),
+                      y=xr.DataArray([1953000], dims="z"),
+                      method="nearest")
+
 value_df = value.to_dataframe()
 timedelta = (time.time() - start_time)
 print(f'10 files loaded by xarray in {dt.timedelta(seconds=round(timedelta))}')

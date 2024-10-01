@@ -1,9 +1,11 @@
 import datetime as dt
+from turtledemo.penrose import start
+
 import pandas as pd
 import numpy as np
 import geopandas
 import netCDF4
-import re
+import xarray as xr
 import time
 import os
 
@@ -37,78 +39,66 @@ def split_ncdf(path):
 
     return dict_info
 
+def resample_df(df, timestep, operation):
+    return df.resample(timestep).agg(operation)
 
-def load_ncdf(path_ncdf: str, file_dict: dict, indicator: str, station_codes: list[str]=None) -> dict:
-    """
+def rename_variables(dataset, suffix):
+    return dataset.rename({var: var + '_' + suffix for var in dataset.data_vars if var != 'LambertParisII'})
 
-    :param path_ncdf:
-    :param indicator:
-    :param station_codes:
-    :return:
-    """
+def extract_ncdf_indicator(path_files, param_type, sim_points_df, resample_tmsp=None, resamble_op=None):
+    datasets = []
+    for i, file in enumerate(path_files):
+        split_name = file.split(os.sep)[-5:-1]
+        # split_name[-1] = split_name[-1].split('_')[0]
+        file_name = '_'.join(split_name)
 
-    # Read netCDF
-    open_netcdf = netCDF4.Dataset(path_ncdf,'r', encoding='utf-8')
+        ds = xr.open_dataset(file)
+        # Add sim suffix
+        ds_renamed = rename_variables(ds, file_name)
+        ds_formated = ds_renamed.sel(time=slice('1976-01-01', None))
 
-    # Get matching idx
-    netcdf_codes = open_netcdf['code'][:].data
+        if resample_tmsp is not None and resamble_op is not None:
+            resample_df(ds_formated, resample_tmsp, resamble_op)
 
-    if station_codes is None:
-        station_codes = netcdf_codes
+        ds_selection = ds_formated.sel(
+            x=xr.DataArray(sim_points_df.iloc[:]['x'], dims="z"),
+            y=xr.DataArray(sim_points_df.iloc[:]['y'], dims="z"),
+            method="nearest")
 
-    file_dict['time'] = open_netcdf['time'][:].data
+        datasets.append(ds_selection)
 
-    # dict_data = {'time': open_netcdf['time'][:].data, 'info': file_dict}
+    # Merge datasets
+    combined_dataset = xr.merge(datasets)
 
-    for code in station_codes:
-        code_to_bytes = [i.encode('utf-8') for i in code]
+    # if climate data merge historical and sim data
+    if param_type == 'climate':
+        column_groups = {}
+        for col in list(combined_dataset.variables.keys()):
+            if 'rcp' in col or 'historical' in col:
+                group_id = '_'.join(col.split('_')[2:])
 
-        # Get matching code index
-        code_idx = np.where((netcdf_codes==code_to_bytes).all(axis=1))[0]
+                if group_id not in column_groups:
+                    column_groups[group_id] = []
+                column_groups[group_id].append(col)
 
-        if len(code_idx) > 0:
-            # Get data
-            data_indicator = open_netcdf[indicator][:, code_idx].data
-            file_dict[code]= data_indicator.flatten()
+        for group_id, columns in column_groups.items():
+            columns_sorted = sorted(columns, key=lambda x: ('rcp' in x, x))
 
-    return file_dict
+            for col in columns_sorted[1:]:
+                combined_dataset[col] = combined_dataset[col].fillna(combined_dataset[columns_sorted[0]])
+            combined_dataset = combined_dataset.drop_vars(columns_sorted[0])
 
-def iterate_over_path(path_indicator_files, param_type, parameters, selected_stations_name):
-    dict_data = {}
-    time_start = time.time()
-    estimate_timestep = 0
-    i = -1
-    for path_ncdf in path_indicator_files:
-        i += 1
-        timedelta = (time.time() - time_start)
-        files_to_open = (len(path_indicator_files) - i)
-        if i > 1:
-            estimate_timestep = timedelta / i
-        # Get current file info
-        file_name = os.path.basename(path_ncdf)[:-3]
-        split_name = file_name.split('_')
-        split_name += [''] * (len(parameters) - len(split_name))
 
-        # Save them in dict
-        file_dict = dict(zip(parameters, split_name))
 
-        # Load ncdf [HYDRO]
-        if param_type == 'hydro':
-            dict_data[file_name] = load_ncdf(path_ncdf=path_ncdf, file_dict=file_dict,
-                                             indicator=parameters['param_indicator'],
-                                             station_codes=selected_stations_name)
+    # combined_dataset.to_netcdf(path=os.getcwd()+os.sep+'large_file_mean.nc', compute=True)
+    # print(f'{dt.timedelta(seconds=round(time.time() - start_time))}')
 
-        elif param_type == 'climate':
-            dict_data[file_name] = load_ncdf(path_ncdf=path_ncdf, file_dict=file_dict,
-                                             indicator=parameters['param_indicator'],
-                                             station_codes=selected_stations_name)
+    # print(f'============= {file_name} =============\n'
+    #       f'Running for {dt.timedelta(seconds=round(timedelta))}\n'
+    #       f'Ends in {dt.timedelta(seconds=round(files_to_open*estimate_timestep))} '
+    #       f'[{i+1} files/{len(path_indicator_files)}]')
 
-        print(f'============= {file_name} =============\n'
-              f'Running for {dt.timedelta(seconds=round(timedelta))}\n'
-              f'Ends in {dt.timedelta(seconds=round(files_to_open*estimate_timestep))} '
-              f'[{i+1} files/{len(path_indicator_files)}]')
-
-    return dict_data
+    return combined_dataset
 
 def from_dict_to_df(data_dict):
     # Transform dict to DataFrame

@@ -39,11 +39,24 @@ def define_paths(config):
 
     return dict_paths
 
-def get_files_path(path, extension='.nc'):
+def get_files_path(path, extension='.nc', setup=None):
+    # if indicators is None:
+    #     indicators = []
+    #
+    # if len(restriction) == 0 or restriction[0].lower() == "none":
+    #     restriction = ''
     ext_files = []
     for root, dirs, files in os.walk(path):
         for file in files:
             if file.endswith(extension):
                 ext_files.append(os.path.join(root, file))
 
-    return ext_files
+    for key, value in setup.items():
+        if len(value) > 0:
+            ext_files = [s for s in ext_files if any(word in s for word in value)]
+
+    dict_path = {}
+    for indic in setup['select_indicator']:
+        dict_path[indic] = [s for s in ext_files if indic in s]
+
+    return dict_path
