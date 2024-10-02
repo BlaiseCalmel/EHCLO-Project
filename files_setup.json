@@ -1,5 +1,6 @@
 {
-  "select_indicator": ["Q10A", "tasminAdjust"],
+  "hydro_indicator": ["Q10A"],
+  "climate_indicator": ["tasminAdjust"],
   "select_rcp": ["rcp85", "historical"],
   "select_gcm": [],
   "select_rcm": ["ALADIN63"],

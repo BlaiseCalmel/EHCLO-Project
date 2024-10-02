@@ -1,5 +1,6 @@
 print(f'################################ IMPORT & INITIALIZATION ################################')
 # General import
+print(f'General imports...')
 import os
 import glob
 import json
@@ -8,6 +9,7 @@ import json
 # print(ascii_banner)
 
 # Local import
+print(f'Local imports...')
 from global_functions.load_data import *
 from global_functions.plot_data import *
 from global_functions.shp_geometry import *
@@ -19,15 +21,20 @@ matplotlib.use('TkAgg')
 plt.switch_backend('agg')
 
 # Load environments variables
+print(f'Load json inputs...')
 with open('config.json') as config_file:
     config = json.load(config_file)
 
+with open('files_setup.json') as files_setup:
+    files_setup = json.load(files_setup)
+
 # Define current main paths environment
-# cwd = os.sep.join(os.getcwd().split(os.sep)[:-2]) + os.sep
+print(f'Define paths...')
 dict_paths = define_paths(config)
 
 #%% Files names
 # Study folder
+print(f'Create output directories...')
 if not os.path.isdir(dict_paths['folder_study_results']):
     os.makedirs(dict_paths['folder_study_results'])
 
@@ -41,59 +48,60 @@ if not os.path.isdir(dict_paths['folder_study_data']):
 
 #%% LOAD STUDY REGION SHAPEFILE
 print(f'################################ STUDY AREA ################################')
+print(f'Load shapefiles...')
 regions_shp = open_shp(path_shp=dict_paths['file_regions_shp'])
 study_regions_shp = regions_shp[regions_shp['gid'].isin(config['regions'])]
 rivers_shp = open_shp(path_shp=dict_paths['file_rivers_shp'])
 
 # Check if study area is already matched with sim points
+print(f'Find sim points in study area...')
 for i in range(len(dict_paths['list_global_points_sim'])):
     if not os.path.isfile(dict_paths['list_study_points_sim'][i]):
         print(f'Find {config["param_type"][i]} data points in study area')
-        sim_all_points_info = load_csv(path_files=dict_paths['list_global_points_sim'][i])
+        sim_all_points_info = load_csv(path_file=dict_paths['list_global_points_sim'][i])
         is_data_in_shape(shapefile=study_regions_shp, data=sim_all_points_info, cols=['XL93', 'YL93'],
                          path_result=dict_paths['list_study_points_sim'][i])
 
-# Load selected sim points from study area
-# sim_points_df = load_csv(dict_paths['list_study_points_sim'][i], index_col=0)
 
-if config["param_type"][i] == "hydro":
-    sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][i], index_col=None)
-    # Stations de references pour hydro uniquement
-    sim_points_df = sim_points_df[sim_points_df['Référence'] == 1]
-    valid_stations = pd.isna(sim_points_df['PointsSupprimes'])
-    sim_points_df = sim_points_df[valid_stations].reset_index(drop=True).set_index('SuggestionCode')
-    sim_points_df.index.names = ['name']
+print(f'################################ RUN OVER NCDF ################################')
+# Get paths for selected sim
+print(f'Load ncdf data paths...')
+path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 
-    data_path = dict_paths['folder_hydro_data']
-else:
-    sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][i], index_col=0)
-    data_path = dict_paths['folder_climate_data']
-
-
-#%% GET PATHS OF FILES FOR EACH SIM
-with open('files_setup.json') as files_setup:
-    files_setup = json.load(files_setup)
-
-path_files = get_files_path(path=data_path, extension='.nc', setup=files_setup)
-
-if config["param_type"][i] == 'hydro':
-    sim_info = ['indicator_info', 'timestep_info', 'period_info', 'timetype_info', 'geotype_info', 'location_info',
-                'project_info', 'bc_info', 'rcp_info', 'gcm_info', 'rcm_info', 'hm_info']
-else:
-    sim_info = ['rcp_info', 'gcm_info', 'rcm_info', 'bc_info', 'indicator_info']
-
-
-indicator = list(path_files.keys())[0]
-pathes_indicator = path_files[indicator]
+# Run among data type climate/hydro
 dict_data = {}
+start_run = time.time()
+for data_type in config['param_type']:
+    print(f'###### Loading sim point for {data_type} data')
+    idx = config['param_type'].index(data_type)
+    # Load selected sim points from study area
+    if data_type == "hydro":
+        sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][idx], index_col=None)
+        # Stations de references pour hydro uniquement
+        sim_points_df = sim_points_df[sim_points_df['Référence'] == 1]
+        valid_stations = pd.isna(sim_points_df['PointsSupprimes'])
+        sim_points_df = sim_points_df[valid_stations].reset_index(drop=True).set_index('SuggestionCode')
+        sim_points_df.index.names = ['name']
+    else:
+        sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][idx], index_col=0)
 
-if os.path.isfile(f"{dict_paths['folder_study_data']}{os.sep}{indicator}'.nc'"):
-    dict_data[indicator] = extract_ncdf_indicator(
-        path_files=pathes_indicator, param_type=config["param_type"][i],sim_points_df=sim_points_df,
-        indicator=indicator, path_result=dict_paths['folder_study_data']
-    )
-else:
-    dict_data[indicator] = xr.open_dataset(f"{dict_paths['folder_study_data']}{os.sep}{indicator}'.nc'")
+    # data_path = dict_paths[f'folder_{data_type}_data']
+    # Run among indicator for the current data type
+    for indicator in files_setup[data_type + '_indicator']:
+        print(f'### Loading {indicator}')
+        paths_indicator = path_files[indicator]
+        if os.path.isfile(f"{dict_paths['folder_study_data']}{os.sep}{indicator}'.nc'"):
+            print(f'Create export...')
+            dict_data[indicator] = extract_ncdf_indicator(
+                path_files=paths_indicator, param_type=data_type, sim_points_df=sim_points_df,
+                indicator=indicator, path_result=dict_paths['folder_study_data']
+            )
+        else:
+            print(f'Load from export...')
+            dict_data[indicator] = xr.open_dataset(f"{dict_paths['folder_study_data']}{os.sep}{indicator}'.nc'")
+
+
+
 
 
 # Load stations info
