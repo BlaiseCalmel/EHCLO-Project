@@ -2,6 +2,12 @@
   "study_name":  "HMUC_Loire_Bretagne",
   "param_type": ["hydro", "climate"],
   "regions": [23, 27, 30],
+  "historical": [1976, 2005],
+  "horizons": {
+    "horizon1": [2021, 2050],
+    "horizon2": [2041, 2070],
+    "horizon3": [2070, 2100]
+  },
   "folder_hydro_data": "/media/bcalmel/Explore2/hydro/by_chain/netcdf/hydrological-projection_yearly-variables_by-chain_netcdf/",
   "folder_climate_data": "/media/bcalmel/Explore2/climate/climatological-projection_daily-time-series_by-chain_netcdf",
   "folder_contour_data": "/home/bcalmel/Documents/2_data/contours",
@@ -9,5 +15,7 @@
   "folder_data": "data",
   "folder_figures": "figures",
   "regions_shp": "regionHydro.shp",
-  "rivers_shp": "france_rivers.shp"
+  "rivers_shp": "france_rivers.shp",
+  "timestep": "Y",
+  "operation": "mean",
 }

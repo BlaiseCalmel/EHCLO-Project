@@ -3,7 +3,7 @@
   "climate_indicator": ["tasminAdjust"],
   "select_rcp": ["rcp85", "historical"],
   "select_gcm": [],
-  "select_rcm": ["ALADIN63"],
+  "select_rcm": [],
   "select_bs": ["ADAMONT"],
-  "select_hm": []
+  "select_hm": ["CTRIP", "EROS", "GRSD", "J2000", "MORDOR-SD", "MORDOR-TS", "ORCHIDEE", "SIM2", "SMASH"]
 }

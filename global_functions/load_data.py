@@ -28,13 +28,22 @@ def load_csv(path_file, sep=',', index_col=None):
     return df
 
 def resample_df(df, timestep, operation):
-    return df.resample(timestep).agg(operation)
+    if operation == 'mean':
+        return df.resample(time=timestep).mean()
+    elif operation == 'sum':
+        return df.resample(time=timestep).sum()
+    elif operation == 'max':
+        return df.resample(time=timestep).max()
+    elif operation == 'min':
+        return df.resample(time=timestep).min()
+    else:
+        raise ValueError(f"Operation '{operation}' is not supported.")
 
 def rename_variables(dataset, suffix, indicator):
     return dataset.rename({var: var + '_' + suffix for var in dataset.data_vars if var == indicator})
 
-def extract_ncdf_indicator(path_ncdf, param_type, sim_points_df, indicator, pbar, resample_tmsp=None, resamble_op=None,
-                           path_result=None):
+def extract_ncdf_indicator(path_ncdf, param_type, sim_points_df, indicator, pbar, timestep=None, operation=None,
+                           path_result=None, config=None):
     datasets = []
     code_bytes = None
 
@@ -53,10 +62,15 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_df, indicator, pbar
         ds = xr.open_dataset(file)
         # Add sim suffix
         ds_renamed = rename_variables(ds, file_name, indicator)
-        ds_formated = ds_renamed.sel(time=slice('1976-01-01', None))
+        if config is not None:
+            ds_formated = ds_renamed.sel(time=slice(config['historical'][0], None))
 
-        if resample_tmsp is not None and resamble_op is not None:
-            resample_df(ds_formated, resample_tmsp, resamble_op)
+        # LII generates bug
+        if 'LII' in ds_formated.variables:
+            del ds_formated['LII']
+
+        if timestep is not None and operation is not None:
+            resample_df(ds_formated, timestep, operation)
 
         if code_bytes is None:
             ds_selection = ds_formated.sel(
@@ -95,10 +109,10 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_df, indicator, pbar
             combined_dataset = combined_dataset.drop_vars(columns_sorted[0])
 
     if path_result is not None:
-        # LII generates bug
-        if 'LII' in combined_dataset.variables:
-            del combined_dataset['LII']
-        combined_dataset.to_netcdf(path=f"{path_result}{indicator}.nc")
+        if timestep is not None and operation is not None:
+            combined_dataset.to_netcdf(path=f"{path_result}{indicator}_{timestep}_{operation}.nc")
+        else:
+            combined_dataset.to_netcdf(path=f"{path_result}{indicator}.nc")
     pbar.update(10 / pbar_length)
     # print(f'{dt.timedelta(seconds=round(time.time() - start_time))}')
 
