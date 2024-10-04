@@ -4,6 +4,7 @@ print(f'General imports...')
 import os
 import glob
 import json
+from tqdm import tqdm
 # import pyfiglet
 # ascii_banner = pyfiglet.figlet_format("Hello")
 # print(ascii_banner)
@@ -71,36 +72,35 @@ path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 # Run among data type climate/hydro
 dict_data = {}
 start_run = time.time()
-for data_type in config['param_type']:
-    print(f'###### Loading sim point for {data_type} data')
-    idx = config['param_type'].index(data_type)
-    # Load selected sim points from study area
-    if data_type == "hydro":
-        sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][idx], index_col=None)
-        # Stations de references pour hydro uniquement
-        sim_points_df = sim_points_df[sim_points_df['Référence'] == 1]
-        valid_stations = pd.isna(sim_points_df['PointsSupprimes'])
-        sim_points_df = sim_points_df[valid_stations].reset_index(drop=True).set_index('SuggestionCode')
-        sim_points_df.index.names = ['name']
-    else:
-        sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][idx], index_col=0)
-
-    # data_path = dict_paths[f'folder_{data_type}_data']
-    # Run among indicator for the current data type
-    for indicator in files_setup[data_type + '_indicator']:
-        print(f'### Loading {indicator}')
-        paths_indicator = path_files[indicator]
-        if not os.path.isfile(f"{dict_paths['folder_study_data']}{os.sep}{indicator}'.nc'"):
-            print(f'Create {indicator} export...')
-            dict_data[indicator] = extract_ncdf_indicator(
-                path_ncdf=paths_indicator, param_type=data_type, sim_points_df=sim_points_df,
-                indicator=indicator, path_result=dict_paths['folder_study_data']
-            )
+total_iterations = len(path_files.keys())
+with tqdm(total=total_iterations, desc="Load ncdf progress...", dynamic_ncols=True) as pbar:
+    for data_type in config['param_type']:
+        idx = config['param_type'].index(data_type)
+        # Load selected sim points from study area
+        if data_type == "hydro":
+            sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][idx], index_col=None)
+            # Stations de references pour hydro uniquement
+            sim_points_df = sim_points_df[sim_points_df['Référence'] == 1]
+            valid_stations = pd.isna(sim_points_df['PointsSupprimes'])
+            sim_points_df = sim_points_df[valid_stations].reset_index(drop=True).set_index('SuggestionCode')
+            sim_points_df.index.names = ['name']
         else:
-            print(f'Load from export...')
-            dict_data[indicator] = xr.open_dataset(f"{dict_paths['folder_study_data']}{os.sep}{indicator}'.nc'")
+            sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][idx], index_col=0)
 
-
+        # Run among indicator for the current data type
+        for indicator in files_setup[data_type + '_indicator']:
+            tqdm.write(f'### Loading {indicator}')
+            paths_indicator = path_files[indicator]
+            if not os.path.isfile(f"{dict_paths['folder_study_data']}{indicator}.nc"):
+                tqdm.write(f'Create {indicator} export...')
+                dict_data[indicator] = extract_ncdf_indicator(
+                    path_ncdf=paths_indicator, param_type=data_type, sim_points_df=sim_points_df, pbar=pbar,
+                    indicator=indicator, path_result=dict_paths['folder_study_data']
+                )
+            else:
+                tqdm.write(f'Load from {indicator} export...')
+                dict_data[indicator] = xr.open_dataset(f"{dict_paths['folder_study_data']}{indicator}.nc")
+                pbar.update(1)
 
 
 print(f'################################ FORMAT DATA ################################')

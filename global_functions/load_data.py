@@ -33,7 +33,7 @@ def resample_df(df, timestep, operation):
 def rename_variables(dataset, suffix, indicator):
     return dataset.rename({var: var + '_' + suffix for var in dataset.data_vars if var == indicator})
 
-def extract_ncdf_indicator(path_ncdf, param_type, sim_points_df, indicator, resample_tmsp=None, resamble_op=None,
+def extract_ncdf_indicator(path_ncdf, param_type, sim_points_df, indicator, pbar, resample_tmsp=None, resamble_op=None,
                            path_result=None):
     datasets = []
     code_bytes = None
@@ -41,7 +41,9 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_df, indicator, resa
     if param_type == 'hydro':
         code_bytes = [i.encode('utf-8') for i in sim_points_df.index]
 
-    for i, file in enumerate(path_ncdf[:2]):
+    pbar_length = len(path_ncdf) + 50
+
+    for i, file in enumerate(path_ncdf):
         if code_bytes is None:
             split_name = file.split(os.sep)[-5:-1]
         else:
@@ -67,11 +69,12 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_df, indicator, resa
             ds_selection = ds_formated.sel(
                 station=val_station,
                 method="nearest")
-
         datasets.append(ds_selection)
+        pbar.update(1 / pbar_length)
 
     # Merge datasets
     combined_dataset = xr.merge(datasets, compat='override')
+    pbar.update(40 / pbar_length)
 
     # if climate data merge historical and sim data
     if param_type == 'climate':
@@ -96,7 +99,7 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_df, indicator, resa
         if 'LII' in combined_dataset.variables:
             del combined_dataset['LII']
         combined_dataset.to_netcdf(path=f"{path_result}{indicator}.nc")
-
+    pbar.update(10 / pbar_length)
     # print(f'{dt.timedelta(seconds=round(time.time() - start_time))}')
 
     # print(f'============= {file_name} =============\n'
