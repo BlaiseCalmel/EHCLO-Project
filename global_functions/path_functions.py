@@ -2,16 +2,16 @@ import os
 
 def define_paths(config):
 
-    parent_folder = config['parent_folder'] + os.sep
+    # parent_folder = config['parent_folder'] + os.sep
     # folder_data = cwd + config['folder_data'] + os.sep
     # list_folder_data_data = []
     # for data_type in config['param_type']:
     #     list_folder_data_data.append(folder_data + data_type + os.sep)
     # folder_data_data = folder_data + config['param_type'] + os.sep
-    folder_data_contour = parent_folder + config['folder_data'] + os.sep
+    folder_data_contour = config['folder_contour_data'] + os.sep
 
     # Main folders path
-    folder_results = parent_folder + config['folder_results'] + os.sep
+    folder_results = config['folder_results'] + os.sep
     folder_study = folder_results + config['study_name'] + os.sep
     folder_study_figures = folder_study + config['folder_figures'] + os.sep
     folder_study_data = folder_study + config['folder_data'] + os.sep

@@ -1,6 +1,4 @@
 import datetime as dt
-from turtledemo.penrose import start
-
 import pandas as pd
 import numpy as np
 import geopandas
@@ -35,7 +33,7 @@ def resample_df(df, timestep, operation):
 def rename_variables(dataset, suffix, indicator):
     return dataset.rename({var: var + '_' + suffix for var in dataset.data_vars if var == indicator})
 
-def extract_ncdf_indicator(path_files, param_type, sim_points_df, indicator, resample_tmsp=None, resamble_op=None,
+def extract_ncdf_indicator(path_ncdf, param_type, sim_points_df, indicator, resample_tmsp=None, resamble_op=None,
                            path_result=None):
     datasets = []
     code_bytes = None
@@ -43,7 +41,7 @@ def extract_ncdf_indicator(path_files, param_type, sim_points_df, indicator, res
     if param_type == 'hydro':
         code_bytes = [i.encode('utf-8') for i in sim_points_df.index]
 
-    for i, file in enumerate(path_files[:5]):
+    for i, file in enumerate(path_ncdf[:2]):
         if code_bytes is None:
             split_name = file.split(os.sep)[-5:-1]
         else:
@@ -94,7 +92,11 @@ def extract_ncdf_indicator(path_files, param_type, sim_points_df, indicator, res
             combined_dataset = combined_dataset.drop_vars(columns_sorted[0])
 
     if path_result is not None:
-        combined_dataset.to_netcdf(path=f"{path_result}{os.sep}{indicator}'.nc'", compute=True)
+        # LII generates bug
+        if 'LII' in combined_dataset.variables:
+            del combined_dataset['LII']
+        combined_dataset.to_netcdf(path=f"{path_result}{indicator}.nc")
+
     # print(f'{dt.timedelta(seconds=round(time.time() - start_time))}')
 
     # print(f'============= {file_name} =============\n'
