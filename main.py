@@ -51,7 +51,7 @@ if not os.path.isdir(dict_paths['folder_study_data']):
 print(f'################################ STUDY AREA ################################')
 print(f'Load shapefiles...')
 regions_shp = open_shp(path_shp=dict_paths['file_regions_shp'])
-study_regions_shp = regions_shp[regions_shp['gid'].isin(config['regions'])]
+study_regions_shp = regions_shp[regions_shp['gid'].isin(files_setup['regions'])]
 rivers_shp = open_shp(path_shp=dict_paths['file_rivers_shp'])
 
 # Check if study area is already matched with sim points
@@ -62,6 +62,8 @@ for i in range(len(dict_paths['list_global_points_sim'])):
         sim_all_points_info = load_csv(path_file=dict_paths['list_global_points_sim'][i])
         is_data_in_shape(shapefile=study_regions_shp, data=sim_all_points_info, cols=['XL93', 'YL93'],
                          path_result=dict_paths['list_study_points_sim'][i])
+    else:
+        print(f'Data {config["param_type"][i]} points already in the study area')
 
 
 print(f'################################ RUN OVER NCDF ################################')

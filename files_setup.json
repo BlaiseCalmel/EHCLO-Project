@@ -1,9 +1,19 @@
 {
+  "regions": [23, 27, 30],
   "hydro_indicator": ["Q10A"],
   "climate_indicator": ["tasminAdjust"],
   "select_rcp": ["rcp85", "historical"],
   "select_gcm": [],
   "select_rcm": [],
   "select_bs": ["ADAMONT"],
-  "select_hm": ["CTRIP", "EROS", "GRSD", "J2000", "MORDOR-SD", "MORDOR-TS", "ORCHIDEE", "SIM2", "SMASH"]
+  "select_hm": ["CTRIP", "EROS", "GRSD", "J2000", "MORDOR-SD", "MORDOR-TS", "ORCHIDEE", "SIM2", "SMASH"],
+
+  "historical": [1976, 2005],
+  "horizons": {
+    "horizon1": [2021, 2050],
+    "horizon2": [2041, 2070],
+    "horizon3": [2070, 2100]
+  },
+  "timestep": "Y",
+  "operation": "mean"
 }

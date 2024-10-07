@@ -40,6 +40,7 @@ def define_paths(config):
     return dict_paths
 
 def get_files_path(dict_paths, setup, extension='.nc'):
+
     ext_files = []
     for p in [dict_paths[f'folder_hydro_data']]+[dict_paths[f'folder_climate_data']]:
         for root, dirs, files in os.walk(p):
@@ -48,14 +49,23 @@ def get_files_path(dict_paths, setup, extension='.nc'):
                     ext_files.append(os.path.join(root, file))
 
     setup_indicator = setup['climate_indicator'] + setup['hydro_indicator']
+    # Filter by indicator name
+    ext_files = [s for s in ext_files if any(word in s for word in setup_indicator)]
 
-    for key, value in setup.items():
-        if 'indicator' not in key:
-            if len(value) > 0:
-                ext_files = [s for s in ext_files if any(word in s for word in value)]
+    # Filter by sim chain
+    keys = ['select_rcp', 'select_gcm', 'select_rcm', 'select_bs']
+    for key in keys:
+        if len(setup[key]) > 0:
+            ext_files = [s for s in ext_files if any(word in s for word in setup[key])]
 
     dict_path = {}
     for indic in setup_indicator:
-        dict_path[indic] = [s for s in ext_files if indic in s]
+        indic_values = [s for s in ext_files if indic in s]
+        # Filter by HM
+        if indic in setup['hydro_indicator']:
+            indic_values = [s for s in indic_values if any(word in s for word in setup['select_hm'])]
+
+        # Save in dict
+        dict_path[indic] = indic_values
 
     return dict_path
