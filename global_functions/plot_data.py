@@ -2,8 +2,6 @@ import matplotlib.pyplot as plt
 import geopandas.geodataframe as gpd
 import numpy as np
 
-
-
 def save_shp_figure(back_shp:gpd.GeoDataFrame, path_result:str, study_shp:gpd.GeoDataFrame=None,
                     rivers_shp:gpd.GeoDataFrame=None,
                     figsize:tuple=None, **kwargs):

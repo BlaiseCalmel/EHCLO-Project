@@ -1,6 +1,6 @@
 {
   "regions": [23, 27, 30],
-  "hydro_indicator": ["Q10A"],
+  "hydro_indicator": [],
   "climate_indicator": ["tasminAdjust"],
   "select_rcp": ["rcp85", "historical"],
   "select_gcm": [],
@@ -14,6 +14,6 @@
     "horizon2": [2041, 2070],
     "horizon3": [2070, 2100]
   },
-  "timestep": "Y",
+  "timestep": "YE",
   "operation": "mean"
 }

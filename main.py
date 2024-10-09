@@ -4,7 +4,6 @@ print(f'General imports...')
 import os
 import glob
 import json
-from tqdm import tqdm
 # import pyfiglet
 # ascii_banner = pyfiglet.figlet_format("Hello")
 # print(ascii_banner)
@@ -60,6 +59,10 @@ for i in range(len(dict_paths['list_global_points_sim'])):
     if not os.path.isfile(dict_paths['list_study_points_sim'][i]):
         print(f'Find {config["param_type"][i]} data points in study area')
         sim_all_points_info = load_csv(path_file=dict_paths['list_global_points_sim'][i])
+
+        geo_df = geopandas.GeoDataFrame(sim_all_points_info, geometry='geometry')
+
+
         is_data_in_shape(shapefile=study_regions_shp, data=sim_all_points_info, cols=['XL93', 'YL93'],
                          path_result=dict_paths['list_study_points_sim'][i])
     else:
@@ -77,64 +80,52 @@ start_run = time.time()
 total_iterations = len(path_files.keys())
 timestep = None
 operation = None
-if len(config["timestep"]) > 0:
-    timestep = config["timestep"]
-if len(config["operation"]) > 0:
-    operation = config["operation"]
+if len(files_setup["timestep"]) > 0:
+    timestep = files_setup["timestep"]
+if len(files_setup["operation"]) > 0:
+    operation = files_setup["operation"]
 
-with tqdm(total=total_iterations, desc="Load ncdf progress...", dynamic_ncols=True) as pbar:
-    for data_type in config['param_type']:
-        idx = config['param_type'].index(data_type)
-        # Load selected sim points from study area
-        if data_type == "hydro":
-            sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][idx], index_col=None)
-            # Stations de references pour hydro uniquement
-            sim_points_df = sim_points_df[sim_points_df['Référence'] == 1]
-            valid_stations = pd.isna(sim_points_df['PointsSupprimes'])
-            sim_points_df = sim_points_df[valid_stations].reset_index(drop=True).set_index('SuggestionCode')
-            sim_points_df.index.names = ['name']
+for data_type in config['param_type']:
+    idx = config['param_type'].index(data_type)
+    # Load selected sim points from study area
+    if data_type == "hydro":
+        sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][idx], index_col=None)
+        # Hydro ref stations
+        sim_points_df = sim_points_df[sim_points_df['Référence'] == 1]
+        valid_stations = pd.isna(sim_points_df['PointsSupprimes'])
+        sim_points_df = sim_points_df[valid_stations].reset_index(drop=True).set_index('SuggestionCode')
+        sim_points_df.index.names = ['name']
+    else:
+        sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][idx], index_col=0)
+
+    # Run among indicator for the current data type
+    for indicator in files_setup[data_type + '_indicator']:
+        paths_indicator = path_files[indicator]
+
+        if timestep is None or operation is None:
+            file_name = f"{dict_paths['folder_study_data']}{indicator}.nc"
         else:
-            sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][idx], index_col=0)
+            file_name = f"{dict_paths['folder_study_data']}{indicator}_{timestep}_{operation}.nc"
 
-        # Run among indicator for the current data type
-        for indicator in files_setup[data_type + '_indicator']:
-            tqdm.write(f'### Loading {indicator}')
-            paths_indicator = path_files[indicator]
-
-            if timestep is None or operation is None:
-                file_name = f"{dict_paths['folder_study_data']}{indicator}.nc"
-            else:
-                file_name = f"{dict_paths['folder_study_data']}{indicator}_{timestep}_{operation}.nc"
-
-            if not os.path.isfile(file_name):
-                tqdm.write(f'Create {indicator} export...')
-                dict_data[indicator] = extract_ncdf_indicator(
-                    path_ncdf=paths_indicator, param_type=data_type, sim_points_df=sim_points_df, pbar=pbar,
-                    indicator=indicator, path_result=dict_paths['folder_study_data'],
-                    timestep=timestep, operation=operation, config=config
-                )
-            else:
-                tqdm.write(f'Load from {indicator} export...')
-                dict_data[indicator] = xr.open_dataset(file_name)
-                pbar.update(1)
+        if not os.path.isfile(file_name):
+            print(f'Create {indicator} export...', end='\r')
+            dict_data[indicator] = extract_ncdf_indicator(
+                path_ncdf=paths_indicator, param_type=data_type, sim_points_df=sim_points_df,
+                indicator=indicator, path_result=dict_paths['folder_study_data'],
+                timestep=timestep, operation=operation, files_setup=files_setup
+            )
+        else:
+            print(f'Load from {indicator} export...', end='\r')
+            dict_data[indicator] = xr.open_dataset(file_name)
 
 
 print(f'################################ FORMAT DATA ################################')
-indicator = 'Q10A'
-dict_data[indicator].time
+indicator = 'tasminAdjust'
 
-study_period = ['historical', 'horizon1', 'horizon2', 'horizon3']
-config['historical']
-config['horizons']
+data = ds
 
-ds = dict_data[indicator]
-for period in study_period:
-    start, end = config[period]
-    selected_dates = (start < ds.time.dt.year)& (ds.time.dt.year < end)
-    ds_2000_2006 = ds.sel(time=selected_dates)
 
-mask_before_2006 = dict_data[indicator].time.dt.year < 2006
-dict_data[indicator].time.where(mask_before_2006, drop=True)
+
 
 
 # Convert to df and define horizon

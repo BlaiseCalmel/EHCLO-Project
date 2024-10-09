@@ -2,7 +2,7 @@ import datetime as dt
 import pandas as pd
 import numpy as np
 import geopandas
-import netCDF4
+from tqdm import tqdm
 import xarray as xr
 import time
 import os
@@ -42,54 +42,57 @@ def resample_df(df, timestep, operation):
 def rename_variables(dataset, suffix, indicator):
     return dataset.rename({var: var + '_' + suffix for var in dataset.data_vars if var == indicator})
 
-def extract_ncdf_indicator(path_ncdf, param_type, sim_points_df, indicator, pbar, timestep=None, operation=None,
-                           path_result=None, config=None):
+def extract_ncdf_indicator(path_ncdf, param_type, sim_points_df, indicator, timestep=None, operation=None,
+                           path_result=None, files_setup=None):
     datasets = []
     code_bytes = None
-
+    total_iterations = len(path_ncdf)
     if param_type == 'hydro':
         code_bytes = [i.encode('utf-8') for i in sim_points_df.index]
 
-    pbar_length = len(path_ncdf) + 50
+    # Progress bar
+    with tqdm(total=total_iterations, desc=f"Load {indicator} ncdf") as pbar:
 
-    for i, file in enumerate(path_ncdf):
-        if code_bytes is None:
-            split_name = file.split(os.sep)[-5:-1]
-        else:
-            split_name = file.split(os.sep)[-6:-1]
-        file_name = '_'.join(split_name)
+        for i, file in enumerate(path_ncdf):
+            if code_bytes is None:
+                split_name = file.split(os.sep)[-5:-1]
+            else:
+                split_name = file.split(os.sep)[-6:-1]
+            file_name = '_'.join(split_name)
 
-        ds = xr.open_dataset(file)
-        # Add sim suffix
-        ds_renamed = rename_variables(ds, file_name, indicator)
-        if config is not None:
-            ds_formated = ds_renamed.sel(time=slice(config['historical'][0], None))
+            ds = xr.open_dataset(file)
 
-        # LII generates bug
-        if 'LII' in ds_formated.variables:
-            del ds_formated['LII']
+            # Add sim suffix
+            ds_renamed = rename_variables(ds, file_name, indicator)
+            if files_setup is not None:
+                ds_formated = ds_renamed.sel(time=slice(dt.datetime(files_setup['historical'][0], 1, 1), None))
 
-        if timestep is not None and operation is not None:
-            resample_df(ds_formated, timestep, operation)
+            # LII generates bug
+            if 'LII' in ds_formated.variables:
+                del ds_formated['LII']
 
-        if code_bytes is None:
-            ds_selection = ds_formated.sel(
-                x=xr.DataArray(sim_points_df.iloc[:]['x'], dims="z"),
-                y=xr.DataArray(sim_points_df.iloc[:]['y'], dims="z"),
-                method="nearest")
-        else:
-            idx_stations = ds_formated['code'].isin(code_bytes)
-            val_station = ds_formated['station'].where(idx_stations, drop=True)
-            ds_selection = ds_formated.sel(
-                station=val_station,
-                method="nearest")
-        datasets.append(ds_selection)
-        pbar.update(1 / pbar_length)
+
+            if timestep is not None and operation is not None:
+                ds_formated = resample_df(ds_formated, timestep, operation)
+
+            if code_bytes is None:
+                ds_selection = ds_formated.sel(
+                    x=xr.DataArray(sim_points_df.iloc[:]['x'], dims="z"),
+                    y=xr.DataArray(sim_points_df.iloc[:]['y'], dims="z"),
+                    method="nearest")
+            else:
+                idx_stations = ds_formated['code'].isin(code_bytes)
+                val_station = ds_formated['station'].where(idx_stations, drop=True)
+                ds_selection = ds_formated.sel(
+                    station=val_station,
+                    method="nearest")
+            datasets.append(ds_selection)
+
+            # Update progress bar
+            pbar.update(1)
 
     # Merge datasets
     combined_dataset = xr.merge(datasets, compat='override')
-    pbar.update(40 / pbar_length)
-
     # if climate data merge historical and sim data
     if param_type == 'climate':
         column_groups = {}
@@ -113,13 +116,6 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_df, indicator, pbar
             combined_dataset.to_netcdf(path=f"{path_result}{indicator}_{timestep}_{operation}.nc")
         else:
             combined_dataset.to_netcdf(path=f"{path_result}{indicator}.nc")
-    pbar.update(10 / pbar_length)
-    # print(f'{dt.timedelta(seconds=round(time.time() - start_time))}')
-
-    # print(f'============= {file_name} =============\n'
-    #       f'Running for {dt.timedelta(seconds=round(timedelta))}\n'
-    #       f'Ends in {dt.timedelta(seconds=round(files_to_open*estimate_timestep))} '
-    #       f'[{i+1} files/{len(path_indicator_files)}]')
 
     return combined_dataset
 
