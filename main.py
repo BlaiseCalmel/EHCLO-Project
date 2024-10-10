@@ -116,11 +116,18 @@ for data_type in config['param_type']:
             print(f'Load from {indicator} export...', end='\r')
             dict_data[indicator] = xr.open_dataset(file_name)
 
-
 print(f'################################ FORMAT DATA ################################')
 
+ds = dict_data[indicator]
+
+# Temporal
+ds_indicator = [i for i in list(ds.variables) if indicator in i]
+
+# Define horizon
+ds = define_horizon(ds, files_setup)
 
 
+# One value per region : spatial weighted mean
 
 
 
