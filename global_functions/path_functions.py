@@ -21,8 +21,8 @@ def define_paths(config):
     list_global_points_sim = []
     list_study_points_sim = []
     for data_type in config['param_type']:
-        list_global_points_sim.append(folder_data_contour + data_type + '_points_sim.csv')
-        list_study_points_sim.append(folder_study_data + data_type + '_points_sim.csv')
+        list_global_points_sim.append(folder_data_contour + data_type + '_points_sim.shp')
+        list_study_points_sim.append(folder_study_data + data_type + '_points_sim.shp')
 
     dict_paths = {
         'folder_hydro_data': config['folder_hydro_data'],

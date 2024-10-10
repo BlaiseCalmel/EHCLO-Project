@@ -58,12 +58,9 @@ print(f'Find sim points in study area...')
 for i in range(len(dict_paths['list_global_points_sim'])):
     if not os.path.isfile(dict_paths['list_study_points_sim'][i]):
         print(f'Find {config["param_type"][i]} data points in study area')
-        sim_all_points_info = load_csv(path_file=dict_paths['list_global_points_sim'][i])
-
-        geo_df = geopandas.GeoDataFrame(sim_all_points_info, geometry='geometry')
-
-
-        is_data_in_shape(shapefile=study_regions_shp, data=sim_all_points_info, cols=['XL93', 'YL93'],
+        # sim_all_points_info = load_csv(path_file=dict_paths['list_global_points_sim'][i])
+        sim_all_points_info = open_shp(path_shp=dict_paths['list_global_points_sim'][i])
+        overlay_shapefile(shapefile=study_regions_shp, data=sim_all_points_info,
                          path_result=dict_paths['list_study_points_sim'][i])
     else:
         print(f'Data {config["param_type"][i]} points already in the study area')
@@ -89,14 +86,15 @@ for data_type in config['param_type']:
     idx = config['param_type'].index(data_type)
     # Load selected sim points from study area
     if data_type == "hydro":
-        sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][idx], index_col=None)
+        sim_points_gdf = open_shp(path_shp=dict_paths['list_study_points_sim'][idx])
         # Hydro ref stations
-        sim_points_df = sim_points_df[sim_points_df['Référence'] == 1]
-        valid_stations = pd.isna(sim_points_df['PointsSupprimes'])
-        sim_points_df = sim_points_df[valid_stations].reset_index(drop=True).set_index('SuggestionCode')
-        sim_points_df.index.names = ['name']
+        sim_points_gdf = sim_points_gdf[sim_points_gdf['REFERENCE'] == 1]
+        valid_stations = pd.isna(sim_points_gdf['PointsSupp'])
+        sim_points_gdf = sim_points_gdf[valid_stations].reset_index(drop=True).set_index('Suggestion')
+        sim_points_gdf.index.names = ['name']
+
     else:
-        sim_points_df = pd.read_csv(dict_paths['list_study_points_sim'][idx], index_col=0)
+        sim_points_gdf = open_shp(path_shp=dict_paths['list_study_points_sim'][idx])
 
     # Run among indicator for the current data type
     for indicator in files_setup[data_type + '_indicator']:
@@ -110,7 +108,7 @@ for data_type in config['param_type']:
         if not os.path.isfile(file_name):
             print(f'Create {indicator} export...', end='\r')
             dict_data[indicator] = extract_ncdf_indicator(
-                path_ncdf=paths_indicator, param_type=data_type, sim_points_df=sim_points_df,
+                path_ncdf=paths_indicator, param_type=data_type, sim_points_df=sim_points_gdf,
                 indicator=indicator, path_result=dict_paths['folder_study_data'],
                 timestep=timestep, operation=operation, files_setup=files_setup
             )
@@ -120,9 +118,7 @@ for data_type in config['param_type']:
 
 
 print(f'################################ FORMAT DATA ################################')
-indicator = 'tasminAdjust'
 
-data = ds
 
 
 

@@ -3,30 +3,47 @@ import pandas as pd
 from shapely.geometry import Point, Polygon, LineString
 import netCDF4
 import numpy as np
-import xarray as xr
+import geopandas as gpd
 
-def is_data_in_shape(shapefile, data, cols, path_result=None):
+def overlay_shapefile(shapefile, data, path_result=None, col='gid'):
 
-    x = data[cols[0]]
-    y = data[cols[1]]
-    geo_df = geopandas.GeoDataFrame(
-        data, geometry=geopandas.points_from_xy(x, y),
-        crs={'init': 'epsg:2154'}
-
-    )
+    # x = data[cols[0]]
+    # y = data[cols[1]]
+    # geo_df = geopandas.GeoDataFrame(
+    #     data, geometry=geopandas.points_from_xy(x, y),
+    #     crs={'init': 'epsg:2154'}
+    #
+    # )
     # # Polygons to L93
     # shapefile_l93 = shapefile.to_crs(crs={'init': 'epsg:2154'})
-
     # Join both
-    matched_points = geo_df.sjoin(shapefile, how='inner', predicate='intersects')
+    data['geometry_type'] = data['geometry'].apply(check_geometry_type)
 
-    matched_points = matched_points.drop('index_right', axis=1)
+    matched_points = None
+    if data['geometry_type'].value_counts().idxmax() == "Polygon":
+        matched_points = gpd.overlay(data, shapefile, how='intersection')
+        matched_points['surface'] = matched_points.area
+
+        total_surface = matched_points.groupby(col).agg({'surface':'sum'})
+        matched_points = matched_points.merge(total_surface, left_on=col, right_index=True)
+
+    elif data['geometry_type'].value_counts().idxmax() == "Point":
+        matched_points = data.sjoin(shapefile, how='inner', predicate='intersects')
+        matched_points = matched_points.drop('index_right', axis=1)
 
     # Save the matched points shapefile
-    if path_result is not None:
-        matched_points.to_csv(path_result, index=False)
+    if matched_points is not None and path_result is not None:
+        matched_points.to_file(path_result, index=False)
     else:
         return matched_points
+
+def check_geometry_type(geometry):
+    if isinstance(geometry, Polygon):
+        return "Polygon"
+    elif isinstance(geometry, Point):
+        return "Point"
+    else:
+        return "Other"
 
 def get_coordinates(data, path_result):
     # Station points LII
@@ -46,35 +63,34 @@ def get_coordinates(data, path_result):
     data = pd.DataFrame({'name': names, 'x_idx': x_idx, 'y_idx': y_idx, 'lat': col2_flat, 'lon': col1_flat,
                          'x': x, 'y': y})
 
-    cell_size = 8000
-    # Liste pour stocker les polylignes
-    polylines = []
-    # Créer des polylignes pour chaque maille
-    for index, row in data.iterrows():
-        x_center = row['lon']
-        y_center = row['lat']
 
-        # Calculer les coins de la maille
-        x_min = x_center - cell_size / 2
-        x_max = x_center + cell_size / 2
-        y_min = y_center - cell_size / 2
-        y_max = y_center + cell_size / 2
 
-        # Créer un polyligne (ligne fermée)
-        line = LineString([
-            (x_min, y_min), (x_max, y_min),
-            (x_max, y_max), (x_min, y_max),
-            (x_min, y_min)  # Fermer la ligne
-        ])
+    geo_points = geopandas.GeoDataFrame(
+        data, geometry=geopandas.points_from_xy(col1_flat, col2_flat),
+        crs={'init': 'epsg:4326'})
 
-        # Ajouter la polyligne à la liste
-        polylines.append(line)
+    geo_df2 = geo_points.to_crs(crs={'init': 'epsg:27572'})
+    geo_df2['geometry'] = geo_df2['geometry'].apply(create_polygon_from_point)
 
-    geo_df = geopandas.GeoDataFrame(
-        data, geometry=polylines,
-        crs={'init': 'epsg:27572'})
-    geo_df = geo_df.to_crs(crs={'init': 'epsg:2154'})
+    geo_df93 = geo_df2.to_crs(crs={'init': 'epsg:2154'})
 
-    geo_df.to_csv(path_result, index=False)
+    geo_df93.to_file(path_result+'climate_points_sim.shp')
 
-    # geo_df.to_file(path_result+'hydro_points_sim.shp')
+def create_polygon_from_point(point, cell_size=8000):
+    half_size = cell_size / 2
+    x, y = point.x, point.y
+
+    # Calculer les coins du polygone autour du centre
+    x_min = x - half_size
+    x_max = x + half_size
+    y_min = y - half_size
+    y_max = y + half_size
+
+    # Créer un polygone carré (ligne fermée)
+    polygon = Polygon([
+        (x_min, y_min), (x_max, y_min),
+        (x_max, y_max), (x_min, y_max),
+        (x_min, y_min)  # Fermer la ligne
+    ])
+
+    return polygon
