@@ -11,6 +11,7 @@ import json
 # Local import
 print(f'Local imports...')
 from global_functions.load_data import *
+from global_functions.format_data import *
 from global_functions.plot_data import *
 from global_functions.shp_geometry import *
 from global_functions.path_functions import  *
@@ -126,15 +127,14 @@ ds_indicator = [i for i in list(ds.variables) if indicator in i]
 # Define horizon
 ds = define_horizon(ds, files_setup)
 
-
 # One value per region : spatial weighted mean
+# Match name and z
+
+# Define weight of each sim point
+sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
+ds
 
 
-
-# Convert to df and define horizon
-df_data = from_dict_to_df(dict_data)
-
-cols = ['Histo', 'H1', 'H2', 'H3']
 
 # Group by horizon
 # df_histo, df_H1, df_H2, df_H3 = group_by_horizon(df=df_data, stations_name=selected_stations_name,

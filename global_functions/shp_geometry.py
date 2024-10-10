@@ -17,17 +17,18 @@ def overlay_shapefile(shapefile, data, path_result=None, col='gid'):
     # # Polygons to L93
     # shapefile_l93 = shapefile.to_crs(crs={'init': 'epsg:2154'})
     # Join both
-    data['geometry_type'] = data['geometry'].apply(check_geometry_type)
+    geometry_type = data['geometry'].apply(check_geometry_type)
 
     matched_points = None
-    if data['geometry_type'].value_counts().idxmax() == "Polygon":
+    if geometry_type.value_counts().idxmax() == "Polygon":
         matched_points = gpd.overlay(data, shapefile, how='intersection')
         matched_points['surface'] = matched_points.area
 
         total_surface = matched_points.groupby(col).agg({'surface':'sum'})
+        total_surface = total_surface.rename(columns={'surface': 'total_surface'})
         matched_points = matched_points.merge(total_surface, left_on=col, right_index=True)
 
-    elif data['geometry_type'].value_counts().idxmax() == "Point":
+    elif geometry_type.value_counts().idxmax() == "Point":
         matched_points = data.sjoin(shapefile, how='inner', predicate='intersects')
         matched_points = matched_points.drop('index_right', axis=1)
 
