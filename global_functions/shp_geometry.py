@@ -64,8 +64,6 @@ def get_coordinates(data, path_result):
     data = pd.DataFrame({'name': names, 'x_idx': x_idx, 'y_idx': y_idx, 'lat': col2_flat, 'lon': col1_flat,
                          'x': x, 'y': y})
 
-
-
     geo_points = geopandas.GeoDataFrame(
         data, geometry=geopandas.points_from_xy(col1_flat, col2_flat),
         crs={'init': 'epsg:4326'})

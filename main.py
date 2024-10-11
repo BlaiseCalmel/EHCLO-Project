@@ -96,6 +96,7 @@ for data_type in config['param_type']:
 
     else:
         sim_points_gdf = open_shp(path_shp=dict_paths['list_study_points_sim'][idx])
+        sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
 
     # Run among indicator for the current data type
     for indicator in files_setup[data_type + '_indicator']:
@@ -109,7 +110,7 @@ for data_type in config['param_type']:
         if not os.path.isfile(file_name):
             print(f'Create {indicator} export...', end='\r')
             dict_data[indicator] = extract_ncdf_indicator(
-                path_ncdf=paths_indicator, param_type=data_type, sim_points_df=sim_points_gdf,
+                path_ncdf=paths_indicator, param_type=data_type, sim_points_gdf=sim_points_gdf,
                 indicator=indicator, path_result=dict_paths['folder_study_data'],
                 timestep=timestep, operation=operation, files_setup=files_setup
             )
@@ -124,15 +125,58 @@ ds = dict_data[indicator]
 # Temporal
 ds_indicator = [i for i in list(ds.variables) if indicator in i]
 
-# Define horizon
-ds = define_horizon(ds, files_setup)
+ds = ds.assign_coords(region=region_da)
+ds['weight'] = weight_da
+
+test = weighted_mean_per_region(ds, ds_indicator)
+
+################ TEST #######################
+import pandas as pd
+import geopandas as gpd
+import xarray as xr
+import numpy as np
+
+times = pd.date_range('2000-01-01', periods=5, freq='Y')
+x = [1, 2, 3, 4, 5]
+y = [10, 20, 30, 40, 50]
+regions = ['A', 'A', 'B', 'B', 'C']
+
+# Création du Dataset avec des variables var1 et var2
+ds = xr.Dataset({
+    'var1': (('time', 'x', 'y'), np.random.rand(len(times), len(x), len(y))),
+    'var2': (('time', 'x', 'y'), np.random.rand(len(times), len(x), len(y))),
+    'var3': (('time', 'x', 'y'), np.random.rand(len(times), len(x), len(y))),
+    'weight': (('x', 'y'), np.random.rand(len(x), len(y)))  # Poids 2D
+}, coords={
+    'time': times,
+    'x': x,
+    'y': y,
+    'region': ('x', ['A', 'A', 'B', 'B', 'C'])  # Coordonnées des régions
+})
+
+variables = ['var1', 'var2', 'var3']
+weighted_means = weighted_mean_per_region(ds, variables)
+var1_A_2002 = weighted_means['var1'].sel(region='A', time='2002-12-31').item()
+
+
+
+
 
 # One value per region : spatial weighted mean
-# Match name and z
+
 
 # Define weight of each sim point
 sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
-ds
+
+weighted_average_per_region(gdf=sim_points_gdf, region_col='gid', ds=ds, variables=ds_indicator)
+
+
+
+# Define horizon
+ds = define_horizon(ds, files_setup)
+
+# Match name and z
+
 
 
 
