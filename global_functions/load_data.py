@@ -17,7 +17,7 @@ def open_shp(path_shp: str):
 
 def load_csv(path_file, sep=',', index_col=None):
     """
-    :param path_csv:
+    :param path_file:
     :param sep:
     :return:
     """
@@ -51,7 +51,7 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
     # Progress bar
     with tqdm(total=total_iterations, desc=f"Load {indicator} ncdf") as pbar:
 
-        for i, file in enumerate(path_ncdf[:3]):
+        for i, file in enumerate(path_ncdf):
             if param_type == "climate":
                 split_name = file.split(os.sep)[-5:-1]
             else:
@@ -102,6 +102,7 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
     # if climate data merge historical and sim data
     if param_type == 'climate':
         column_groups = {}
+        # Find historical and recent variable name
         for col in list(combined_dataset.variables.keys()):
             if 'rcp' in col or 'historical' in col:
                 group_id = '_'.join(col.split('_')[2:])
@@ -110,13 +111,15 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
                     column_groups[group_id] = []
                 column_groups[group_id].append(col)
 
+        # Join historical and recent data
         for group_id, columns in column_groups.items():
             columns_sorted = sorted(columns, key=lambda x: ('rcp' in x, x))
+            if len(columns_sorted) > 1:
+                for col in columns_sorted[1:]:
+                    combined_dataset[col] = combined_dataset[col].fillna(combined_dataset[columns_sorted[0]])
+                combined_dataset = combined_dataset.drop_vars(columns_sorted[0])
 
-            for col in columns_sorted[1:]:
-                combined_dataset[col] = combined_dataset[col].fillna(combined_dataset[columns_sorted[0]])
-            combined_dataset = combined_dataset.drop_vars(columns_sorted[0])
-
+    # Save as ncdf
     if path_result is not None:
         if timestep is not None and operation is not None:
             combined_dataset.to_netcdf(path=f"{path_result}{indicator}_{timestep}_{operation}.nc")

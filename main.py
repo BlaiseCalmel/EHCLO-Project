@@ -1,8 +1,7 @@
 print(f'################################ IMPORT & INITIALIZATION ################################')
 # General import
 print(f'General imports...')
-import os
-import glob
+import time
 import json
 # import pyfiglet
 # ascii_banner = pyfiglet.figlet_format("Hello")
@@ -124,59 +123,6 @@ ds = dict_data[indicator]
 
 # Temporal
 ds_indicator = [i for i in list(ds.variables) if indicator in i]
-
-ds = ds.assign_coords(region=region_da)
-ds['weight'] = weight_da
-
-test = weighted_mean_per_region(ds, ds_indicator)
-
-################ TEST #######################
-import pandas as pd
-import geopandas as gpd
-import xarray as xr
-import numpy as np
-
-times = pd.date_range('2000-01-01', periods=5, freq='Y')
-x = [1, 2, 3, 4, 5]
-y = [10, 20, 30, 40, 50]
-regions = ['A', 'A', 'B', 'B', 'C']
-
-# Création du Dataset avec des variables var1 et var2
-ds = xr.Dataset({
-    'var1': (('time', 'x', 'y'), np.random.rand(len(times), len(x), len(y))),
-    'var2': (('time', 'x', 'y'), np.random.rand(len(times), len(x), len(y))),
-    'var3': (('time', 'x', 'y'), np.random.rand(len(times), len(x), len(y))),
-    'weight': (('x', 'y'), np.random.rand(len(x), len(y)))  # Poids 2D
-}, coords={
-    'time': times,
-    'x': x,
-    'y': y,
-    'region': ('x', ['A', 'A', 'B', 'B', 'C'])  # Coordonnées des régions
-})
-
-variables = ['var1', 'var2', 'var3']
-weighted_means = weighted_mean_per_region(ds, variables)
-var1_A_2002 = weighted_means['var1'].sel(region='A', time='2002-12-31').item()
-
-
-
-
-
-# One value per region : spatial weighted mean
-
-
-# Define weight of each sim point
-sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
-
-weighted_average_per_region(gdf=sim_points_gdf, region_col='gid', ds=ds, variables=ds_indicator)
-
-
-
-# Define horizon
-ds = define_horizon(ds, files_setup)
-
-# Match name and z
-
 
 
 
