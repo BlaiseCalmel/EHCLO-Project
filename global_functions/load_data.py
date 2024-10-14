@@ -1,10 +1,8 @@
 import datetime as dt
 import pandas as pd
-import numpy as np
 import geopandas
 from tqdm import tqdm
 import xarray as xr
-import time
 import os
 from global_functions.format_data import weighted_mean_per_region
 
@@ -83,18 +81,9 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
                     y=sim_points_gdf.iloc[:]['y'].values,
                     method="nearest")
 
-                # Spatial selection
-                region_da = xr.DataArray(sim_points_gdf['gid'].values, dims=['x'], coords={'x': sim_points_gdf['x']})
-                weight_da = xr.DataArray(sim_points_gdf['weight'].values, dims=['x'], coords={'x': sim_points_gdf['x']})
-
-                # Add column to dataset
-                ds_selection = ds_selection.assign_coords(region=region_da)
-                ds_selection['weight'] = weight_da
-
-                # Spatial aggregation
                 var = indicator+'_'+file_name
-                ds_mean_region = ds_selection.groupby('region').mean(dim=('x', 'y'))
-                ds_selection = ds_mean_region[[var]]
+                ds_selection = weighted_mean_per_region(ds_selection, var, sim_points_gdf,
+                                                        region_col='gid')
 
             else:
                 idx_stations = ds_renamed['code'].isin(code_bytes)
