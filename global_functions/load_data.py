@@ -53,7 +53,7 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
     # Progress bar
     with tqdm(total=total_iterations, desc=f"Load {indicator} ncdf") as pbar:
 
-        for i, file in enumerate(path_ncdf):
+        for i, file in enumerate(path_ncdf[:3]):
             if param_type == "climate":
                 split_name = file.split(os.sep)[-5:-1]
             else:
@@ -65,7 +65,8 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
             # Add sim suffix
             ds_renamed = rename_variables(ds, file_name, indicator)
             if files_setup is not None:
-                ds_renamed = ds_renamed.sel(time=slice(dt.datetime(files_setup['historical'][0], 1, 1), None))
+                ds_renamed = ds_renamed.sel(time=slice(dt.datetime(files_setup['historical'][0], 1, 1),
+                                                       None))
 
             # LII generates bug
             if 'LII' in ds_renamed.variables:
@@ -86,30 +87,14 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
                 region_da = xr.DataArray(sim_points_gdf['gid'].values, dims=['x'], coords={'x': sim_points_gdf['x']})
                 weight_da = xr.DataArray(sim_points_gdf['weight'].values, dims=['x'], coords={'x': sim_points_gdf['x']})
 
+                # Add column to dataset
                 ds_selection = ds_selection.assign_coords(region=region_da)
                 ds_selection['weight'] = weight_da
 
+                # Spatial aggregation
                 var = indicator+'_'+file_name
-                # Utilisation de groupby pour les régions
-                mean_weighted_ds = ds_selection[var].groupby('region').map(weighted_mean,
-                                                                              args=(ds_selection['weight'],))
-
-
-                def weighted_mean(group, weight):
-                    # Filtrer les poids pour la région actuelle
-                    weight_region = weight.where(group['region'] == group['region'], drop=False)
-
-                    # Calcul de la somme pondérée
-                    weighted_sum = (group * weight_region).sum(dim=('x', 'y'))
-
-                    # Calcul de la somme des poids
-                    total_weight = weight_region.sum(dim=('x', 'y'))
-
-                    # Moyenne pondérée
-                    return weighted_sum / total_weight
-
-
-
+                ds_mean_region = ds_selection.groupby('region').mean(dim=('x', 'y'))
+                ds_selection = ds_mean_region[[var]]
 
             else:
                 idx_stations = ds_renamed['code'].isin(code_bytes)
