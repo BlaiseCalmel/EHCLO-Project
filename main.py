@@ -122,9 +122,33 @@ print(f'################################ FORMAT DATA ###########################
 ds = dict_data[indicator]
 
 # Temporal
-ds_indicator = [i for i in list(ds.variables) if indicator in i]
+indicators = [i for i in list(ds.variables) if indicator in i]
+
+# Define horizons as mask
+dict_horizon = compute_horizon(ds, files_setup)
+
+# Compute value for simulations
+# value(region, horizon) or value(station, horizon)
 
 
+
+# N points dans la région
+# M dates
+# P simulations
+# 1) Aggréger les N points à l'échelle de chaque région (id region)
+# 2) Aggréger les dates par horizons (start-end)
+# 3) Grouper les simulations (func)
+
+# Compute value by horizon (mean, quantile, media etc)
+# idem region -> groupby horizon for each point
+# Supression time, remplacé par historical, horizon 1 etc
+# Point 1 : Histo, H1, H2, H3
+# ...
+# Point n : Histo, H1, H2, H3
+# Variable(region, period)
+# var1, point1, h1
+ds_horizon['historical']
+test(ds_horizon, fonction)
 
 # Group by horizon
 # df_histo, df_H1, df_H2, df_H3 = group_by_horizon(df=df_data, stations_name=selected_stations_name,

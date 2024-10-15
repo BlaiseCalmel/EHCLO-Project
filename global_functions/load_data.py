@@ -82,6 +82,7 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
                     method="nearest")
 
                 var = indicator+'_'+file_name
+                # TODO use smaller region shape
                 ds_selection = weighted_mean_per_region(ds_selection, var, sim_points_gdf,
                                                         region_col='gid')
 
