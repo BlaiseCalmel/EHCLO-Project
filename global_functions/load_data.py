@@ -25,15 +25,15 @@ def load_csv(path_file, sep=',', index_col=None):
 
     return df
 
-def resample_df(df, timestep, operation):
+def resample_ds(ds, var, timestep, operation):
     if operation == 'mean':
-        return df.resample(time=timestep).mean()
+        return ds[var].resample(time=timestep).mean()
     elif operation == 'sum':
-        return df.resample(time=timestep).sum()
+        return ds[var].resample(time=timestep).sum()
     elif operation == 'max':
-        return df.resample(time=timestep).max()
+        return ds[var].resample(time=timestep).max()
     elif operation == 'min':
-        return df.resample(time=timestep).min()
+        return ds[var].resample(time=timestep).min()
     else:
         raise ValueError(f"Operation '{operation}' is not supported.")
 
@@ -57,11 +57,12 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
             else:
                 split_name = file.split(os.sep)[-6:-1]
             file_name = '_'.join(split_name)
+            var = indicator+'_'+file_name
 
             ds = xr.open_dataset(file)
 
             # Add sim suffix
-            ds_renamed = rename_variables(ds, file_name, indicator)
+            test = rename_variables(ds, file_name, indicator)
             if files_setup is not None:
                 ds_renamed = ds_renamed.sel(time=slice(dt.datetime(files_setup['historical'][0], 1, 1),
                                                        None))
@@ -72,7 +73,8 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
 
             # TODO Look for seasonal indicator (climate) DJF/JJA
             if timestep is not None and operation is not None:
-                ds_renamed = resample_df(ds_renamed, timestep, operation)
+                test[var]
+                ds_renamed[var] = resample_ds(ds_renamed, var, timestep, operation)
 
             if param_type == "climate":
                 # Temporal selection
@@ -81,7 +83,6 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
                     y=sim_points_gdf.iloc[:]['y'].values,
                     method="nearest")
 
-                var = indicator+'_'+file_name
                 # TODO use smaller region shape
                 ds_selection = weighted_mean_per_region(ds_selection, var, sim_points_gdf,
                                                         region_col='gid')
@@ -126,8 +127,8 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
             combined_dataset.to_netcdf(path=f"{path_result}{indicator}_{timestep}_{operation}.nc")
         else:
             combined_dataset.to_netcdf(path=f"{path_result}{indicator}.nc")
-
-    return combined_dataset
+    else:
+         return combined_dataset
 
 # def from_dict_to_df(data_dict):
 #     # Transform dict to DataFrame

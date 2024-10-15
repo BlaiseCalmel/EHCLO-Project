@@ -15,7 +15,7 @@ def weighted_mean_per_region(ds, var, sim_points_gdf, region_col='gid'):
 
     return ds_selection
 
-def compute_horizon(ds, files_setup, function='mean'):
+def define_horizon(ds, files_setup):
     # Define horizon
     years = ds['time'].dt.year
     period_mask = (years >= files_setup['historical'][0]) & (years <= files_setup['historical'][1])
@@ -24,25 +24,40 @@ def compute_horizon(ds, files_setup, function='mean'):
         period_mask = (years >= dates[0]) & (years <= dates[1])
         ds = ds.assign_coords({horizon: period_mask})
 
-    # Compute
-    dict_horizon = {}
-    dict_horizon['historical'] = ds.sel(time=ds['historical']).mean(dim='time')
-    for horizon, _ in files_setup['horizons'].items():
-        dict_horizon[horizon] = ds.sel(time=ds[horizon]).mean(dim='time')
+    return ds
 
-    return dict_horizon
+def compute_mean_by_horizon(ds, files_setup):
+    mean_historical = ds.sel(time=ds['historical']).mean(dim='time')
+    mean_historical = mean_historical.assign_coords(horizon='historical')
+    horizon_list = [mean_historical]
 
+    for horizon, dates in files_setup['horizons'].items():
+        mean_horizon = ds.sel(time=ds[horizon]).mean(dim='time')
+        mean_horizon = mean_horizon.assign_coords(horizon=horizon)
+        horizon_list.append(mean_horizon)
 
-def apply_statistic(ds, stat='mean', q=None):
+    combined_means = xr.concat(objs=horizon_list, dim='horizon')
+
+    return combined_means
+
+def apply_statistic(ds, function='mean', q=None):
     # Apply selected function
-    if stat == 'mean':
-        return ds.mean(dim='time')
-    elif stat == 'median':
-        return ds.median(dim='time')
-    elif stat == 'quantile':
+    if function.lower() == 'mean':
+        return ds.mean(dim='new')
+    elif function.lower() == 'median':
+        return ds.median(dim='new')
+    elif function.lower() == 'quantile':
         if q is None:
             raise ValueError("You need to specify a quantile value")
-        return ds.quantile(q, dim='time')
+        try:
+            q = float(q)
+        except ValueError:
+            raise ValueError("Quantile should be a number")
+        return ds.quantile(q, dim='new')
+    elif  function.lower() == 'max':
+        return ds.max(dim='time')
+    elif  function.lower() == 'new':
+        return ds.min(dim='time')
     else:
-        raise ValueError("Unknown function, chose 'mean', 'median' or 'quantile'")
+        raise ValueError("Unknown function, chose 'mean', 'median', 'max', 'min' or 'quantile'")
 

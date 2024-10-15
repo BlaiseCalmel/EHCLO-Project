@@ -72,7 +72,6 @@ print(f'Load ncdf data paths...')
 path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 
 # Run among data type climate/hydro
-dict_data = {}
 start_run = time.time()
 total_iterations = len(path_files.keys())
 timestep = None
@@ -108,29 +107,33 @@ for data_type in config['param_type']:
 
         if not os.path.isfile(file_name):
             print(f'Create {indicator} export...', end='\r')
-            dict_data[indicator] = extract_ncdf_indicator(
+            extract_ncdf_indicator(
                 path_ncdf=paths_indicator, param_type=data_type, sim_points_gdf=sim_points_gdf,
                 indicator=indicator, path_result=dict_paths['folder_study_data'],
                 timestep=timestep, operation=operation, files_setup=files_setup
             )
-        else:
+
             print(f'Load from {indicator} export...', end='\r')
-            dict_data[indicator] = xr.open_dataset(file_name)
+            ds = xr.open_dataset(file_name)
 
-print(f'################################ FORMAT DATA ################################')
+            print(f'################################ FORMAT DATA ################################')
+            # Define horizons
+            ds_horizon = define_horizon(ds, files_setup)
+            # Compute mean value for each horizon
+            ds_mean_horizon = compute_mean_by_horizon(ds_horizon, files_setup)
 
-ds = dict_data[indicator]
+            ds_mean_horizon.to_array(dim='new').mean(dim='new')
+
+            ds_results = apply_statistic(ds_mean_horizon.to_array(dim='new'), function=files_setup['function'],
+                                         q=files_setup['quantile'])
+
+            # Group simulation
+            # Dataset region, horizon
+
+
 
 # Temporal
 indicators = [i for i in list(ds.variables) if indicator in i]
-
-# Define horizons as mask
-dict_horizon = compute_horizon(ds, files_setup)
-
-# Compute value for simulations
-# value(region, horizon) or value(station, horizon)
-
-
 
 # N points dans la région
 # M dates
@@ -147,8 +150,7 @@ dict_horizon = compute_horizon(ds, files_setup)
 # Point n : Histo, H1, H2, H3
 # Variable(region, period)
 # var1, point1, h1
-ds_horizon['historical']
-test(ds_horizon, fonction)
+
 
 # Group by horizon
 # df_histo, df_H1, df_H2, df_H3 = group_by_horizon(df=df_data, stations_name=selected_stations_name,
