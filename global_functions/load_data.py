@@ -62,21 +62,19 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
             ds = xr.open_dataset(file)
 
             # Add sim suffix
-            test = rename_variables(ds, file_name, indicator)
+            ds_renamed = rename_variables(ds, file_name, indicator)
             if files_setup is not None:
-                ds_renamed = ds_renamed.sel(time=slice(dt.datetime(files_setup['historical'][0], 1, 1),
-                                                       None))
+                ds_renamed = ds_renamed.sel(time=slice(dt.datetime(
+                    files_setup['historical'][0], 1, 1), None))
 
             # LII generates bug
             if 'LII' in ds_renamed.variables:
                 del ds_renamed['LII']
 
-            # TODO Look for seasonal indicator (climate) DJF/JJA
-            if timestep is not None and operation is not None:
-                test[var]
-                ds_renamed[var] = resample_ds(ds_renamed, var, timestep, operation)
-
             if param_type == "climate":
+                # TODO Look for seasonal indicator (climate) DJF/JJA
+                if timestep is not None and operation is not None:
+                    ds_renamed[var] = resample_ds(ds_renamed, var, timestep, operation)
                 # Temporal selection
                 ds_selection = ds_renamed.sel(
                     x=sim_points_gdf.iloc[:]['x'].values,
