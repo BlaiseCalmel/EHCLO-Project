@@ -115,12 +115,13 @@ for data_type in config['param_type']:
 
             print(f'Load from {indicator} export...', end='\r')
             ds = xr.open_dataset(file_name)
+            indicator_cols = [i for i in list(ds.variables) if indicator in i]
 
             print(f'################################ FORMAT DATA ################################')
             # Define horizons
             ds_horizon = define_horizon(ds, files_setup)
             # Compute mean value for each horizon
-            ds_mean_horizon = compute_mean_by_horizon(ds_horizon, files_setup)
+            ds_mean_horizon = compute_mean_by_horizon(ds_horizon, indicator_cols, files_setup)
 
             ds_mean_horizon.to_array(dim='new').mean(dim='new')
 
@@ -133,7 +134,7 @@ for data_type in config['param_type']:
 
 
 # Temporal
-indicators = [i for i in list(ds.variables) if indicator in i]
+
 
 # N points dans la région
 # M dates

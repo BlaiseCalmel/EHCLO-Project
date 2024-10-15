@@ -26,15 +26,15 @@ def define_horizon(ds, files_setup):
 
     return ds
 
-def compute_mean_by_horizon(ds, files_setup):
+def compute_mean_by_horizon(ds, indicator_cols, files_setup):
     mean_historical = ds.sel(time=ds['historical']).mean(dim='time')
     mean_historical = mean_historical.assign_coords(horizon='historical')
-    horizon_list = [mean_historical]
+    horizon_list = [mean_historical[indicator_cols]]
 
     for horizon, dates in files_setup['horizons'].items():
         mean_horizon = ds.sel(time=ds[horizon]).mean(dim='time')
         mean_horizon = mean_horizon.assign_coords(horizon=horizon)
-        horizon_list.append(mean_horizon)
+        horizon_list.append(mean_horizon[indicator_cols])
 
     combined_means = xr.concat(objs=horizon_list, dim='horizon')
 
