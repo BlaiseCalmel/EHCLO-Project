@@ -26,6 +26,12 @@ def load_csv(path_file, sep=',', index_col=None):
     return df
 
 def resample_ds(ds, var, timestep, operation):
+    # Seasonal indicator
+    if timestep.lower() == 'jja':
+        ds = ds.sel(time=ds['time'].dt.month.isin([6, 7, 8]))
+    elif timestep.lower() == 'djf':
+        ds = ds.sel(time=ds['time'].dt.month.isin([1, 2, 12]))
+
     if operation == 'mean':
         return ds[var].resample(time=timestep).mean()
     elif operation == 'sum':

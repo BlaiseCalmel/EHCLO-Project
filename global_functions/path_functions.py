@@ -2,12 +2,7 @@ import os
 
 def define_paths(config):
 
-    # parent_folder = config['parent_folder'] + os.sep
-    # folder_data = cwd + config['folder_data'] + os.sep
-    # list_folder_data_data = []
-    # for data_type in config['param_type']:
-    #     list_folder_data_data.append(folder_data + data_type + os.sep)
-    # folder_data_data = folder_data + config['param_type'] + os.sep
+    param_type = ['hydro', 'climate']
     folder_data_contour = config['folder_contour_data'] + os.sep
 
     # Main folders path
@@ -20,7 +15,7 @@ def define_paths(config):
     # points_sim = config['param_type'] + '_points_sim.csv'
     list_global_points_sim = []
     list_study_points_sim = []
-    for data_type in config['param_type']:
+    for data_type in param_type:
         list_global_points_sim.append(folder_data_contour + data_type + '_points_sim.shp')
         list_study_points_sim.append(folder_study_data + data_type + '_points_sim.shp')
 
@@ -48,24 +43,35 @@ def get_files_path(dict_paths, setup, extension='.nc'):
                 if file.endswith(extension):
                     ext_files.append(os.path.join(root, file))
 
-    setup_indicator = setup['climate_indicator'] + setup['hydro_indicator']
-    # Filter by indicator name
-    ext_files = [s for s in ext_files if any(word in s for word in setup_indicator)]
-
-    # Filter by sim chain
-    keys = ['select_rcp', 'select_gcm', 'select_rcm', 'select_bs']
-    for key in keys:
-        if len(setup[key]) > 0:
-            ext_files = [s for s in ext_files if any(word in s for word in setup[key])]
-
     dict_path = {}
-    for indic in setup_indicator:
-        indic_values = [s for s in ext_files if indic in s]
-        # Filter by HM
-        if indic in setup['hydro_indicator']:
-            indic_values = [s for s in indic_values if any(word in s for word in setup['select_hm'])]
+    for data_type in ['hydro', 'climate']:
+        dict_path[data_type] = {}
+        setup_indicator = setup[f'{data_type}_indicator']
+        # setup_indicator = setup['climate_indicator'] + setup['hydro_indicator']
+        indicators = [i.split('-')[0] for i in setup_indicator]
 
-        # Save in dict
-        dict_path[indic] = indic_values
+        # Filter by indicator name
+        ext_files = [s for s in ext_files if any(word in s for word in indicators)]
+
+        # Filter by sim chain
+        keys = ['select_rcp', 'select_gcm', 'select_rcm', 'select_bs']
+        for key in keys:
+            if len(setup[key]) > 0:
+                ext_files = [s for s in ext_files if any(word in s for word in setup[key])]
+
+        # Run on selected rcp
+        for rcp in setup['select_rcp']:
+            dict_path[data_type][rcp] = {}
+            rcp_files = [s for s in ext_files if rcp in s]
+
+            for indic in setup_indicator:
+                indicator = indic.split('-')[0]
+                indic_values = [s for s in rcp_files if indicator in s]
+                # Filter by HM
+                if indic in setup['hydro_indicator']:
+                    indic_values = [s for s in indic_values if any(word in s for word in setup['select_hm'])]
+
+                # Save in dict
+                dict_path[data_type][rcp][indic] = indic_values
 
     return dict_path

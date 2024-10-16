@@ -1,6 +1,5 @@
 {
   "study_name":  "HMUC_Loire_Bretagne",
-  "param_type": ["hydro", "climate"],
   "folder_hydro_data": "/media/bcalmel/Explore2/hydrological-projection_yearly-variables_by-chain_netcdf",
   "folder_climate_data": "/media/bcalmel/Explore2/climatological-projection_daily-time-series_by-chain_netcdf",
   "folder_contour_data": "/home/bcalmel/Documents/2_data/contours",

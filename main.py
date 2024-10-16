@@ -57,13 +57,13 @@ rivers_shp = open_shp(path_shp=dict_paths['file_rivers_shp'])
 print(f'Find sim points in study area...')
 for i in range(len(dict_paths['list_global_points_sim'])):
     if not os.path.isfile(dict_paths['list_study_points_sim'][i]):
-        print(f'Find {config["param_type"][i]} data points in study area')
+        print(f'Find data points in study area')
         # sim_all_points_info = load_csv(path_file=dict_paths['list_global_points_sim'][i])
         sim_all_points_info = open_shp(path_shp=dict_paths['list_global_points_sim'][i])
         overlay_shapefile(shapefile=study_regions_shp, data=sim_all_points_info,
                          path_result=dict_paths['list_study_points_sim'][i])
     else:
-        print(f'Data {config["param_type"][i]} points already in the study area')
+        print(f'Data points already in the study area')
 
 
 print(f'################################ RUN OVER NCDF ################################')
@@ -74,12 +74,6 @@ path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 # Run among data type climate/hydro
 start_run = time.time()
 total_iterations = len(path_files.keys())
-timestep = None
-operation = None
-if len(files_setup["timestep"]) > 0:
-    timestep = files_setup["timestep"]
-if len(files_setup["operation"]) > 0:
-    operation = files_setup["operation"]
 
 for data_type in config['param_type']:
     idx = config['param_type'].index(data_type)
@@ -97,10 +91,17 @@ for data_type in config['param_type']:
         sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
 
     # Run among indicator for the current data type
-    for indicator in files_setup[data_type + '_indicator']:
+    for indicator_raw in files_setup[data_type + '_indicator']:
         paths_indicator = path_files[indicator]
+        timestep = None
 
-        if timestep is None or operation is None:
+        split_indicator = indicator_raw.split('-')
+        indicator = split_indicator[0]
+
+        if len(split_indicator) > 1:
+            timestep = split_indicator[1]
+
+        if timestep is None:
             file_name = f"{dict_paths['folder_study_data']}{indicator}.nc"
         else:
             file_name = f"{dict_paths['folder_study_data']}{indicator}_{timestep}_{operation}.nc"
@@ -110,26 +111,26 @@ for data_type in config['param_type']:
             extract_ncdf_indicator(
                 path_ncdf=paths_indicator, param_type=data_type, sim_points_gdf=sim_points_gdf,
                 indicator=indicator, path_result=dict_paths['folder_study_data'],
-                timestep=timestep, operation=operation, files_setup=files_setup
+                timestep=timestep, files_setup=files_setup
             )
 
-            print(f'Load from {indicator} export...', end='\r')
-            ds = xr.open_dataset(file_name)
-            indicator_cols = [i for i in list(ds.variables) if indicator in i]
+        print(f'Load from {indicator} export...', end='\r')
+        ds = xr.open_dataset(file_name)
+        indicator_cols = [i for i in list(ds.variables) if indicator in i]
 
-            print(f'################################ FORMAT DATA ################################')
-            # Define horizons
-            ds_horizon = define_horizon(ds, files_setup)
-            # Compute mean value for each horizon
-            ds_mean_horizon = compute_mean_by_horizon(ds_horizon, indicator_cols, files_setup)
+        print(f'################################ FORMAT DATA ################################')
+        # Define horizons
+        ds_horizon = define_horizon(ds, files_setup)
+        # Compute mean value for each horizon
+        ds_mean_horizon = compute_mean_by_horizon(ds_horizon, indicator_cols, files_setup)
 
-            ds_mean_horizon.to_array(dim='new').mean(dim='new')
+        ds_mean_horizon.to_array(dim='new').mean(dim='new')
 
-            ds_results = apply_statistic(ds_mean_horizon.to_array(dim='new'), function=files_setup['function'],
-                                         q=files_setup['quantile'])
+        ds_results = apply_statistic(ds_mean_horizon.to_array(dim='new'), function=files_setup['function'],
+                                     q=files_setup['quantile'])
 
-            # Group simulation
-            # Dataset region, horizon
+        # Group simulation
+        # Dataset region, horizon
 
 
 

@@ -1,8 +1,8 @@
 {
   "regions": [23, 27, 30],
   "hydro_indicator": ["Q10A"],
-  "climate_indicator": ["tasminAdjust"],
-  "select_rcp": ["rcp85", "historical"],
+  "climate_indicator": ["tasminAdjust-YE", "tasminAdjust-JJA"],
+  "select_rcp": ["rcp85", "rcp45"],
   "select_gcm": [],
   "select_rcm": [],
   "select_bs": ["ADAMONT"],
@@ -14,8 +14,6 @@
     "horizon2": [2041, 2070],
     "horizon3": [2070, 2100]
   },
-  "timestep": "YE",
-  "operation": "mean",
   "function": "mean",
   "quantile": "None"
 }
