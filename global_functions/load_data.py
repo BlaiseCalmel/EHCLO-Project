@@ -1,3 +1,4 @@
+import copy
 import datetime as dt
 import pandas as pd
 import geopandas
@@ -25,12 +26,14 @@ def load_csv(path_file, sep=',', index_col=None):
 
     return df
 
-def resample_ds(ds, var, timestep, operation):
+def resample_ds(ds, var, timestep, operation='mean'):
     # Seasonal indicator
     if timestep.lower() == 'jja':
         ds = ds.sel(time=ds['time'].dt.month.isin([6, 7, 8]))
+        timestep = 'YE'
     elif timestep.lower() == 'djf':
         ds = ds.sel(time=ds['time'].dt.month.isin([1, 2, 12]))
+        timestep = 'YE'
 
     if operation == 'mean':
         return ds[var].resample(time=timestep).mean()
@@ -46,18 +49,22 @@ def resample_ds(ds, var, timestep, operation):
 def rename_variables(dataset, suffix, indicator):
     return dataset.rename({var: var + '_' + suffix for var in dataset.data_vars if var == indicator})
 
-def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, timestep=None, operation=None,
-                           path_result=None, files_setup=None):
+def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, timestep=None,
+                           start=None, path_result=None):
     datasets = []
     code_bytes = None
-    total_iterations = len(path_ncdf)
+    total_iterations = len(paths_data)
     if param_type == 'hydro':
         code_bytes = [i.encode('utf-8') for i in sim_points_gdf.index]
 
     # Progress bar
-    with tqdm(total=total_iterations, desc=f"Load {indicator} ncdf") as pbar:
+    if path_result is None:
+        title = indicator
+    else:
+        title = os.path.basename(path_result)
+    with tqdm(total=total_iterations, desc=f"Create {title} file") as pbar:
 
-        for i, file in enumerate(path_ncdf):
+        for i, file in enumerate(paths_data[:4]):
             if param_type == "climate":
                 split_name = file.split(os.sep)[-5:-1]
             else:
@@ -66,12 +73,11 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
             var = indicator+'_'+file_name
 
             ds = xr.open_dataset(file)
-
             # Add sim suffix
             ds_renamed = rename_variables(ds, file_name, indicator)
-            if files_setup is not None:
+            if start is not None:
                 ds_renamed = ds_renamed.sel(time=slice(dt.datetime(
-                    files_setup['historical'][0], 1, 1), None))
+                    start, 1, 1), None))
 
             # LII generates bug
             if 'LII' in ds_renamed.variables:
@@ -79,9 +85,17 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
 
             if param_type == "climate":
                 # TODO Look for seasonal indicator (climate) DJF/JJA
-                if timestep is not None and operation is not None:
-                    ds_renamed[var] = resample_ds(ds_renamed, var, timestep, operation)
-                # Temporal selection
+                if timestep is not None:
+                    resampled_var = resample_ds(ds_renamed, var, timestep)
+                    coordinates = {i: ds_renamed[i] for i in ds_renamed._coord_names if i != 'time'}
+                    coordinates['time'] = resampled_var['time']
+
+                    ds_renamed = xr.Dataset({
+                        var: (('time', 'y', 'x'), resampled_var.values)  # Les valeurs rééchantillonnées annuelles
+                    }, coords=coordinates
+                    )
+
+                # Temporal selection, it's not a grid anymore
                 ds_selection = ds_renamed.sel(
                     x=sim_points_gdf.iloc[:]['x'].values,
                     y=sim_points_gdf.iloc[:]['y'].values,
@@ -127,10 +141,7 @@ def extract_ncdf_indicator(path_ncdf, param_type, sim_points_gdf, indicator, tim
 
     # Save as ncdf
     if path_result is not None:
-        if timestep is not None and operation is not None:
-            combined_dataset.to_netcdf(path=f"{path_result}{indicator}_{timestep}_{operation}.nc")
-        else:
-            combined_dataset.to_netcdf(path=f"{path_result}{indicator}.nc")
+        combined_dataset.to_netcdf(path=f"{path_result}")
     else:
          return combined_dataset
 

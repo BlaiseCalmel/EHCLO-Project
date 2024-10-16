@@ -55,15 +55,14 @@ rivers_shp = open_shp(path_shp=dict_paths['file_rivers_shp'])
 
 # Check if study area is already matched with sim points
 print(f'Find sim points in study area...')
-for i in range(len(dict_paths['list_global_points_sim'])):
-    if not os.path.isfile(dict_paths['list_study_points_sim'][i]):
-        print(f'Find data points in study area')
-        # sim_all_points_info = load_csv(path_file=dict_paths['list_global_points_sim'][i])
-        sim_all_points_info = open_shp(path_shp=dict_paths['list_global_points_sim'][i])
+for data_type, path in dict_paths['dict_study_points_sim'].items():
+    if not os.path.isfile(path):
+        print(f'Find {data_type} data points in study area')
+        sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
         overlay_shapefile(shapefile=study_regions_shp, data=sim_all_points_info,
-                         path_result=dict_paths['list_study_points_sim'][i])
+                          path_result=path)
     else:
-        print(f'Data points already in the study area')
+        print(f'{data_type.capitalize()} data points already in the study area')
 
 
 print(f'################################ RUN OVER NCDF ################################')
@@ -74,6 +73,55 @@ path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 # Run among data type climate/hydro
 start_run = time.time()
 total_iterations = len(path_files.keys())
+
+for data_type, subdict in path_files.items():
+    # Load simulation points for current data type
+    sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim'][data_type])
+    if data_type == "hydro":
+        sim_points_gdf = sim_points_gdf[sim_points_gdf['REFERENCE'] == 1]
+        valid_stations = pd.isna(sim_points_gdf['PointsSupp'])
+        sim_points_gdf = sim_points_gdf[valid_stations].reset_index(drop=True).set_index('Suggestion')
+        sim_points_gdf.index.names = ['name']
+    else:
+        sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
+
+    for rcp, subdict2 in subdict.items():
+        for indicator_raw, paths in subdict2.items():
+            split_indicator = indicator_raw.split('-')
+            indicator = split_indicator[0]
+            timestep = 'YE'
+            if len(split_indicator) > 1:
+                timestep = split_indicator[1]
+
+            path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_{timestep}_{rcp}.nc"
+
+            if not os.path.isfile(path_ncdf):
+                print(f'Create {indicator} export...', end='\r')
+                extract_ncdf_indicator(
+                    paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf,
+                    indicator=indicator, timestep=timestep, start=files_setup['historical'][0], path_result=path_ncdf,
+                )
+
+            print(f'Load from {indicator} export...', end='\r')
+            ds = xr.open_dataset(path_ncdf)
+            indicator_cols = [i for i in list(ds.variables) if indicator in i]
+
+            print(f'################################ FORMAT DATA ################################')
+            # Define horizons
+            ds_horizon = define_horizon(ds, files_setup)
+            # Compute mean value for each horizon
+            ds_mean_horizon = compute_mean_by_horizon(ds_horizon, indicator_cols, files_setup)
+
+            ds_mean_horizon.to_array(dim='new').mean(dim='new')
+
+            ds_results = apply_statistic(ds_mean_horizon.to_array(dim='new'), function=files_setup['function'],
+                                         q=files_setup['quantile'])
+
+
+
+
+
+
 
 for data_type in config['param_type']:
     idx = config['param_type'].index(data_type)

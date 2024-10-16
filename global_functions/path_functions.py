@@ -1,3 +1,4 @@
+import copy
 import os
 
 def define_paths(config):
@@ -13,11 +14,12 @@ def define_paths(config):
 
     # File paths
     # points_sim = config['param_type'] + '_points_sim.csv'
-    list_global_points_sim = []
-    list_study_points_sim = []
+    dict_global_points_sim = {}
+    dict_study_points_sim = {}
     for data_type in param_type:
-        list_global_points_sim.append(folder_data_contour + data_type + '_points_sim.shp')
-        list_study_points_sim.append(folder_study_data + data_type + '_points_sim.shp')
+        dict_global_points_sim[data_type] = folder_data_contour + data_type + '_points_sim.shp'
+        dict_study_points_sim[data_type] = folder_study_data + data_type + '_points_sim.shp'
+
 
     dict_paths = {
         'folder_hydro_data': config['folder_hydro_data'],
@@ -28,8 +30,8 @@ def define_paths(config):
         'folder_study_data': folder_study_data,
         'file_regions_shp': folder_data_contour + config['regions_shp'],
         'file_rivers_shp': folder_data_contour + config['rivers_shp'],
-        'list_global_points_sim': list_global_points_sim,
-        'list_study_points_sim': list_study_points_sim,
+        'dict_global_points_sim': dict_global_points_sim,
+        'dict_study_points_sim': dict_study_points_sim,
     }
 
     return dict_paths
@@ -47,22 +49,24 @@ def get_files_path(dict_paths, setup, extension='.nc'):
     for data_type in ['hydro', 'climate']:
         dict_path[data_type] = {}
         setup_indicator = setup[f'{data_type}_indicator']
-        # setup_indicator = setup['climate_indicator'] + setup['hydro_indicator']
         indicators = [i.split('-')[0] for i in setup_indicator]
 
         # Filter by indicator name
-        ext_files = [s for s in ext_files if any(word in s for word in indicators)]
+        data_files = [s for s in ext_files if any(word in s for word in indicators)]
 
         # Filter by sim chain
-        keys = ['select_rcp', 'select_gcm', 'select_rcm', 'select_bs']
+        keys = ['select_gcm', 'select_rcm', 'select_bs']
         for key in keys:
             if len(setup[key]) > 0:
-                ext_files = [s for s in ext_files if any(word in s for word in setup[key])]
+               data_files = [s for s in data_files if any(word in s for word in setup[key])]
 
         # Run on selected rcp
         for rcp in setup['select_rcp']:
             dict_path[data_type][rcp] = {}
-            rcp_files = [s for s in ext_files if rcp in s]
+            if data_type == 'climate':
+                rcp_files = [s for s in data_files if any(word in s for word in [rcp] + ['historical'])]
+            else:
+                rcp_files = [s for s in data_files if any(word in s for word in [rcp])]
 
             for indic in setup_indicator:
                 indicator = indic.split('-')[0]
