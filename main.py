@@ -1,17 +1,16 @@
-print(f'################################ IMPORT & INITIALIZATION ################################')
-# General import
-print(f'General imports...')
+print(f'################################ IMPORT & INITIALIZATION ################################', end='\n')
+
+print(f'General imports...', end='\n')
 import time
 import json
 # import pyfiglet
 # ascii_banner = pyfiglet.figlet_format("Hello")
 # print(ascii_banner)
 
-# Local import
-print(f'Local imports...')
+print(f'Local imports...', end='\n')
 from global_functions.load_data import *
 from global_functions.format_data import *
-from global_functions.plot_data import *
+from plot_functions.plot_data import *
 from global_functions.shp_geometry import *
 from global_functions.path_functions import  *
 
@@ -21,20 +20,19 @@ matplotlib.use('TkAgg')
 plt.switch_backend('agg')
 
 # Load environments variables
-print(f'Load json inputs...')
+print(f'Load json inputs...', end='\n')
 with open('config.json') as config_file:
     config = json.load(config_file)
 
 with open('files_setup.json') as files_setup:
     files_setup = json.load(files_setup)
 
-# Define current main paths environment
-print(f'Define paths...')
+print(f'Define paths...', end='\n')
 dict_paths = define_paths(config)
 
 #%% Files names
 # Study folder
-print(f'Create output directories...')
+print(f'Create output directories...', end='\n')
 if not os.path.isdir(dict_paths['folder_study_results']):
     os.makedirs(dict_paths['folder_study_results'])
 
@@ -47,14 +45,14 @@ if not os.path.isdir(dict_paths['folder_study_data']):
     os.makedirs(dict_paths['folder_study_data'])
 
 #%% LOAD STUDY REGION SHAPEFILE
-print(f'################################ STUDY AREA ################################')
-print(f'Load shapefiles...')
+print(f'################################ STUDY AREA ################################', end='\n')
+print(f'Load shapefiles...', end='\n')
 regions_shp = open_shp(path_shp=dict_paths['file_regions_shp'])
 study_regions_shp = regions_shp[regions_shp['gid'].isin(files_setup['regions'])]
 rivers_shp = open_shp(path_shp=dict_paths['file_rivers_shp'])
 
 # Check if study area is already matched with sim points
-print(f'Find sim points in study area...')
+print(f'Find sim points in study area...', end='\n')
 for data_type, path in dict_paths['dict_study_points_sim'].items():
     if not os.path.isfile(path):
         print(f'Find {data_type} data points in study area')
@@ -65,9 +63,9 @@ for data_type, path in dict_paths['dict_study_points_sim'].items():
         print(f'{data_type.capitalize()} data points already in the study area')
 
 
-print(f'################################ RUN OVER NCDF ################################')
+print(f'################################ RUN OVER NCDF ################################', end='\n')
 # Get paths for selected sim
-print(f'Load ncdf data paths...')
+print(f'Load ncdf data paths...', end='\n')
 path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 
 # Run among data type climate/hydro
@@ -96,89 +94,61 @@ for data_type, subdict in path_files.items():
             path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_{timestep}_{rcp}.nc"
 
             if not os.path.isfile(path_ncdf):
-                print(f'Create {indicator} export...', end='\r')
+                print(f'Create {indicator} export...', end='\n')
                 extract_ncdf_indicator(
                     paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf,
                     indicator=indicator, timestep=timestep, start=files_setup['historical'][0], path_result=path_ncdf,
                 )
 
-            print(f'Load from {indicator} export...', end='\r')
+            print(f'################################ FORMAT DATA ################################', end='\n')
+            print(f'Load from {indicator} export...', end='\n')
             ds = xr.open_dataset(path_ncdf)
             indicator_cols = [i for i in list(ds.variables) if indicator in i]
 
-            print(f'################################ FORMAT DATA ################################')
+            print(f'Define horizons...', end='\r')
             # Define horizons
             ds_horizon = define_horizon(ds, files_setup)
             # Compute mean value for each horizon
-            ds_mean_horizon = compute_mean_by_horizon(ds_horizon, indicator_cols, files_setup)
+            ds_mean_horizon = compute_mean_by_horizon(ds=ds_horizon, indicator_cols=indicator_cols,
+                                                      files_setup=files_setup)
 
             ds_mean_horizon.to_array(dim='new').mean(dim='new')
 
-            ds_results = apply_statistic(ds_mean_horizon.to_array(dim='new'), function=files_setup['function'],
+            da_results = apply_statistic(ds_mean_horizon.to_array(dim='new'), function=files_setup['function'],
                                          q=files_setup['quantile'])
 
+            da_plot = compute_deviation_to_ref(da_results)
+
+            # ds_results.sel(horizon=['horizon1', 'horizon2', 'horizon3']) / ds_results.sel(horizon='historical')
+
+            from plot_functions.plot_map import *
+
+            # Plot format
+            # Geometry = shape
+            # variable = value
+
+            # FIRST JUST PLOT SHAPEFILES
+            # NEED TO SIMPLIFY SHAPEFILES
+
+            plot_map(path_result=f"{dict_paths['folder_study_figures']}{indicator}_{timestep}_{rcp}.png",
+                     # background_shp=background_shp,
+                     df_plot=sim_all_points_info,
+                     study_shp=regions_shp,
+                     rivers_shp=rivers_shp,
+                     cols=['REFERENCE'],
+                     # data=da_results,
+                     nrow=1,
+                     ncol=3,
+                     palette='viridis'
+                     )
 
 
 
 
 
-
-for data_type in config['param_type']:
-    idx = config['param_type'].index(data_type)
-    # Load selected sim points from study area
-    if data_type == "hydro":
-        sim_points_gdf = open_shp(path_shp=dict_paths['list_study_points_sim'][idx])
-        # Hydro ref stations
-        sim_points_gdf = sim_points_gdf[sim_points_gdf['REFERENCE'] == 1]
-        valid_stations = pd.isna(sim_points_gdf['PointsSupp'])
-        sim_points_gdf = sim_points_gdf[valid_stations].reset_index(drop=True).set_index('Suggestion')
-        sim_points_gdf.index.names = ['name']
-
-    else:
-        sim_points_gdf = open_shp(path_shp=dict_paths['list_study_points_sim'][idx])
-        sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
-
-    # Run among indicator for the current data type
-    for indicator_raw in files_setup[data_type + '_indicator']:
-        paths_indicator = path_files[indicator]
-        timestep = None
-
-        split_indicator = indicator_raw.split('-')
-        indicator = split_indicator[0]
-
-        if len(split_indicator) > 1:
-            timestep = split_indicator[1]
-
-        if timestep is None:
-            file_name = f"{dict_paths['folder_study_data']}{indicator}.nc"
-        else:
-            file_name = f"{dict_paths['folder_study_data']}{indicator}_{timestep}_{operation}.nc"
-
-        if not os.path.isfile(file_name):
-            print(f'Create {indicator} export...', end='\r')
-            extract_ncdf_indicator(
-                path_ncdf=paths_indicator, param_type=data_type, sim_points_gdf=sim_points_gdf,
-                indicator=indicator, path_result=dict_paths['folder_study_data'],
-                timestep=timestep, files_setup=files_setup
-            )
-
-        print(f'Load from {indicator} export...', end='\r')
-        ds = xr.open_dataset(file_name)
-        indicator_cols = [i for i in list(ds.variables) if indicator in i]
-
-        print(f'################################ FORMAT DATA ################################')
-        # Define horizons
-        ds_horizon = define_horizon(ds, files_setup)
-        # Compute mean value for each horizon
-        ds_mean_horizon = compute_mean_by_horizon(ds_horizon, indicator_cols, files_setup)
-
-        ds_mean_horizon.to_array(dim='new').mean(dim='new')
-
-        ds_results = apply_statistic(ds_mean_horizon.to_array(dim='new'), function=files_setup['function'],
-                                     q=files_setup['quantile'])
-
-        # Group simulation
-        # Dataset region, horizon
+            plot_map(path_result=path_results+'count_HM_by_stations.pdf', back_shp=regions_shapefile,
+                                study_shp=selected_regions_shp, rivers_shp=rivers_shp, df_plot=df_plot, cols=cols,
+                                indicator='Count HM by station', figsize=(10, 10), nrow=2, ncol=2, palette='BrBG', discretize=1)
 
 
 

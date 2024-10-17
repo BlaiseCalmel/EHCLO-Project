@@ -67,12 +67,11 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
         paths_data = [historical_paths[idx] for idx in indexes_sim] + rcp_paths
 
-    # Progress bar
+    # Progress bar setup
     if path_result is None:
         title = indicator
     else:
         title = os.path.basename(path_result)
-
     total_iterations = len(paths_data)
 
     with tqdm(total=total_iterations, desc=f"Create {title} file") as pbar:

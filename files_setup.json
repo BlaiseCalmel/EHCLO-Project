@@ -1,5 +1,5 @@
 {
-  "regions": [1, 2, 3, 4, 5, 6],
+  "regions": [23,37,30],
   "hydro_indicator": ["Q10A"],
   "climate_indicator": [
     "tasminAdjust-YE", "tasminAdjust-JJA", "tasminAdjust-DJF",
@@ -11,7 +11,7 @@
   "select_rcp": ["rcp85", "rcp45", "rcp26"],
   "select_gcm": [],
   "select_rcm": [],
-  "select_bs": ["ADAMONT"],
+  "select_bc": ["ADAMONT"],
   "select_hm": ["CTRIP", "EROS", "GRSD", "J2000", "MORDOR-SD", "MORDOR-TS", "ORCHIDEE", "SIM2", "SMASH"],
 
   "historical": [1990, 2020],

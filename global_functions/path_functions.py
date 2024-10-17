@@ -55,7 +55,7 @@ def get_files_path(dict_paths, setup, extension='.nc'):
         data_files = [s for s in ext_files if any(word in s for word in indicators)]
 
         # Filter by sim chain
-        keys = ['select_gcm', 'select_rcm', 'select_bs']
+        keys = ['select_gcm', 'select_rcm', 'select_bc']
         for key in keys:
             if len(setup[key]) > 0:
                data_files = [s for s in data_files if any(word in s for word in setup[key])]
