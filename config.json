@@ -6,6 +6,6 @@
   "folder_results": "/home/bcalmel/Documents/3_results",
   "folder_data": "data",
   "folder_figures": "figures",
-  "regions_shp": "regionHydro.shp",
+  "regions_shp": "buffer_UG_axe_loire_simplifie.shp",
   "rivers_shp": "france_rivers.shp"
 }

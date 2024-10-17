@@ -53,18 +53,31 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                            start=None, path_result=None):
     datasets = []
     code_bytes = None
-    total_iterations = len(paths_data)
+
     if param_type == 'hydro':
+        # Format codes
         code_bytes = [i.encode('utf-8') for i in sim_points_gdf.index]
+    else:
+        # Only load historical paths for available sim
+        historical_paths = [path for path in paths_data if 'historical' in path]
+        rcp_paths =  [path for path in paths_data if 'rcp' in path]
+        historical_dir = [path.split(os.sep)[-4:-1] for path in historical_paths]
+        rcp_dir =  [path.split(os.sep)[-4:-1] for path in rcp_paths]
+        indexes_sim = [i for i, val in enumerate(historical_dir) if val in rcp_dir]
+
+        paths_data = [historical_paths[idx] for idx in indexes_sim] + rcp_paths
 
     # Progress bar
     if path_result is None:
         title = indicator
     else:
         title = os.path.basename(path_result)
+
+    total_iterations = len(paths_data)
+
     with tqdm(total=total_iterations, desc=f"Create {title} file") as pbar:
 
-        for i, file in enumerate(paths_data[:4]):
+        for i, file in enumerate(paths_data):
             if param_type == "climate":
                 split_name = file.split(os.sep)[-5:-1]
             else:

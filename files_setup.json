@@ -1,14 +1,20 @@
 {
-  "regions": [23, 27, 30],
+  "regions": [1, 2, 3, 4, 5, 6],
   "hydro_indicator": ["Q10A"],
-  "climate_indicator": ["tasminAdjust-YE", "tasminAdjust-JJA"],
-  "select_rcp": ["rcp85", "rcp45"],
+  "climate_indicator": [
+    "tasminAdjust-YE", "tasminAdjust-JJA", "tasminAdjust-DJF",
+    "evspsblpotAdjust-YE", "evspsblpotAdjust-JJA", "evspsblpotAdjust-DJF",
+    "prtotAdjust-YE", "prtotAdjust-JJA", "prtotAdjust-DJF",
+    "tasAdjust-YE", "tasAdjust-JJA", "tasAdjust-DJF",
+    "tasmaxAdjust-YE", "tasmaxAdjust-JJA", "tasmaxAdjust-DJF"
+  ],
+  "select_rcp": ["rcp85", "rcp45", "rcp26"],
   "select_gcm": [],
   "select_rcm": [],
   "select_bs": ["ADAMONT"],
   "select_hm": ["CTRIP", "EROS", "GRSD", "J2000", "MORDOR-SD", "MORDOR-TS", "ORCHIDEE", "SIM2", "SMASH"],
 
-  "historical": [1976, 2005],
+  "historical": [1990, 2020],
   "horizons": {
     "horizon1": [2021, 2050],
     "horizon2": [2041, 2070],
