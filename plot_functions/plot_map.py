@@ -3,21 +3,16 @@ import geopandas.geodataframe as gpd
 import numpy as np
 
 
-def plot_map(path_result, background_shp, df_plot, cols, indicator, study_shp=None, rivers_shp=None,
+def plot_map(path_result, background_shp, data, col, indicator, study_shp=None, rivers_shp=None,
              figsize=(18, 18), nrow=1, ncol=1, palette='BrBG', discretize=None, zoom=5000, s=30,
              title=None, vmin=None, vmax=None):
     """
     """
     # Compute min and max values
-    # if vmin is None:
-    #     vmin = df_plot.variable.data.min()
-    # if vmax is None:
-    #     vmax = df_plot.variable.data.max()
-
     if vmin is None:
-        vmin = df_plot[cols].min().values
+        vmin = data.variables[col].min()
     if vmax is None:
-        vmax = df_plot[cols].max().values
+        vmax = data.variables[col].max()
     # norm = mcolors.Normalize(vmin=vmin, vmax=vmax)
 
     if discretize is not None:
@@ -28,15 +23,8 @@ def plot_map(path_result, background_shp, df_plot, cols, indicator, study_shp=No
     else:
         cm = plt.get_cmap(palette)
 
-    if study_shp is not None:
-        bounds = study_shp.geometry.total_bounds
-    else:
-        bounds = background_shp.geometry.total_bounds
-
-    if rivers_shp is not None:
-        rivers_thresh = 0.5 * ((bounds[2] - bounds[0])**2 + (bounds[3] - bounds[1])**2)**0.5
-        long_rivers_idx = rivers_shp.geometry.length > rivers_thresh
-        long_rivers_shp = rivers_shp[long_rivers_idx]
+    for horizon in data.horizon.values:
+        gdf = gpd.GeoDataFrame(data.sel(horizon=horizon).to_dataframe(), geometry='geometry')
 
     # Init plot
     fig, axs = plt.subplots(nrow, ncol, figsize=figsize, layout='compressed')
@@ -63,9 +51,9 @@ def plot_map(path_result, background_shp, df_plot, cols, indicator, study_shp=No
 
             # River shapes
             if rivers_shp is not None:
-                long_rivers_shp.plot(ax=ax, linewidth=1, color='royalblue', zorder=2)
+                rivers_shp.plot(ax=ax, linewidth=1, color='royalblue', zorder=2)
 
-            p = ax.scatter(x=df_plot['XL93'], y=df_plot['YL93'], s=s, c=df_plot[cols[count_idx]], cmap=cm, zorder=3,
+            p = ax.scatter(x=data['XL93'], y=data['YL93'], s=s, c=data[cols[count_idx]], cmap=cm, zorder=3,
                            vmin=vmin, vmax=vmax)
             ax.set_xlim(bounds[0] - zoom, bounds[2] + zoom)
             ax.set_ylim(bounds[1] - zoom, bounds[3] + zoom)

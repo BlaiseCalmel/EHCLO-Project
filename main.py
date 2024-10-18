@@ -10,7 +10,7 @@ import json
 print(f'Local imports...', end='\n')
 from global_functions.load_data import *
 from global_functions.format_data import *
-from plot_functions.plot_data import *
+from plot_functions.plot_common import *
 from global_functions.shp_geometry import *
 from global_functions.path_functions import  *
 
@@ -106,19 +106,40 @@ for data_type, subdict in path_files.items():
             ds = xr.open_dataset(path_ncdf)
             indicator_cols = [i for i in list(ds.variables) if indicator in i]
 
+            #TODO NEED TO SIMPLIFY SHAPEFILES (FUNCTION)
             # Simplify shapefiles
             tolerance = 1000
+            # Simplify regions shapefile (background)
             regions_shp_simplified = regions_shp.copy()
-            regions_shp_simplified.simplify(tolerance, preserve_topology=True)
+            regions_shp_simplified['geometry'] = regions_shp_simplified['geometry'].simplify(
+                tolerance, preserve_topology=True)
 
-            rivers_shp_simplified = rivers_shp.copy()
-            rivers_shp_simplified.simplify(tolerance, preserve_topology=True)
+            # Select long rivers
+            bounds = study_regions_shp.geometry.total_bounds
+            rivers_thresh = 0.5 * ((bounds[2] - bounds[0])**2 + (bounds[3] - bounds[1])**2)**0.5
+            long_rivers_idx = rivers_shp.geometry.length > rivers_thresh
+            rivers_shp = rivers_shp[long_rivers_idx]
+
+            # Select rivers in study area
+            study_rivers_shp = overlay_shapefile(shapefile=study_regions_shp, data=rivers_shp)
+
+            # Simplify rivers shapefile
+            study_rivers_shp_simplified = study_rivers_shp.copy()
+            study_rivers_shp_simplified['geometry'] = study_rivers_shp_simplified['geometry'].simplify(
+                tolerance, preserve_topology=True)
+
+            # Simplify study areas shapefile
+            study_regions_shp_simplified = study_regions_shp.copy()
+            study_regions_shp_simplified['geometry'] = study_regions_shp_simplified['geometry'].simplify(
+                tolerance, preserve_topology=True)
 
             # Define geometry for each data (Points hydro, Polygon climate)
             if data_type == 'climate':
                 geometry_dict = {row['gid']: row['geometry'] for _, row in regions_shp.iterrows()}
                 ds = ds.assign_coords(geometry=('region', [geometry_dict[code] for code in ds['region'].values]))
             else:
+                sim_points_gdf_simplified = sim_points_gdf.copy()
+                sim_points_gdf_simplified.simplify(tolerance, preserve_topology=True)
                 geometry_dict = sim_points_gdf['geometry'].to_dict()
                 ds = ds.assign_coords(geometry=('code', [geometry_dict[code] for code in ds['code'].values]))
 
@@ -129,35 +150,19 @@ for data_type, subdict in path_files.items():
             ds_mean_horizon = compute_mean_by_horizon(ds=ds_horizon, indicator_cols=indicator_cols,
                                                       files_setup=files_setup)
 
-            da_results = apply_statistic(ds_mean_horizon.to_array(dim='new'), function=files_setup['function'],
-                                         q=files_setup['quantile'])
+            ds_results = apply_statistic(ds_mean_horizon.to_array(dim='new'), function=files_setup['function'],
+                                         q=files_setup['quantile']).to_dataset(name=indicator)
 
-            da_plot = compute_deviation_to_ref(da_results)
+            ds_resume = compute_deviation_to_ref(ds_results)
 
             from plot_functions.plot_map import *
 
-            #TODO NEED TO SIMPLIFY SHAPEFILES
+            plot_map(data=ds_resume, rivers_shp=study_rivers_shp_simplified, background_shp=regions_shp_simplified,
+                     study_shp=study_regions_shp_simplified, col=indicator, discretize=None,
+                     nrow=1, ncol=3, palette='viridis',
+                     path_result=f"{dict_paths['folder_study_figures']}map_{indicator}_{timestep}_{rcp}.png")
 
 
-            plot_map(path_result=f"{dict_paths['folder_study_figures']}map_{indicator}_{timestep}_{rcp}.png",
-                     # background_shp=background_shp,
-                     df_plot=da_plot,
-                     study_shp=regions_shp,
-                     rivers_shp=rivers_shp,
-                     cols=['REFERENCE'],
-                     # data=da_results,
-                     nrow=1,
-                     ncol=3,
-                     palette='viridis'
-                     )
-
-
-
-
-
-            plot_map(path_result=path_results+'count_HM_by_stations.pdf', back_shp=regions_shapefile,
-                                study_shp=selected_regions_shp, rivers_shp=rivers_shp, df_plot=df_plot, cols=cols,
-                                indicator='Count HM by station', figsize=(10, 10), nrow=2, ncol=2, palette='BrBG', discretize=1)
 
 
 

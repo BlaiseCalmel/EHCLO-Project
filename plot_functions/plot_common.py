@@ -8,7 +8,10 @@ def format_plot_data(ds, shapefile):
     # Name
     print('hi')
 
-
+def multiplots(figs, ax):
+    print('multiplots')
+    """ Compute number of cols and rows, define their name then call the matching function
+    """
 
 
 
