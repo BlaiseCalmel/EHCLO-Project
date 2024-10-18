@@ -102,8 +102,25 @@ for data_type, subdict in path_files.items():
 
             print(f'################################ FORMAT DATA ################################', end='\n')
             print(f'Load from {indicator} export...', end='\n')
+            path_ncdf = f"{dict_paths['folder_study_data']}tasminAdjust_JJA_rcp85.nc"
             ds = xr.open_dataset(path_ncdf)
             indicator_cols = [i for i in list(ds.variables) if indicator in i]
+
+            # Simplify shapefiles
+            tolerance = 1000
+            regions_shp_simplified = regions_shp.copy()
+            regions_shp_simplified.simplify(tolerance, preserve_topology=True)
+
+            rivers_shp_simplified = rivers_shp.copy()
+            rivers_shp_simplified.simplify(tolerance, preserve_topology=True)
+
+            # Define geometry for each data (Points hydro, Polygon climate)
+            if data_type == 'climate':
+                geometry_dict = {row['gid']: row['geometry'] for _, row in regions_shp.iterrows()}
+                ds = ds.assign_coords(geometry=('region', [geometry_dict[code] for code in ds['region'].values]))
+            else:
+                geometry_dict = sim_points_gdf['geometry'].to_dict()
+                ds = ds.assign_coords(geometry=('code', [geometry_dict[code] for code in ds['code'].values]))
 
             print(f'Define horizons...', end='\r')
             # Define horizons
@@ -112,27 +129,19 @@ for data_type, subdict in path_files.items():
             ds_mean_horizon = compute_mean_by_horizon(ds=ds_horizon, indicator_cols=indicator_cols,
                                                       files_setup=files_setup)
 
-            ds_mean_horizon.to_array(dim='new').mean(dim='new')
-
             da_results = apply_statistic(ds_mean_horizon.to_array(dim='new'), function=files_setup['function'],
                                          q=files_setup['quantile'])
 
             da_plot = compute_deviation_to_ref(da_results)
 
-            # ds_results.sel(horizon=['horizon1', 'horizon2', 'horizon3']) / ds_results.sel(horizon='historical')
-
             from plot_functions.plot_map import *
 
-            # Plot format
-            # Geometry = shape
-            # variable = value
+            #TODO NEED TO SIMPLIFY SHAPEFILES
 
-            # FIRST JUST PLOT SHAPEFILES
-            # NEED TO SIMPLIFY SHAPEFILES
 
-            plot_map(path_result=f"{dict_paths['folder_study_figures']}{indicator}_{timestep}_{rcp}.png",
+            plot_map(path_result=f"{dict_paths['folder_study_figures']}map_{indicator}_{timestep}_{rcp}.png",
                      # background_shp=background_shp,
-                     df_plot=sim_all_points_info,
+                     df_plot=da_plot,
                      study_shp=regions_shp,
                      rivers_shp=rivers_shp,
                      cols=['REFERENCE'],

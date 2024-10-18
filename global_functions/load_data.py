@@ -52,12 +52,8 @@ def rename_variables(dataset, suffix, indicator):
 def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, timestep=None,
                            start=None, path_result=None):
     datasets = []
-    code_bytes = None
 
-    if param_type == 'hydro':
-        # Format codes
-        code_bytes = [i.encode('utf-8') for i in sim_points_gdf.index]
-    else:
+    if param_type == 'climate':
         # Only load historical paths for available sim
         historical_paths = [path for path in paths_data if 'historical' in path]
         rcp_paths =  [path for path in paths_data if 'rcp' in path]
@@ -103,7 +99,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                     coordinates['time'] = resampled_var['time']
 
                     ds_renamed = xr.Dataset({
-                        var: (('time', 'y', 'x'), resampled_var.values)  # Les valeurs rééchantillonnées annuelles
+                        var: (('time', 'y', 'x'), resampled_var.values)
                     }, coords=coordinates
                     )
 
@@ -113,17 +109,20 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                     y=sim_points_gdf.iloc[:]['y'].values,
                     method="nearest")
 
-                # TODO use smaller region shape
-                ds_selection = weighted_mean_per_region(ds_selection, var, sim_points_gdf,
+                # TODO use different region shape
+                ds_selection = weighted_mean_per_region(ds=ds_selection, var=var, sim_points_gdf=sim_points_gdf,
                                                         region_col='gid')
 
             else:
-                idx_stations = ds_renamed['code'].isin(code_bytes)
-                val_station = ds_renamed['station'].where(idx_stations, drop=True)
+                ds_renamed = ds_renamed.set_coords('code')
+                ds_renamed = ds_renamed.swap_dims({'station': 'code'})
+                del ds_renamed['station']
+
+                ds_renamed['code'] = ds_renamed['code'].astype(str)
+                codes_to_select = [code for code in sim_points_gdf.index.values if code in ds_renamed['code'].values]
                 # TODO Rename dims to name
-                ds_selection = ds_renamed.sel(
-                    station=val_station,
-                    method="nearest")
+                ds_selection = ds_renamed.sel(code=codes_to_select)
+
             datasets.append(ds_selection)
 
             # Update progress bar

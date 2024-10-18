@@ -1,5 +1,5 @@
 {
-  "regions": [23,37,30],
+  "regions": [23,27,30],
   "hydro_indicator": ["Q10A"],
   "climate_indicator": [
     "tasminAdjust-YE", "tasminAdjust-JJA", "tasminAdjust-DJF",
