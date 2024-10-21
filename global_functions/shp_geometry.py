@@ -81,17 +81,24 @@ def create_polygon_from_point(point, cell_size=8000):
     half_size = cell_size / 2
     x, y = point.x, point.y
 
-    # Calculer les coins du polygone autour du centre
+    # Compute corner
     x_min = x - half_size
     x_max = x + half_size
     y_min = y - half_size
     y_max = y + half_size
 
-    # Créer un polygone carré (ligne fermée)
+    # Generate a polygon
     polygon = Polygon([
         (x_min, y_min), (x_max, y_min),
         (x_max, y_max), (x_min, y_max),
-        (x_min, y_min)  # Fermer la ligne
+        (x_min, y_min)
     ])
 
     return polygon
+
+def simplify_shapefiles(shapefile, tolerance=1000):
+    shapefile_simplified = shapefile.copy()
+    shapefile_simplified['geometry'] = shapefile_simplified['geometry'].simplify(
+        tolerance, preserve_topology=True)
+
+    return shapefile_simplified

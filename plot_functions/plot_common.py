@@ -1,19 +1,33 @@
 import matplotlib.pyplot as plt
 import geopandas.geodataframe as gpd
 import numpy as np
-
-def format_plot_data(ds, shapefile):
-    # Geometry
-    # Value
-    # Name
-    print('hi')
-
-def multiplots(figs, ax):
-    print('multiplots')
-    """ Compute number of cols and rows, define their name then call the matching function
-    """
+from plot_map import *
 
 
+def main_plot(nrow, ncol, figsize, path_result):
+    plots = ['map']
+    for plot in plots:
+        fig, axs = plt.subplots(nrow, ncol, figsize=figsize, layout='compressed')
+
+        count_idx = -1
+        for row_idx in range(nrow):
+            for col_idx in range(ncol):
+                count_idx += 1
+
+                if isinstance(axs, (np.ndarray, np.generic)):
+                    if len(axs.shape) > 1:
+                        ax = axs[row_idx, col_idx]
+                    else:
+                        ax =axs[col_idx]
+                else:
+                    ax = axs
+
+                # PLOT AREA
+                if plot == 'map':
+                    print('map')
+
+
+        plt.savefig(path_result, bbox_inches='tight')
 
 
 

@@ -63,5 +63,5 @@ def apply_statistic(ds, function='mean', q=None):
 
 def compute_deviation_to_ref(ds, ref='historical'):
     horizons = [i for i in ds.horizon.data if i != ref]
-    return 100 * (ds.sel(horizon=horizons) - ds.sel(horizon=ref)) / ds.sel(horizon=ref)
+    return (ds.sel(horizon=horizons) - ds.sel(horizon=ref)) / ds.sel(horizon=ref)
 

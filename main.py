@@ -10,12 +10,13 @@ import json
 print(f'Local imports...', end='\n')
 from global_functions.load_data import *
 from global_functions.format_data import *
-from plot_functions.plot_common import *
+# from plot_functions.plot_common import *
 from global_functions.shp_geometry import *
 from global_functions.path_functions import  *
 
 # Avoid crash with console when launched manually
 import matplotlib
+import matplotlib.pyplot as plt
 matplotlib.use('TkAgg')
 plt.switch_backend('agg')
 
@@ -52,10 +53,10 @@ study_regions_shp = regions_shp[regions_shp['gid'].isin(files_setup['regions'])]
 rivers_shp = open_shp(path_shp=dict_paths['file_rivers_shp'])
 
 # Check if study area is already matched with sim points
-print(f'Find sim points in study area...', end='\n')
+print(f'Searching sim points in study area...', end='\n')
 for data_type, path in dict_paths['dict_study_points_sim'].items():
     if not os.path.isfile(path):
-        print(f'Find {data_type} data points in study area')
+        print(f'> Find {data_type} data points in study area')
         sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
         overlay_shapefile(shapefile=study_regions_shp, data=sim_all_points_info,
                           path_result=path)
@@ -106,32 +107,24 @@ for data_type, subdict in path_files.items():
             ds = xr.open_dataset(path_ncdf)
             indicator_cols = [i for i in list(ds.variables) if indicator in i]
 
-            #TODO NEED TO SIMPLIFY SHAPEFILES (FUNCTION)
-            # Simplify shapefiles
-            tolerance = 1000
-            # Simplify regions shapefile (background)
-            regions_shp_simplified = regions_shp.copy()
-            regions_shp_simplified['geometry'] = regions_shp_simplified['geometry'].simplify(
-                tolerance, preserve_topology=True)
-
             # Select long rivers
             bounds = study_regions_shp.geometry.total_bounds
             rivers_thresh = 0.5 * ((bounds[2] - bounds[0])**2 + (bounds[3] - bounds[1])**2)**0.5
             long_rivers_idx = rivers_shp.geometry.length > rivers_thresh
             rivers_shp = rivers_shp[long_rivers_idx]
 
+            #TODO NEED TO SIMPLIFY SHAPEFILES (FUNCTION)
+            # Simplify shapefiles
+            tolerance = 1000
+
             # Select rivers in study area
             study_rivers_shp = overlay_shapefile(shapefile=study_regions_shp, data=rivers_shp)
-
+            # Simplify regions shapefile (background)
+            regions_shp_simplified = simplify_shapefiles(regions_shp, tolerance=1000)
             # Simplify rivers shapefile
-            study_rivers_shp_simplified = study_rivers_shp.copy()
-            study_rivers_shp_simplified['geometry'] = study_rivers_shp_simplified['geometry'].simplify(
-                tolerance, preserve_topology=True)
-
+            study_rivers_shp_simplified = simplify_shapefiles(study_rivers_shp, tolerance=1000)
             # Simplify study areas shapefile
-            study_regions_shp_simplified = study_regions_shp.copy()
-            study_regions_shp_simplified['geometry'] = study_regions_shp_simplified['geometry'].simplify(
-                tolerance, preserve_topology=True)
+            study_regions_shp_simplified = study_regions_shp(study_rivers_shp, tolerance=1000)
 
             # Define geometry for each data (Points hydro, Polygon climate)
             if data_type == 'climate':
@@ -156,11 +149,25 @@ for data_type, subdict in path_files.items():
             ds_resume = compute_deviation_to_ref(ds_results)
 
             from plot_functions.plot_map import *
+            dict_shapefiles = {'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'royalblue', 'zorder': 2, 'linewidth': 1},
+                               'background_shp': {'shp': regions_shp_simplified, 'color': 'gainsboro', 'edgecolor': 'black', 'zorder': 0},
+                               'study_shp': {'shp': study_regions_shp_simplified, 'color': 'white', 'edgecolor': 'firebrick', 'zorder': 1},}
 
-            plot_map(data=ds_resume, rivers_shp=study_rivers_shp_simplified, background_shp=regions_shp_simplified,
-                     study_shp=study_regions_shp_simplified, col=indicator, discretize=None,
-                     nrow=1, ncol=3, palette='viridis',
-                     path_result=f"{dict_paths['folder_study_figures']}map_{indicator}_{timestep}_{rcp}.png")
+            bounds = study_regions_shp_simplified.geometry.total_bounds
+            col_headers = {'K002000101':'K002000101', 'K010002010':'K010002010'}
+            row_headers = {'horizon1': 'Horizon 1', 'horizon2': 'Horizon 2', 'horizon3': 'Horizon 3'}
+            path_result=f"{dict_paths['folder_study_figures']}map_{indicator}_{timestep}_{rcp}.png"
+
+            gdf = gpd.GeoDataFrame({
+                'geometry': ds_resume['geometry'].values,
+                'code': ds_resume['code'].values
+            })
+
+            ds.sel({'code': col, 'horizon':row})[indicator]
+
+            row_data = ds.sel(horizon=row)[indicator].sel(code=col).values
+            ds.sel(code=col)[indicator].sel(horizon=row).values
+
 
 
 
