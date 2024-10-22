@@ -125,6 +125,7 @@ for data_type, subdict in path_files.items():
             print(f'################################ FORMAT DATA ################################', end='\n')
             print(f'> Load from {indicator} export...', end='\n')
             path_ncdf = f"{dict_paths['folder_study_data']}tasminAdjust_JJA_rcp85.nc"
+            indicator='tasminAdjust'
             ds = xr.open_dataset(path_ncdf)
             indicator_cols = [i for i in list(ds.variables) if indicator in i]
 
@@ -133,44 +134,53 @@ for data_type, subdict in path_files.items():
             if data_type == 'climate':
                 geometry_dict = {row['gid']: row['geometry'] for _, row in regions_shp.iterrows()}
                 ds = ds.assign_coords(geometry=('region', [geometry_dict[code] for code in ds['region'].values]))
+                ds = ds.rename({'region': 'id_geometry'})
             else:
                 sim_points_gdf_simplified = sim_points_gdf.copy()
                 sim_points_gdf_simplified.simplify(tolerance, preserve_topology=True)
                 geometry_dict = sim_points_gdf['geometry'].to_dict()
                 ds = ds.assign_coords(geometry=('code', [geometry_dict[code] for code in ds['code'].values]))
+                ds = ds.rename({'code': 'id_geometry'})
 
             print(f'> Define horizons...', end='\n')
             # Define horizons
-            ds_horizon = define_horizon(ds, files_setup)
+            ds_sim_with_horizon = define_horizon(ds, files_setup)
             # Compute mean value for each horizon
-            ds_mean_horizon = compute_mean_by_horizon(ds=ds_horizon, indicator_cols=indicator_cols,
+            ds_mean_horizon = compute_mean_by_horizon(ds=ds_sim_with_horizon, indicator_cols=indicator_cols,
                                                       files_setup=files_setup)
 
-            ds_results = apply_statistic(ds_mean_horizon.to_array(dim='new'), function=files_setup['function'],
-                                         q=files_setup['quantile']).to_dataset(name=indicator)
+            ds_mean_spatial_horizon = apply_statistic(ds_mean_horizon.to_array(dim='new'),
+                                                      function=files_setup['function'],
+                                                      q=files_setup['quantile']).to_dataset(name=indicator)
 
-            ds_resume = compute_deviation_to_ref(ds_results)
+            ds_dev_spatial_horizon = compute_deviation_to_ref(ds_mean_spatial_horizon)
 
             print(f'################################ PLOT DATA ################################', end='\n')
             col_headers = {'horizon1': 'Horizon 1 (2021-2050)',
                            'horizon2': 'Horizon 2 (2041-2070)',
                            'horizon3': 'Horizon 3 (2070-2100)'}
 
-            gdf = gpd.GeoDataFrame({
-                'geometry': ds_resume['geometry'].values,
-                'code': ds_resume['code'].values
-            })
+            if data_type == 'climate':
+                gdf = gpd.GeoDataFrame({
+                    'geometry': ds_dev_spatial_horizon['geometry'].values,
+                    'region': ds_dev_spatial_horizon['region'].values
+                })
+            else:
+                gdf = gpd.GeoDataFrame({
+                    'geometry': ds_dev_spatial_horizon['geometry'].values,
+                    'code': ds_dev_spatial_horizon['code'].values
+                })
 
-            cbar_title = indicator + ' deviation to ref (%)'
+            cbar_title = indicator + ' deviation (%)'
             path_results = f"{dict_paths['folder_study_figures']}{indicator}_{timestep}_{rcp}_"
 
-            dict_shapefiles = {'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'royalblue', 'linewidth': 2, 'zorder': 2},
+            dict_shapefiles = {'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'royalblue', 'linewidth': 2, 'zorder': 20, 'alpha': 0.5},
                                'background_shp': {'shp': regions_shp_simplified, 'color': 'gainsboro', 'edgecolor': 'black', 'zorder': 0},
                                'study_shp': {'shp': study_regions_shp_simplified, 'color': 'white', 'edgecolor': 'firebrick', 'zorder': 1, 'linewidth': 1.2},}
 
             print(f"> MAP")
             # Plot map
-            plot_map(gdf, ds_resume, indicator, path_result=path_results+'map.pdf',
+            plot_map(gdf, ds_dev_spatial_horizon, indicator, path_result=path_results+'map.pdf',
                      row_name=None, row_headers=None, col_name='horizon', col_headers=col_headers,
                      cbar_title=cbar_title, title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
                      discretize=7, palette='BrBG', fontsize=14, font='sans-serif')

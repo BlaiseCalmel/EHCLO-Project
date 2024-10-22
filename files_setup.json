@@ -1,6 +1,6 @@
 {
   "regions": [23,27,30],
-  "hydro_indicator": ["Q10A"],
+  "hydro_indicator": ["Q90A", "QA_mon"],
   "climate_indicator": [
     "tasminAdjust-YE", "tasminAdjust-JJA", "tasminAdjust-DJF",
     "evspsblpotAdjust-YE", "evspsblpotAdjust-JJA", "evspsblpotAdjust-DJF",
