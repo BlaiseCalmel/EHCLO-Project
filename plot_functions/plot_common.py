@@ -1,35 +1,58 @@
 import matplotlib.pyplot as plt
 import geopandas.geodataframe as gpd
 import numpy as np
-from plot_map import *
+import matplotlib as mpl
+
+def define_bounds(shapefile, zoom=5000):
+    raw_bounds = shapefile.geometry.total_bounds
+    return [raw_bounds[0] - zoom, raw_bounds[1] - zoom, raw_bounds[2] + zoom, raw_bounds[3] + zoom]
+
+def define_cbar(fig, cmap, bounds_cmap, cbar_title=None, percent=False, **text_kwargs):
+    fig.subplots_adjust(right=0.95)
+    cbar_ax = fig.add_axes([1, 0.15, 0.04, 0.7])
+    sm = mpl.cm.ScalarMappable(cmap=cmap, norm=mpl.colors.BoundaryNorm(bounds_cmap, cmap.N))
+    sm._A = []
+    cbar = fig.colorbar(sm, cax=cbar_ax)
+    if cbar_title:
+        cbar.set_label(cbar_title, **text_kwargs)
+    if percent:
+        cbar.ax.set_yticklabels([f'{int(b)}%' for b in bounds_cmap])
 
 
-def main_plot(nrow, ncol, figsize, path_result):
-    plots = ['map']
-    for plot in plots:
-        fig, axs = plt.subplots(nrow, ncol, figsize=figsize, layout='compressed')
+def add_headers(fig, *, row_headers=None, col_headers=None, row_pad=1, col_pad=5, rotate_row_headers=True,
+                **text_kwargs):
+    axes = fig.get_axes()
 
-        count_idx = -1
-        for row_idx in range(nrow):
-            for col_idx in range(ncol):
-                count_idx += 1
+    for ax in axes:
+        sbs = ax.get_subplotspec()
 
-                if isinstance(axs, (np.ndarray, np.generic)):
-                    if len(axs.shape) > 1:
-                        ax = axs[row_idx, col_idx]
-                    else:
-                        ax =axs[col_idx]
-                else:
-                    ax = axs
+        # Putting headers on cols
+        if (col_headers is not None) and sbs.is_first_row():
+            ax.annotate(
+                col_headers[sbs.colspan.start],
+                xy=(0.5, 1),
+                xytext=(0, col_pad),
+                xycoords="axes fraction",
+                textcoords="offset points",
+                ha="center",
+                va="baseline",
+                **text_kwargs,
+            )
 
-                # PLOT AREA
-                if plot == 'map':
-                    print('map')
-
-
-        plt.savefig(path_result, bbox_inches='tight')
-
-
+        # Putting headers on rows
+        if (row_headers is not None) and sbs.is_first_col():
+            ax.annotate(
+                row_headers[sbs.rowspan.start],
+                xy=(0, 0.5),
+                xytext=(-ax.yaxis.labelpad - row_pad, 0),
+                # xycoords=ax.yaxis.label,
+                xycoords="axes fraction",
+                textcoords="offset points",
+                ha="right",
+                va="center",
+                rotation=rotate_row_headers * 90,
+                **text_kwargs,
+            )
 
 def save_shp_figure(back_shp:gpd.GeoDataFrame, path_result:str, study_shp:gpd.GeoDataFrame=None,
                     rivers_shp:gpd.GeoDataFrame=None,

@@ -19,13 +19,29 @@ def overlay_shapefile(shapefile, data, path_result=None, col='gid'):
     # Join both
     geometry_type = data['geometry'].apply(check_geometry_type)
 
+    if isinstance(shapefile, list):
+        coords = [
+            (shapefile[0], shapefile[1]),  # Coin supérieur gauche
+            (shapefile[2], shapefile[1]),    # Coin supérieur droit
+            (shapefile[2], shapefile[3]),     # Coin inférieur droit
+            (shapefile[0], shapefile[3])    # Coin inférieur gauche
+        ]
+        polygon = Polygon(coords)
+        shapefile = gpd.GeoDataFrame({'geometry': [polygon]})
+        shapefile.crs = data.crs
+
     matched_points = None
     if geometry_type.value_counts().idxmax() == "Polygon":
+        data['geometry'] = data.intersection(shapefile.union_all())
+
         matched_points = gpd.overlay(data, shapefile, how='intersection')
         matched_points['surface'] = matched_points.area
 
         total_surface = matched_points.groupby(col).agg({'surface':'sum'})
         total_surface = total_surface.rename(columns={'surface': 'total_surface'})
+        if 'total_surface' in matched_points.columns:
+            matched_points = matched_points[[i for i in matched_points.columns if i != 'total_surface']]
+
         matched_points = matched_points.merge(total_surface, left_on=col, right_index=True)
 
     elif geometry_type.value_counts().idxmax() in ["Point", "LineString"]:
