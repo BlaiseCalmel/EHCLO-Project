@@ -1,4 +1,5 @@
 import math
+import numpy as np
 from plot_functions.plot_common import *
 
 def plot_map(gdf, ds_resume, indicator, path_result, row_name=None, row_headers=None, col_name=None, col_headers=None,
@@ -69,7 +70,7 @@ def plot_map(gdf, ds_resume, indicator, path_result, row_name=None, row_headers=
     add_headers(fig, col_headers=col_values, row_headers=row_values, row_pad=0, col_pad=5, **text_kwargs)
 
     # Colorbar
-    define_cbar(fig, cmap, bounds_cmap, cbar_title=cbar_title, percent=percent, **text_kwargs)
+    define_cbar(fig, axes, cmap, bounds_cmap, cbar_title=cbar_title, percent=percent, **text_kwargs)
 
     plt.savefig(path_result, bbox_inches='tight')
 
