@@ -20,11 +20,12 @@ def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=F
                             axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0-0.02])
 
     sm._A = []
-    cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True)
+    if percent:
+        cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap, format='%.0f')
+    else:
+        cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap)
     if cbar_title:
         cbar.set_label(cbar_title, **text_kwargs)
-    if percent:
-        cbar.ax.set_yticklabels([f'{int(b)}%' for b in bounds_cmap])
 
 
 def add_headers(fig, *, row_headers=None, col_headers=None, row_pad=1, col_pad=5, rotate_row_headers=True,

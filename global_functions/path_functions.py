@@ -18,7 +18,7 @@ def define_paths(config):
     dict_study_points_sim = {}
     for data_type in param_type:
         dict_global_points_sim[data_type] = folder_data_contour + data_type + '_points_sim.shp'
-        dict_study_points_sim[data_type] = folder_study_data + data_type + '_points_sim.shp'
+        dict_study_points_sim[data_type] = folder_study_data + 'shapefiles' + os.sep + data_type + '_points_sim.shp'
 
 
     dict_paths = {
@@ -30,6 +30,7 @@ def define_paths(config):
         'folder_study_data': folder_study_data,
         'file_regions_shp': folder_data_contour + config['regions_shp'],
         'file_rivers_shp': folder_data_contour + config['rivers_shp'],
+        'file_ug_shp': folder_data_contour + config['ug_shp'],
         'dict_global_points_sim': dict_global_points_sim,
         'dict_study_points_sim': dict_study_points_sim,
     }

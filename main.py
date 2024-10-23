@@ -45,11 +45,15 @@ if not os.path.isdir(dict_paths['folder_study_figures']):
 if not os.path.isdir(dict_paths['folder_study_data']):
     os.makedirs(dict_paths['folder_study_data'])
 
+if not os.path.isdir(dict_paths['folder_study_data'] + 'shapefiles'):
+    os.makedirs(dict_paths['folder_study_data'] + 'shapefiles')
+
 #%% LOAD STUDY REGION SHAPEFILE
 print(f'################################ STUDY AREA ################################', end='\n')
 print(f'> Load shapefiles...', end='\n')
 regions_shp = open_shp(path_shp=dict_paths['file_regions_shp'])
-study_regions_shp = regions_shp[regions_shp['gid'].isin(files_setup['regions'])]
+study_ug_shp = open_shp(path_shp=dict_paths['file_ug_shp'])
+study_ug_shp = study_ug_shp[study_ug_shp['gid'].isin(files_setup['regions'])]
 rivers_shp = open_shp(path_shp=dict_paths['file_rivers_shp'])
 
 # Check if study area is already matched with sim points
@@ -58,13 +62,31 @@ for data_type, path in dict_paths['dict_study_points_sim'].items():
     if not os.path.isfile(path):
         print(f'>> Find {data_type} data points in study area')
         sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
-        overlay_shapefile(shapefile=study_regions_shp, data=sim_all_points_info,
+        overlay_shapefile(shapefile=study_ug_shp, data=sim_all_points_info,
                           path_result=path)
+
+        # test = overlay_shapefile(shapefile=study_ug_shp, data=sim_all_points_info)
+        # valid_stations = pd.isna(test['PointsSupp'])
+        # test = test[valid_stations].reset_index(drop=True).set_index('Suggestion')
+        #
+        #
+        # bassinHydro = open_shp(path_shp='/home/bcalmel/Documents/2_data/contours_all/map/entiteHydro/BV_4207_stations.shp')
+        # from shapely.ops import unary_union
+        # study_ug_shp['']
+        #
+        # for ug in np.unique(test['toponyme1']):
+        #     selected_ug = test[test['toponyme1'] == ug]
+        #     selectedBassin = bassinHydro[bassinHydro['Code'].isin(selected_ug['CODE'])]
+        #     merged_polygon = unary_union(selectedBassin['geometry'])
+        #     study_ug_shp.loc[study_ug_shp['toponyme1'] == ug, 'geometry'] = merged_polygon
+        #
+        # save = '/home/bcalmel/Documents/2_data/contours/bassin_loire_ug.shp'
+        # study_ug_shp.to_file(save, index=False)
     else:
         print(f'>> {data_type.capitalize()} data points already in the study area')
 
 # Study geographical limits
-bounds = define_bounds(study_regions_shp, zoom=1000)
+bounds = define_bounds(study_ug_shp, zoom=2500)
 
 # Select long rivers
 print(f'> Simplify shapefiles...', end='\n')
@@ -75,15 +97,14 @@ rivers_shp = rivers_shp[long_rivers_idx]
 
 # Select rivers in study area
 study_rivers_shp = overlay_shapefile(shapefile=bounds, data=rivers_shp)
-study_rivers_shp = overlay_shapefile(shapefile=study_regions_shp, data=study_rivers_shp)
+study_rivers_shp = overlay_shapefile(shapefile=study_ug_shp, data=study_rivers_shp)
 study_rivers_shp_simplified = simplify_shapefiles(study_rivers_shp, tolerance=tolerance)
 # Simplify regions shapefile (background)
 regions_shp = overlay_shapefile(shapefile=bounds, data=regions_shp)
 regions_shp_simplified = simplify_shapefiles(regions_shp, tolerance=tolerance)
 
 # Simplify study areas shapefile
-study_regions_shp_simplified = simplify_shapefiles(study_regions_shp, tolerance=tolerance)
-
+study_ug_shp_simplified = simplify_shapefiles(study_ug_shp, tolerance=tolerance)
 
 print(f'################################ RUN OVER NCDF ################################', end='\n')
 # Get paths for selected sim
@@ -94,6 +115,11 @@ path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 start_run = time.time()
 total_iterations = len(path_files.keys())
 
+#
+# data_type='hydro'
+# subdict=path_files[data_type]
+# rcp='rcp85'
+# subdict2=subdict[rcp]
 for data_type, subdict in path_files.items():
     # Load simulation points for current data type
     sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim'][data_type])
@@ -170,6 +196,7 @@ for data_type, subdict in path_files.items():
             indicator_horizon_deviation = [i for i in list(ds.variables) if indicator+'_by_horizon_deviation' in i]
 
             print(f'################################ PLOT DATA ################################', end='\n')
+            print(f"> Initialize plot...")
             col_name='horizon'
             col_headers = {'horizon1': 'Horizon 1 (2021-2050)',
                            'horizon2': 'Horizon 2 (2041-2070)',
@@ -178,7 +205,9 @@ for data_type, subdict in path_files.items():
             row_name = None
             iterates = {'': None}
             discretize = 7
+            vmax = None
             if indicator == 'QA':
+                vmax = 100
                 row_name = 'month'
                 discretize = 11
                 iterates = {
@@ -201,18 +230,19 @@ for data_type, subdict in path_files.items():
                 'id_geometry': ds['id_geometry'].values
             })
 
-            cbar_title = indicator + ' écart (%)'
+            cbar_title = indicator + ' relatif (%)'
 
             dict_shapefiles = {'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'royalblue', 'linewidth': 2, 'zorder': 20, 'alpha': 0.5},
                                'background_shp': {'shp': regions_shp_simplified, 'color': 'gainsboro', 'edgecolor': 'black', 'zorder': 0},
-                               'study_shp': {'shp': study_regions_shp_simplified, 'color': 'white', 'edgecolor': 'firebrick', 'zorder': 1, 'linewidth': 1.2},}
+                               'study_shp': {'shp': study_ug_shp_simplified, 'color': 'white', 'edgecolor': 'firebrick', 'zorder': 1, 'linewidth': 1.2},}
 
-            print(f"> MAP")
+            print(f"> Map plot...")
             for key, value in iterates.items():
+                print(f"> Map plot {indicator}_{timestep}_{rcp}_{key}...")
                 path_results = f"{dict_paths['folder_study_figures']}{indicator}_{timestep}_{rcp}_{key}_"
                 # Plot map
                 plot_map(gdf, ds, indicator=indicator_horizon_deviation[0], path_result=path_results+'map.pdf',
                          row_name=row_name, row_headers=value, col_name=col_name, col_headers=col_headers,
                          cbar_title=cbar_title, title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
-                         discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=100)
+                         discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=vmax)
 

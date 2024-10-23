@@ -26,10 +26,11 @@ def plot_map(gdf, ds, indicator, path_result, row_name=None, row_headers=None, c
         vmin = -vmax
 
     bounds_cmap = np.linspace(vmin, vmax, discretize+1)
-    cmap = mpl.cm.get_cmap(palette, discretize)
+    # cmap = mpl.cm.get_cmap(palette, discretize)
+    cmap = plt.get_cmap(palette, discretize)
     norm = mpl.colors.BoundaryNorm(bounds_cmap, cmap.N)
 
-    plt.rcParams['font.family'] = font      # Type de police
+    plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
     text_kwargs ={'weight': 'bold'}
 
