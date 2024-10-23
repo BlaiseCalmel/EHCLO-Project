@@ -7,17 +7,17 @@ def define_bounds(shapefile, zoom=5000):
     raw_bounds = shapefile.geometry.total_bounds
     return [raw_bounds[0] - zoom, raw_bounds[1] - zoom, raw_bounds[2] + zoom, raw_bounds[3] + zoom]
 
-def define_cbar(fig, axes, cmap, bounds_cmap, cbar_title=None, percent=False, **text_kwargs):
+def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=False, **text_kwargs):
     # fig.subplots_adjust(right=0.95)
     # cbar_ax = fig.add_axes([1, 0.15, 0.04, 0.7])
     sm = mpl.cm.ScalarMappable(cmap=cmap, norm=mpl.colors.BoundaryNorm(bounds_cmap, cmap.N))
     # divider = make_axes_locatable(axes)
     # cbar_ax = divider.append_axes("right", size="5%", pad=0.05)
 
-    cbar_ax = fig.add_axes([axes[-1].get_position().x1*1.01,
-                            axes[-1].get_position().y0+0.01,
+    cbar_ax = fig.add_axes([axes_flatten[-1].get_position().x1*1.01,
+                            axes_flatten[-1].get_position().y0+0.01,
                             0.02,
-                            axes[0].get_position().y1-axes[-1].get_position().y0-0.02])
+                            axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0-0.02])
 
     sm._A = []
     cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True)

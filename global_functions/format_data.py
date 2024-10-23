@@ -26,17 +26,34 @@ def define_horizon(ds, files_setup):
 
     return ds
 
-def compute_mean_by_horizon(ds, indicator_cols, files_setup):
-    mean_historical = ds.sel(time=ds['historical']).mean(dim='time')
+def compute_mean_by_horizon(ds, indicator_cols, files_setup, other_dimension=None):
+    # Select period
+    mean_historical = ds.sel(time=ds['historical'])
+    # Compute mean
+    if other_dimension:
+        mean_historical = mean_historical[indicator_cols].groupby(other_dimension).mean(dim='time')
+    else:
+        mean_historical = mean_historical.mean(dim='time')
+    # Add horizon
     mean_historical = mean_historical.assign_coords(horizon='historical')
     horizon_list = [mean_historical[indicator_cols]]
 
     for horizon, dates in files_setup['horizons'].items():
-        mean_horizon = ds.sel(time=ds[horizon]).mean(dim='time')
+        # Select period
+        mean_horizon = ds.sel(time=ds[horizon])
+        # Compute mean
+        if other_dimension:
+            mean_horizon = mean_horizon[indicator_cols].groupby(other_dimension).mean(dim='time')
+        else:
+            mean_horizon = mean_horizon.mean(dim='time')
+        # Add horizon
         mean_horizon = mean_horizon.assign_coords(horizon=horizon)
         horizon_list.append(mean_horizon[indicator_cols])
 
     combined_means = xr.concat(objs=horizon_list, dim='horizon')
+    combined_means = combined_means.rename({i: i+'_by_horizon' for i in indicator_cols})
+
+    combined_means = xr.merge([ds, combined_means])
 
     return combined_means
 
@@ -56,12 +73,16 @@ def apply_statistic(ds, function='mean', q=None):
         return ds.quantile(q, dim='new')
     elif  function.lower() == 'max':
         return ds.max(dim='time')
-    elif  function.lower() == 'new':
+    elif  function.lower() == 'min':
         return ds.min(dim='time')
     else:
         raise ValueError("Unknown function, chose 'mean', 'median', 'max', 'min' or 'quantile'")
 
-def compute_deviation_to_ref(ds, ref='historical'):
+def compute_deviation_to_ref(ds, cols, ref='historical'):
     horizons = [i for i in ds.horizon.data if i != ref]
-    return (ds.sel(horizon=horizons) - ds.sel(horizon=ref)) * 100 / ds.sel(horizon=ref)
+    for col in cols:
+        ds[col+'_deviation'] = ((ds[col].sel(horizon=horizons) - ds[col].sel(horizon=ref)) * 100 /
+                                ds[col].sel(horizon=ref))
+
+    return ds
 

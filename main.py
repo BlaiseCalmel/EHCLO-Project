@@ -107,11 +107,14 @@ for data_type, subdict in path_files.items():
 
     for rcp, subdict2 in subdict.items():
         for indicator_raw, paths in subdict2.items():
-            split_indicator = indicator_raw.split('-')
+            split_indicator = indicator_raw.split('_')
             indicator = split_indicator[0]
             timestep = 'YE'
             if len(split_indicator) > 1:
                 timestep = split_indicator[1]
+
+            if timestep == 'mon':
+                timestep = 'M'
 
             path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_{timestep}_{rcp}.nc"
 
@@ -124,13 +127,14 @@ for data_type, subdict in path_files.items():
 
             print(f'################################ FORMAT DATA ################################', end='\n')
             print(f'> Load from {indicator} export...', end='\n')
-            path_ncdf = f"{dict_paths['folder_study_data']}tasminAdjust_JJA_rcp85.nc"
-            indicator='tasminAdjust'
+            path_ncdf = f"{dict_paths['folder_study_data']}QA_mon_YE_rcp85.nc"
+            indicator='QA'
             ds = xr.open_dataset(path_ncdf)
             indicator_cols = [i for i in list(ds.variables) if indicator in i]
 
             # Define geometry for each data (Points hydro, Polygon climate)
             print(f'> Match geometry and data...', end='\n')
+            other_dimension = None
             if data_type == 'climate':
                 geometry_dict = {row['gid']: row['geometry'] for _, row in regions_shp.iterrows()}
                 ds = ds.assign_coords(geometry=('region', [geometry_dict[code] for code in ds['region'].values]))
@@ -139,49 +143,76 @@ for data_type, subdict in path_files.items():
                 sim_points_gdf_simplified = sim_points_gdf.copy()
                 sim_points_gdf_simplified.simplify(tolerance, preserve_topology=True)
                 geometry_dict = sim_points_gdf['geometry'].to_dict()
-                ds = ds.assign_coords(geometry=('code', [geometry_dict[code] for code in ds['code'].values]))
+                ds['geometry'] = ('code', [geometry_dict[code] for code in ds['code'].values])
+                # ds = ds.assign_coords(geometry=('code', [geometry_dict[code] for code in ds['code'].values]))
                 ds = ds.rename({'code': 'id_geometry'})
+
+                if indicator == 'QA':
+                    # other_dimension = {'time': 'time.month'}
+                    ds = ds.assign_coords(month=ds['time.month'])
+                    other_dimension = 'month'
 
             print(f'> Define horizons...', end='\n')
             # Define horizons
-            ds_sim_with_horizon = define_horizon(ds, files_setup)
+            ds = define_horizon(ds, files_setup)
             # Compute mean value for each horizon
-            ds_mean_horizon = compute_mean_by_horizon(ds=ds_sim_with_horizon, indicator_cols=indicator_cols,
-                                                      files_setup=files_setup)
+            ds = compute_mean_by_horizon(ds=ds, indicator_cols=indicator_cols,
+                                         files_setup=files_setup, other_dimension=other_dimension)
 
-            ds_mean_spatial_horizon = apply_statistic(ds_mean_horizon.to_array(dim='new'),
-                                                      function=files_setup['function'],
-                                                      q=files_setup['quantile']).to_dataset(name=indicator)
+            indicator_horizon = [i for i in list(ds.variables) if indicator+'_by_horizon' in i]
 
-            ds_dev_spatial_horizon = compute_deviation_to_ref(ds_mean_spatial_horizon)
+            # ds_mean_spatial_horizon = apply_statistic(ds=ds.to_array(dim='new'),
+            #                                           function=files_setup['function'],
+            #                                           q=files_setup['quantile']).to_dataset(name=indicator)
+
+            # Compute deviation to historical
+            ds = compute_deviation_to_ref(ds, cols=indicator_horizon)
+            indicator_horizon_deviation = [i for i in list(ds.variables) if indicator+'_by_horizon_deviation' in i]
 
             print(f'################################ PLOT DATA ################################', end='\n')
+            col_name='horizon'
             col_headers = {'horizon1': 'Horizon 1 (2021-2050)',
                            'horizon2': 'Horizon 2 (2041-2070)',
                            'horizon3': 'Horizon 3 (2070-2100)'}
 
-            if data_type == 'climate':
-                gdf = gpd.GeoDataFrame({
-                    'geometry': ds_dev_spatial_horizon['geometry'].values,
-                    'region': ds_dev_spatial_horizon['region'].values
-                })
-            else:
-                gdf = gpd.GeoDataFrame({
-                    'geometry': ds_dev_spatial_horizon['geometry'].values,
-                    'code': ds_dev_spatial_horizon['code'].values
-                })
+            row_name = None
+            iterates = {'': None}
+            discretize = 7
+            if indicator == 'QA':
+                row_name = 'month'
+                discretize = 11
+                iterates = {
+                    'DJF' : {12: 'Décembre',
+                             1: 'Janvier',
+                             2: 'Février'},
+                    'MAM': {3: 'Mars',
+                            4: 'Avril',
+                            5: 'Mai'},
+                    'JJA': {6: 'Juin',
+                            7: 'Juillet',
+                            8: 'Août'},
+                    'SON': {9: 'Septembre',
+                            10: 'Octobre',
+                            11: 'Novembre'},
+                }
 
-            cbar_title = indicator + ' deviation (%)'
-            path_results = f"{dict_paths['folder_study_figures']}{indicator}_{timestep}_{rcp}_"
+            gdf = gpd.GeoDataFrame({
+                'geometry': ds['geometry'].values,
+                'id_geometry': ds['id_geometry'].values
+            })
+
+            cbar_title = indicator + ' écart (%)'
 
             dict_shapefiles = {'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'royalblue', 'linewidth': 2, 'zorder': 20, 'alpha': 0.5},
                                'background_shp': {'shp': regions_shp_simplified, 'color': 'gainsboro', 'edgecolor': 'black', 'zorder': 0},
                                'study_shp': {'shp': study_regions_shp_simplified, 'color': 'white', 'edgecolor': 'firebrick', 'zorder': 1, 'linewidth': 1.2},}
 
             print(f"> MAP")
-            # Plot map
-            plot_map(gdf, ds_dev_spatial_horizon, indicator, path_result=path_results+'map.pdf',
-                     row_name=None, row_headers=None, col_name='horizon', col_headers=col_headers,
-                     cbar_title=cbar_title, title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
-                     discretize=7, palette='BrBG', fontsize=14, font='sans-serif')
+            for key, value in iterates.items():
+                path_results = f"{dict_paths['folder_study_figures']}{indicator}_{timestep}_{rcp}_{key}_"
+                # Plot map
+                plot_map(gdf, ds, indicator=indicator_horizon_deviation[0], path_result=path_results+'map.pdf',
+                         row_name=row_name, row_headers=value, col_name=col_name, col_headers=col_headers,
+                         cbar_title=cbar_title, title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
+                         discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=100)
 

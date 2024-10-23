@@ -2,9 +2,9 @@ import math
 import numpy as np
 from plot_functions.plot_common import *
 
-def plot_map(gdf, ds_resume, indicator, path_result, row_name=None, row_headers=None, col_name=None, col_headers=None,
+def plot_map(gdf, ds, indicator, path_result, row_name=None, row_headers=None, col_name=None, col_headers=None,
              cbar_title=None, title=None, dict_shapefiles=None, percent=True, bounds=None, discretize=7,
-             palette='BrBG', fontsize=14, font='sans-serif'):
+             vmin=None, vmax=None, palette='BrBG', fontsize=14, font='sans-serif'):
     col_keys = [None]
     col_values = None
     len_cols = 1
@@ -20,8 +20,10 @@ def plot_map(gdf, ds_resume, indicator, path_result, row_name=None, row_headers=
         row_values = list(row_headers.values())
         len_rows = len(row_keys)
 
-    vmax = math.ceil(abs(ds_resume.variables[indicator]).max() / 5) * 5
-    vmin = -vmax
+    if vmax is None:
+        vmax = math.ceil(abs(ds.variables[indicator]).max() / 5) * 5
+    if vmin is None:
+        vmin = -vmax
 
     bounds_cmap = np.linspace(vmin, vmax, discretize+1)
     cmap = mpl.cm.get_cmap(palette, discretize)
@@ -49,7 +51,7 @@ def plot_map(gdf, ds_resume, indicator, path_result, row_name=None, row_headers=
             if row_name is not None and row is not None:
                 temp_dict |= {row_name: row}
 
-            row_data = ds_resume.sel(temp_dict)[indicator].values
+            row_data = ds.sel(temp_dict)[indicator].values
             gdf[indicator] = row_data
 
             # Background shapefiles
@@ -70,7 +72,7 @@ def plot_map(gdf, ds_resume, indicator, path_result, row_name=None, row_headers=
     add_headers(fig, col_headers=col_values, row_headers=row_values, row_pad=0, col_pad=5, **text_kwargs)
 
     # Colorbar
-    define_cbar(fig, axes, cmap, bounds_cmap, cbar_title=cbar_title, percent=percent, **text_kwargs)
+    define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=cbar_title, percent=percent, **text_kwargs)
 
     plt.savefig(path_result, bbox_inches='tight')
 
