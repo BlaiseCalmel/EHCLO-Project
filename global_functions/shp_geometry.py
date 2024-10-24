@@ -48,7 +48,18 @@ def overlay_shapefile(shapefile, data, path_result=None, col='gid'):
         matched_points = data.sjoin(shapefile, how='inner', predicate='intersects')
         matched_points = matched_points.drop('index_right', axis=1)
 
-    # Save the matched points shapefile
+        # if geometry_type.value_counts().idxmax() == "LineString":
+        #     # Keep only lines with more than 75% of their length inside polygons
+        #     selected_lines = []
+        #     for line in matched_points.itertuples():
+        #         total_length = line.geometry.length
+        #         intersection = shapefile.geometry.unary_union.intersection(line.geometry)
+        #         intersection_length = intersection.length
+        #         if intersection_length / total_length > 0.75:
+        #             selected_lines.append(line.Index)
+        #     matched_points = matched_points.loc[selected_lines]
+
+        # Save the matched points shapefile
     if matched_points is not None and path_result is not None:
         matched_points.to_file(path_result, index=False)
     else:
@@ -118,3 +129,121 @@ def simplify_shapefiles(shapefile, tolerance=1000):
         tolerance, preserve_topology=True)
 
     return shapefile_simplified
+
+def test_merge_rivers(study_rivers_shp, study_rivers_shp_simplified):
+    from shapely.ops import linemerge, unary_union
+    from shapely.geometry import LineString, MultiLineString
+    import matplotlib.pyplot as plt
+    # 2. Combiner toutes les géométries (LineString et MultiLineString) en une seule avec unary_union
+    # combined = unary_union(study_rivers_shp.geometry)
+    # # 3. Fusionner les lignes continues en utilisant linemerge
+    # if isinstance(combined, (MultiLineString, LineString)):
+    #     merged_lines = linemerge(combined)
+    # else:
+    #     merged_lines = combined
+    # merged_gdf = gpd.GeoDataFrame(geometry=[merged_lines])
+
+    # 2. Fusionner toutes les géométries avec unary_union
+    combined = unary_union(study_rivers_shp.geometry)
+
+    # 3. Si c'est un MultiLineString, on le traite
+    if isinstance(combined, MultiLineString):
+        # Convertir en une liste de segments de lignes
+        lines = list(combined.geoms)
+    else:
+        lines = [combined]
+
+    # Fonction pour calculer la distance entre deux lignes
+    def distance_between_lines(line1, line2):
+        return line1.distance(line2)
+
+    def distance_between_points(point1, point2):
+        return np.linalg.norm(np.array(point1) - np.array(point2))
+
+    # Fonction pour relier deux lignes avec une interpolation
+    def connect_lines(line1, line2):
+        end_point = np.array(line1.coords[-1])
+        start_point = np.array(line2.coords[0])
+        connection = LineString([end_point, start_point])
+        return linemerge([line1, connection, line2])
+
+    # 4. Trier les lignes par leur longueur (commencer par la plus grande)
+    lines.sort(key=lambda line: line.length, reverse=True)
+
+    # 5. Initialiser avec la première (la plus grande) ligne
+    merged_continuous = lines[0]
+    lines_remaining = lines[1:]
+
+    # 6. Boucler et connecter les lignes restantes, en commençant par les plus proches
+    i=-1
+    while lines_remaining:
+        i+=1
+        print(i)
+        # Trouver la ligne la plus proche de la dernière ligne connectée
+        distances = [distance_between_lines(merged_continuous, line) for line in lines_remaining]
+
+        closest_index = np.argmin(distances)
+
+        line2 = lines_remaining[closest_index]
+        distance_between_lines(merged_continuous, line2)
+
+        # Connecter la ligne la plus proche
+        line2 = lines_remaining.pop(closest_index)
+
+        global_min_distance = np.nan
+        selected_point_from_merged = None
+        selected_point = None
+        # Choisir une extrémité de line2 (par exemple line2_end ici)
+        for point_from_line in [line2.coords[0], line2.coords[-1]]:
+            print(point_from_line)
+            # Trouver le point le plus proche sur line1
+            if isinstance(merged_continuous, MultiLineString):
+                distances = [(point_j, LineString([point_from_line, point_j]).length) for line_i in merged_continuous.geoms for point_j in line_i.coords ]
+
+            else:
+                distances = [(point, LineString([point_from_line, point]).length) for point in merged_continuous.coords]
+
+            # Trouver le point sur line1 avec la plus petite distance
+            closest_point, min_distance = min(distances, key=lambda x: x[1])
+
+            if np.isnan(global_min_distance) or min_distance < global_min_distance:
+                selected_point_from_merged = closest_point
+                selected_point = point_from_line
+
+        connection = LineString([selected_point_from_merged, selected_point])
+        if isinstance(merged_continuous, MultiLineString):
+            merged_continuous = MultiLineString(list(merged_continuous.geoms) + [connection, line2])
+        else:
+            merged_continuous = linemerge([merged_continuous, connection, line2])
+
+    def connect_lines(line1, line2):
+        end_point = np.array(line1.coords[-1])
+        start_point = np.array(line2.coords[0])
+        connection = LineString([end_point, start_point])
+        return linemerge([line1, connection, line2])
+
+
+    # 6. Créer un nouveau GeoDataFrame avec la ligne continue
+    merged_gdf = gpd.GeoDataFrame(geometry=[merged_continuous])
+
+
+    # merged_gdf = gpd.GeoDataFrame(geometry=[merged_line])
+    #
+    lines_gdf = gpd.GeoDataFrame(geometry=[line2])
+
+
+    # study_rivers_shp_simplified2 = overlay_shapefile(shapefile=study_ug_shp, data=study_rivers_shp_simplified)
+    # test = study_rivers_shp_simplified['geometry'].apply(convert_multilinestring_to_linestring)
+
+    fig, ax = plt.subplots(figsize=(10, 10))
+    # for idx, row in merged_gdf.iterrows():
+    #     # Vérifier si la géométrie est un MultiLineString
+    #     if row['geometry'].geom_type == 'MultiLineString':
+    #         for line in row['geometry'].geoms:
+    #             ax.plot(*line.xy, color=row['color'], linewidth=0.01)  # Tracer chaque LineString dans le MultiLineString
+    #     else:
+    #         ax.plot(*row['geometry'].xy, color=row['color'], linewidth=0.01)  # Tracer le LineString
+    study_rivers_shp_simplified[study_rivers_shp_simplified.length > 10000].plot(ax=ax, edgecolor='red', facecolor='none', linewidth=0.1, alpha=1)
+    merged_gdf.plot(ax=ax, edgecolor='blue', facecolor='none', linewidth=1, alpha=0.4)
+    lines_gdf.plot(ax=ax, edgecolor='k', facecolor='none', linewidth=3, alpha=0.4)
+    plt.savefig('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/figures/test.pdf')

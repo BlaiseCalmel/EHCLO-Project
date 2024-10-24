@@ -60,6 +60,11 @@ def compute_mean_by_horizon(ds, indicator_cols, files_setup, other_dimension=Non
 def apply_statistic(ds, function='mean', q=None):
     # Apply selected function
     if function.lower() == 'mean':
+
+
+        ds[indicator_horizon].mean(dim='new')
+
+
         return ds.mean(dim='new')
     elif function.lower() == 'median':
         return ds.median(dim='new')

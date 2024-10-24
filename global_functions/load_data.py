@@ -1,6 +1,7 @@
 import copy
 import datetime as dt
 import pandas as pd
+import numpy as np
 import geopandas
 from tqdm import tqdm
 import xarray as xr
@@ -119,7 +120,8 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                 del ds_renamed['station']
 
                 ds_renamed['code'] = ds_renamed['code'].astype(str)
-                codes_to_select = [code for code in sim_points_gdf.index.values if code in ds_renamed['code'].values]
+                code_values = np.unique(sim_points_gdf.index.values)
+                codes_to_select = [code for code in code_values if code in ds_renamed['code'].values]
                 # TODO Rename dims to name
                 ds_selection = ds_renamed.sel(code=codes_to_select)
 
