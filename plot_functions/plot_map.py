@@ -2,7 +2,7 @@ import math
 import numpy as np
 from plot_functions.plot_common import *
 
-def mapplot(gdf, ds, indicator, path_result, row_name=None, row_headers=None, col_name=None, col_headers=None,
+def mapplot(gdf, ds, indicator_plot, path_result, row_name=None, row_headers=None, col_name=None, col_headers=None,
              cbar_title=None, title=None, dict_shapefiles=None, percent=True, bounds=None, discretize=7,
              vmin=None, vmax=None, palette='BrBG', fontsize=14, font='sans-serif'):
     col_keys = [None]
@@ -22,10 +22,10 @@ def mapplot(gdf, ds, indicator, path_result, row_name=None, row_headers=None, co
 
     if percent:
         if vmax is None:
-            vmax = math.ceil(abs(ds.variables[indicator]).max() / 5) * 5
+            vmax = math.ceil(abs(ds.variables[indicator_plot]).max() / 5) * 5
     else:
         if vmax is None:
-            vmax = abs(ds.variables[indicator]).max()
+            vmax = math.ceil((abs(ds.variables[indicator_plot]).max()))
 
     if vmin is None:
         vmin = -vmax
@@ -57,8 +57,8 @@ def mapplot(gdf, ds, indicator, path_result, row_name=None, row_headers=None, co
             if row_name is not None and row is not None:
                 temp_dict |= {row_name: row}
 
-            row_data = ds.sel(temp_dict)[indicator].values
-            gdf[indicator] = row_data
+            row_data = ds.sel(temp_dict)[indicator_plot].values
+            gdf[indicator_plot] = row_data
 
             # Background shapefiles
             if dict_shapefiles is not None:
@@ -66,7 +66,7 @@ def mapplot(gdf, ds, indicator, path_result, row_name=None, row_headers=None, co
                     shp_kwargs = {k: subdict[k] for k in subdict.keys() if k != 'shp'}
                     subdict['shp'].plot(ax=ax, figsize=(18, 18), **shp_kwargs)
 
-            gdf.plot(column=indicator, cmap=cmap, norm=norm, ax=ax, legend=False, markersize=100, edgecolor='k',
+            gdf.plot(column=indicator_plot, cmap=cmap, norm=norm, ax=ax, legend=False, markersize=100, edgecolor='k',
                      alpha=0.9, zorder=10)
 
             if bounds is not None:

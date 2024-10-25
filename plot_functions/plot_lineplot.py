@@ -2,7 +2,7 @@ import math
 import numpy as np
 from plot_functions.plot_common import *
 
-def lineplot(gdf, ds, indicator, path_result, row_name=None, row_headers=None, col_name=None, col_headers=None,
+def lineplot(ds, indicator_plot, path_result, row_name=None, row_headers=None, col_name=None, col_headers=None,
              cbar_title=None, title=None, dict_shapefiles=None, percent=True, bounds=None, discretize=7,
              vmin=None, vmax=None, palette='BrBG', fontsize=14, font='sans-serif'):
     col_keys = [None]
@@ -21,9 +21,7 @@ def lineplot(gdf, ds, indicator, path_result, row_name=None, row_headers=None, c
         len_rows = len(row_keys)
 
     if vmax is None:
-        vmax = math.ceil(abs(ds.variables[indicator]).max() / 5) * 5
-    if vmin is None:
-        vmin = -vmax
+        vmax = float(max([ds.variables[i].max() for i in indicator_plot]))
 
     bounds_cmap = np.linspace(vmin, vmax, discretize+1)
     # cmap = mpl.cm.get_cmap(palette, discretize)
@@ -46,14 +44,18 @@ def lineplot(gdf, ds, indicator, path_result, row_name=None, row_headers=None, c
             idx = len_cols * row_idx + col_idx
             ax = axes_flatten[idx]
 
-            temp_dict = {}
-            if col_name is not None and col is not None:
-                temp_dict |= {col_name: col}
-            if row_name is not None and row is not None:
-                temp_dict |= {row_name: row}
-
-            row_data = ds.sel(temp_dict)[indicator].values
-            gdf[indicator] = row_data
+            # temp_dict = {}
+            # if col_name is not None and col is not None:
+            #     temp_dict |= {col_name: col}
+            # if row_name is not None and row is not None:
+            #     temp_dict |= {row_name: row}
+            #
+            # row_data = ds.sel(temp_dict)[indicator_plot].values
+            #
+            for var_name in indicator_plot:
+                data = ds.sel(id_geometry=1)[var_name]
+                # ds.sel(id_geometry=1)[var_name].plot(ax=ax, color='lightgrey')
+                ax.plot(data.time.values, data.values, color='lightgrey', alpha=0.8)
 
             # Background shapefiles
             # if dict_shapefiles is not None:
@@ -64,16 +66,16 @@ def lineplot(gdf, ds, indicator, path_result, row_name=None, row_headers=None, c
             # gdf.plot(column=indicator, cmap=cmap, norm=norm, ax=ax, legend=False, markersize=100, edgecolor='k',
             #          alpha=0.9, zorder=10)
 
-            if bounds is not None:
-                ax.set_xlim(bounds[0], bounds[2])
-                ax.set_ylim(bounds[1], bounds[3])
-            ax.set_axis_off()
+            # if bounds is not None:
+            #     ax.set_xlim(bounds[0], bounds[2])
+            #     ax.set_ylim(bounds[1], bounds[3])
+            # ax.set_axis_off()
 
     # Headers
     add_headers(fig, col_headers=col_values, row_headers=row_values, row_pad=0, col_pad=5, **text_kwargs)
 
     # Colorbar
-    define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=cbar_title, percent=percent, **text_kwargs)
+    # define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=cbar_title, percent=percent, **text_kwargs)
 
     plt.savefig(path_result, bbox_inches='tight')
 

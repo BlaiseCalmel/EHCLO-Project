@@ -156,6 +156,7 @@ for data_type, subdict in path_files.items():
             print(f'> Define horizons...', end='\n')
             # Define horizons
             ds = define_horizon(ds, files_setup)
+
             # Compute mean value for each horizon for each sim
             ds = compute_mean_by_horizon(ds=ds, indicator_cols=indicator_cols,
                                          files_setup=files_setup, other_dimension=other_dimension)
@@ -214,29 +215,39 @@ for data_type, subdict in path_files.items():
                 'id_geometry': ds['id_geometry'].values
             })
 
-            cbar_title = indicator + ' relatif (%)'
-
-            dict_shapefiles = {'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'paleturquoise', 'linewidth': 2, 'zorder': 20, 'alpha': 1},
-                               'background_shp': {'shp': regions_shp_simplified, 'color': 'gainsboro', 'edgecolor': 'black', 'zorder': 0},
-                               'study_shp': {'shp': study_ug_shp_simplified, 'color': 'white', 'edgecolor': 'firebrick', 'zorder': 1, 'linewidth': 1.2},}
+            dict_shapefiles = {'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'paleturquoise',
+                                              'linewidth': 0.7, 'zorder': 20, 'alpha': 1},
+                               'background_shp': {'shp': regions_shp_simplified, 'color': 'gainsboro',
+                                                  'edgecolor': 'black', 'zorder': 0},
+                               }
+            if data_type == 'hydro':
+                dict_shapefiles |= {'study_shp': {'shp': study_ug_shp_simplified, 'color': 'white',
+                                                 'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
+            else:
+                dict_shapefiles |= {'study_shp': {'shp': study_ug_shp_simplified, 'color': 'none',
+                                                 'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
 
             print(f"> Map plot...")
             for key, value in iterates.items():
-                print(f"> Map plot {indicator}_{timestep}_{rcp}_{key}...")
+
                 path_results = f"{dict_paths['folder_study_figures']}{indicator}_{timestep}_{rcp}_{key}_"
                 # Plot map
-                mapplot(gdf, ds, indicator=indicator_horizon_deviation[0], path_result=path_results+'map_deviation.pdf',
+                # Relative
+                print(f"> Relative map plot {indicator}_{timestep}_{rcp}_{key}...")
+                mapplot(gdf, ds, indicator_plot=indicator_horizon_deviation[0], path_result=path_results+'map_deviation.pdf',
                          row_name=row_name, row_headers=value, col_name=col_name, col_headers=col_headers,
-                         cbar_title=cbar_title, title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
+                         cbar_title=indicator + ' relatif (%)', title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
                          discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=vmax)
-
-                mapplot(gdf, ds, indicator=indicator_horizon_difference[0], path_result=path_results+'map_difference.pdf',
+                # Abs diff
+                print(f"> Difference map plot {indicator}_{timestep}_{rcp}_{key}...")
+                mapplot(gdf, ds, indicator_plot=indicator_horizon_difference[0], path_result=path_results+'map_difference.pdf',
                         row_name=row_name, row_headers=value, col_name=col_name, col_headers=col_headers,
-                        cbar_title=cbar_title, title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
+                        cbar_title=indicator, title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
                         discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=vmax)
 
-                lineplot(gdf, ds, indicator=indicator_horizon_deviation_sims, path_result=path_results+'lineplot.pdf',
+                print(f"> Relative line plot {indicator}_{timestep}_{rcp}_{key}...")
+                lineplot(ds, indicator_plot=indicator_cols, path_result=path_results+'lineplot.pdf',
                         row_name=row_name, row_headers=value, col_name=col_name, col_headers=col_headers,
-                        cbar_title=cbar_title, title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
+                        cbar_title='', title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
                         discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=vmax)
 

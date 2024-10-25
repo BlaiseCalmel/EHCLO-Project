@@ -14,10 +14,18 @@ def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=F
     # divider = make_axes_locatable(axes)
     # cbar_ax = divider.append_axes("right", size="5%", pad=0.05)
 
-    cbar_ax = fig.add_axes([axes_flatten[-1].get_position().x1*1.01,
-                            axes_flatten[-1].get_position().y0+0.0,
+    if len(axes_flatten) > 1:
+        if axes_flatten[1].get_position().x0 != axes_flatten[0].get_position().x1:
+            x_diff = (axes_flatten[1].get_position().x0 - axes_flatten[0].get_position().x1) * 0.5
+        else:
+            x_diff = axes_flatten[-1].get_position().x1 * 0.01
+    else:
+        x_diff = axes_flatten[-1].get_position().x1 * 0.01
+
+    cbar_ax = fig.add_axes([axes_flatten[-1].get_position().x1 + x_diff,
+                            axes_flatten[-1].get_position().y0 - 0.02,
                             0.02,
-                            axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0-0.02])
+                            axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0 - 0.02])
 
     sm._A = []
     if percent:
