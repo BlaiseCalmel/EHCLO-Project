@@ -15,7 +15,7 @@ def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=F
     # cbar_ax = divider.append_axes("right", size="5%", pad=0.05)
 
     cbar_ax = fig.add_axes([axes_flatten[-1].get_position().x1*1.01,
-                            axes_flatten[-1].get_position().y0+0.01,
+                            axes_flatten[-1].get_position().y0+0.0,
                             0.02,
                             axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0-0.02])
 

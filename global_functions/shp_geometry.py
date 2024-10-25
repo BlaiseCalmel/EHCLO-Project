@@ -44,7 +44,7 @@ def overlay_shapefile(shapefile, data, path_result=None, col='gid'):
 
         matched_points = matched_points.merge(total_surface, left_on=col, right_index=True)
 
-    elif geometry_type.value_counts().idxmax() in ["Point", "LineString"]:
+    else:
         matched_points = data.sjoin(shapefile, how='inner', predicate='intersects')
         matched_points = matched_points.drop('index_right', axis=1)
 

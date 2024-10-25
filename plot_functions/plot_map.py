@@ -2,7 +2,7 @@ import math
 import numpy as np
 from plot_functions.plot_common import *
 
-def plot_map(gdf, ds, indicator, path_result, row_name=None, row_headers=None, col_name=None, col_headers=None,
+def mapplot(gdf, ds, indicator, path_result, row_name=None, row_headers=None, col_name=None, col_headers=None,
              cbar_title=None, title=None, dict_shapefiles=None, percent=True, bounds=None, discretize=7,
              vmin=None, vmax=None, palette='BrBG', fontsize=14, font='sans-serif'):
     col_keys = [None]
@@ -20,8 +20,13 @@ def plot_map(gdf, ds, indicator, path_result, row_name=None, row_headers=None, c
         row_values = list(row_headers.values())
         len_rows = len(row_keys)
 
-    if vmax is None:
-        vmax = math.ceil(abs(ds.variables[indicator]).max() / 5) * 5
+    if percent:
+        if vmax is None:
+            vmax = math.ceil(abs(ds.variables[indicator]).max() / 5) * 5
+    else:
+        if vmax is None:
+            vmax = abs(ds.variables[indicator]).max()
+
     if vmin is None:
         vmin = -vmax
 

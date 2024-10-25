@@ -7,6 +7,6 @@
   "folder_data": "data",
   "folder_figures": "figures",
   "regions_shp": "regionHydro.shp",
-  "rivers_shp": "france_rivers.shp",
-  "ug_shp": "bassin_loire_ug.shp"
+  "rivers_shp": "InfoVigiCru.geojson.json",
+  "ug_shp": "bassin_loire_ug (copie).shp"
 }

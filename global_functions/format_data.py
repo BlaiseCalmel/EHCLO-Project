@@ -60,11 +60,6 @@ def compute_mean_by_horizon(ds, indicator_cols, files_setup, other_dimension=Non
 def apply_statistic(ds, function='mean', q=None):
     # Apply selected function
     if function.lower() == 'mean':
-
-
-        ds[indicator_horizon].mean(dim='new')
-
-
         return ds.mean(dim='new')
     elif function.lower() == 'median':
         return ds.median(dim='new')
@@ -86,8 +81,8 @@ def apply_statistic(ds, function='mean', q=None):
 def compute_deviation_to_ref(ds, cols, ref='historical'):
     horizons = [i for i in ds.horizon.data if i != ref]
     for col in cols:
-        ds[col+'_deviation'] = ((ds[col].sel(horizon=horizons) - ds[col].sel(horizon=ref)) * 100 /
-                                ds[col].sel(horizon=ref))
+        ds[col+'_difference'] = (ds[col].sel(horizon=horizons) - ds[col].sel(horizon=ref))
+        ds[col+'_deviation'] = (ds[col+'_difference']) * 100 / ds[col].sel(horizon=ref)
 
     return ds
 
