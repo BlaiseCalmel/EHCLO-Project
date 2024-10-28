@@ -1,3 +1,5 @@
+import os
+
 print(f'################################ IMPORT & INITIALIZATION ################################', end='\n')
 
 print(f'> General imports...', end='\n')
@@ -74,14 +76,17 @@ bounds = define_bounds(study_ug_shp, zoom=2500)
 # Select long rivers
 print(f'> Simplify shapefiles...', end='\n')
 tolerance = 1000
+print(f'>> Simplify rivers...', end='\n')
 # Select rivers in study area
 study_rivers_shp_simplified = overlay_shapefile(shapefile=study_ug_shp, data=rivers_shp)
 study_rivers_shp_simplified = simplify_shapefiles(study_rivers_shp_simplified, tolerance=tolerance)
 
+print(f'>> Simplify regions background...', end='\n')
 # Simplify regions shapefile (background)
 regions_shp_simplified = overlay_shapefile(shapefile=bounds, data=regions_shp)
 regions_shp_simplified = simplify_shapefiles(regions_shp_simplified, tolerance=tolerance)
 
+print(f'>> Simplify study area...', end='\n')
 # Simplify study areas shapefile
 study_ug_shp_simplified = simplify_shapefiles(study_ug_shp, tolerance=tolerance)
 
@@ -108,7 +113,7 @@ for data_type, subdict in path_files.items():
 
     for rcp, subdict2 in subdict.items():
         for indicator_raw, paths in subdict2.items():
-            split_indicator = indicator_raw.split('_')
+            split_indicator = indicator_raw.split('-')
             indicator = split_indicator[0]
             timestep = 'YE'
             if len(split_indicator) > 1:
@@ -177,7 +182,7 @@ for data_type, subdict in path_files.items():
             indicator_horizon_difference = [i for i in list(ds.variables) if
                                             indicator+'_by_horizon_among_sims_difference' in i]
             indicator_horizon_deviation_sims = [i for i in list(ds.variables) if '_by_horizon_deviation' in i]
-            indicator_horizon_diffrence_sims = [i for i in list(ds.variables) if '_by_horizon_difference' in i]
+            indicator_horizon_difference_sims = [i for i in list(ds.variables) if '_by_horizon_difference' in i]
 
             print(f'################################ PLOT DATA ################################', end='\n')
             print(f"> Initialize plot...")
@@ -228,26 +233,53 @@ for data_type, subdict in path_files.items():
                                                  'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
 
             print(f"> Map plot...")
+            path_indicator_figures = dict_paths['folder_study_figures'] + indicator + os.sep
+            if not os.path.isdir(path_indicator_figures):
+                os.makedirs(path_indicator_figures)
+
             for key, value in iterates.items():
 
-                path_results = f"{dict_paths['folder_study_figures']}{indicator}_{timestep}_{rcp}_{key}_"
+                path_results = f"{path_indicator_figures}{timestep}_{rcp}_{key}_"
                 # Plot map
                 # Relative
                 print(f"> Relative map plot {indicator}_{timestep}_{rcp}_{key}...")
-                mapplot(gdf, ds, indicator_plot=indicator_horizon_deviation[0], path_result=path_results+'map_deviation.pdf',
+                mapplot(gdf, ds, indicator_plot=indicator_horizon_deviation[0], path_result=path_indicator_figures+'map_deviation.pdf',
                          row_name=row_name, row_headers=value, col_name=col_name, col_headers=col_headers,
                          cbar_title=indicator + ' relatif (%)', title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
                          discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=vmax)
                 # Abs diff
                 print(f"> Difference map plot {indicator}_{timestep}_{rcp}_{key}...")
-                mapplot(gdf, ds, indicator_plot=indicator_horizon_difference[0], path_result=path_results+'map_difference.pdf',
+                mapplot(gdf, ds, indicator_plot=indicator_horizon_difference[0], path_result=path_indicator_figures+'map_difference.pdf',
                         row_name=row_name, row_headers=value, col_name=col_name, col_headers=col_headers,
                         cbar_title=indicator, title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
-                        discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=vmax)
+                        discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=None)
 
                 print(f"> Relative line plot {indicator}_{timestep}_{rcp}_{key}...")
-                lineplot(ds, indicator_plot=indicator_cols, path_result=path_results+'lineplot.pdf',
-                        row_name=row_name, row_headers=value, col_name=col_name, col_headers=col_headers,
-                        cbar_title='', title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
-                        discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=vmax)
+                from plot_functions.plot_lineplot import *
+
+
+                cols = {
+                    'name_var': 'id_geometry',
+                    'values_var': ['K001872200', 'M850301010'],
+                    'name_plot': ['Station 1', 'Station 2']
+                }
+
+                rows = {
+                    'name_var': 'month',
+                    'values_var': [9, 10, 11],
+                    'name_plot': ['Septembre', 'Octobre', 'Novembre']
+                }
+
+                x_axis = {
+                    'names_var': 'time',
+                    'name_plot': 'Date'
+                }
+                y_axis = {
+                    'names_var': indicator_cols,
+                    'name_plot': 'QA'
+                }
+
+
+                lineplot(ds, x_axis, y_axis, cols, rows, path_result=path_indicator_figures+'lineplot.pdf',
+                        title=None, percent=True, palette='BrBG', fontsize=14, font='sans-serif', ymax=None)
 

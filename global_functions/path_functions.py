@@ -50,7 +50,7 @@ def get_files_path(dict_paths, setup, extension='.nc'):
     for data_type in ['hydro', 'climate']:
         dict_path[data_type] = {}
         setup_indicator = setup[f'{data_type}_indicator']
-        indicators = [i.split('_')[0] for i in setup_indicator]
+        indicators = [i.split('-')[0] for i in setup_indicator]
 
         # Filter by indicator name
         data_files = [s for s in ext_files if any(word in s for word in indicators)]

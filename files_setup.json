@@ -1,12 +1,12 @@
 {
   "gid": [1, 2, 3, 4, 5, 6],
-  "hydro_indicator": ["Q90A", "QA_mon"],
+  "hydro_indicator": ["Q90A", "QA_mon-M"],
   "climate_indicator": [
-    "tasminAdjust_YE", "tasminAdjust_JJA", "tasminAdjust_DJF",
-    "evspsblpotAdjust_YE", "evspsblpotAdjust_JJA", "evspsblpotAdjust_DJF",
-    "prtotAdjust_YE", "prtotAdjust_JJA", "prtotAdjust_DJF",
-    "tasAdjust_YE", "tasAdjust_JJA", "tasAdjust_DJF",
-    "tasmaxAdjust_YE", "tasmaxAdjust_JJA", "tasmaxAdjust_DJF"
+    "tasminAdjust-YE", "tasminAdjust-JJA", "tasminAdjust-DJF",
+    "evspsblpotAdjust-YE", "evspsblpotAdjust-JJA", "evspsblpotAdjust-DJF",
+    "prtotAdjust-YE", "prtotAdjust-JJA", "prtotAdjust-DJF",
+    "tasAdjust-YE", "tasAdjust-JJA", "tasAdjust-DJF",
+    "tasmaxAdjust-YE", "tasmaxAdjust-JJA", "tasmaxAdjust-DJF"
   ],
   "select_rcp": ["rcp85", "rcp45", "rcp26"],
   "select_gcm": [],

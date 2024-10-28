@@ -78,6 +78,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                 split_name = file.split(os.sep)[-5:-1]
             else:
                 split_name = file.split(os.sep)[-6:-1]
+            indicator = indicator.split('_')[0]
             file_name = '_'.join(split_name)
             var = indicator+'_'+file_name
 
