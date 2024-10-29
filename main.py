@@ -247,7 +247,7 @@ for data_type, subdict in path_files.items():
                 }
 
                 rows = {
-                    'name_var': row_name,
+                    'names_var': row_name,
                     'values_var': list(value.keys()),
                     'names_plot': list(value.values())
                 }
@@ -302,17 +302,78 @@ for data_type, subdict in path_files.items():
                     'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']
                 }
                 x_axis = {
+                    'names_var': 'horizon',
                     'values_var': ['horizon1', 'horizon2', 'horizon3'],
                     'names_plot': ['H1', 'H2', 'H3']
                 }
 
+                # TEST 1
+                cols = {
+                    'names_var': 'id_geometry',
+                        'values_var': ['K001872200', 'M850301010'],
+                        'names_plot': ['K001872200', 'M850301010'],
+                }
+                rows = {
+                    'names_var': row_name,
+                    'values_var': list(value.keys()),
+                    'names_plot': list(value.values())
+                }
+                x_axis = {
+                    'names_var': 'horizon',
+                    'values_var': ['horizon1', 'horizon2', 'horizon3'],
+                    'names_plot': ['H1', 'H2', 'H3']
+                }
+                y_axis = {
+                    'names_var': 'indicator',
+                    'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
+                                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
+                                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
+                    'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']
+                }
+
+                # TEST 2
                 cols = {'names_var': 'horizon',
                         'values_var': ['horizon1', 'horizon2', 'horizon3'],
                         'names_plot': ['H1', 'H2', 'H3']}
+                rows = {
+                    'names_var': 'indicator',
+                    'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
+                                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
+                                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
+                    'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']
+                }
+                x_axis = {
+                    'names_var': row_name,
+                    'values_var': list(value.keys()),
+                    'names_plot': list(value.values())
+                }
+                y_axis = {
+                    'names_var': 'id_geometry',
+                    'values_var': ['K001872200', 'M850301010'],
+                    'names_plot': ['K001872200', 'M850301010'],
+                }
+
+                # TEST 3
+                cols = {'names_var': 'indicator',
+                        'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
+                                       'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
+                                       'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
+                        'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']}
+                rows = {
+                    'names_var': 'horizon',
+                    'values_var': ['horizon1', 'horizon2', 'horizon3'],
+                    'names_plot': ['H1', 'H2', 'H3']
+                }
                 x_axis = {
                     'names_var': 'id_geometry',
                     'values_var': ['K001872200', 'M850301010'],
                     'names_plot': ['K001872200', 'M850301010'],
+
+                }
+                y_axis = {
+                    'names_var': row_name,
+                    'values_var': list(value.keys()),
+                    'names_plot': list(value.values())
                 }
 
 

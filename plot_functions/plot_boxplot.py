@@ -22,9 +22,12 @@ def boxplot(ds, x_axis, y_axis, cols, rows, path_result, ymin=None, ymax=None,
     #     row_keys = list(row_headers.keys())
     #     row_values = list(row_headers.values())
     #     len_rows = len(row_keys)
+    ds_plot = copy.deepcopy(ds)
+    if cols['names_var'] != 'indicator':
+        ds_plot = ds_plot.sel({cols['names_var']: cols['values_var']})
 
-    ds_plot = ds.sel({cols['names_var']: cols['values_var'],
-                      rows['names_var']: rows['values_var']})
+    if rows['names_var'] != 'indicator':
+        ds_plot = ds_plot.sel({rows['names_var']: rows['values_var']})
 
     # if isinstance(x_axis['names_var'], str):
     #     x_axis['names_var'] = [x_axis['names_var']]
@@ -56,49 +59,33 @@ def boxplot(ds, x_axis, y_axis, cols, rows, path_result, ymin=None, ymax=None,
             idx = len_cols * row_idx + col_idx
             ax = axes_flatten[idx]
 
-            temp_dict = {}
             ds_selection = copy.deepcopy(ds_plot)
             if cols['names_var'] is not None and col is not None:
-                if cols['names_var'] == 'horizon':
-                    # temp_dict |= {'time': ds_plot[col]}
-                    ds_selection = ds_selection.sel(time = ds_selection[col])
-                elif cols['names_var'] == 'month':
-                    # temp_dict |= {'time': ds_plot.time.dt.month == col}
-                    ds_selection = ds_selection.sel(time = ds_selection.time.dt.month == col)
-                else:
-                    temp_dict = {cols['names_var']: col}
-                    ds_selection = ds_selection.sel(temp_dict)
+                ds_selection = plot_selection(ds_selection, cols['names_var'], col)
             if rows['names_var'] is not None and row is not None:
-                # temp_dict |= {rows['names_var']: row}
-                # temp_dict |= {'time': ds.time.dt.month == row}
-                if rows['names_var'] == 'horizon':
-                    # temp_dict |= {'time': ds_plot[row]}
-                    ds_selection = ds_selection.sel(time = ds_selection[row])
-                elif rows['names_var'] == 'month':
-                    # temp_dict |= {'time': ds_plot.time.dt.month == row}
-                    ds_selection = ds_selection.sel(time = ds_selection.time.dt.month == row)
-                else:
-                    temp_dict = {rows['names_var']: row}
-                    ds_selection = ds_selection.sel(temp_dict)
+                ds_selection = plot_selection(ds_selection, rows['names_var'], row)
 
             position_main = np.arange(len(x_axis['values_var'])) * 2
             bp_legend= []
             j = -1
-            i = -int(len(x_axis['values_var'])/2) - 1
+            i = -(len(y_axis['values_var'])/2) - 0.5
             for y_var in y_axis['values_var']:
                 cell_boxplots = []
+                cell_data = plot_selection(ds_selection, y_axis['names_var'], y_var)
                 j += 1
                 for x_var in x_axis['values_var']:
-                    cell_data = ds_selection[y_var]
+                    # cell_data = ds_selection[y_var]
+                    boxplot_values = plot_selection(cell_data, x_axis['names_var'], x_var)
 
                     # Where for horizon value
-                    if x_axis['names_var'] == 'horizon':
-                        boxplot_values = cell_data.where(cell_data[x_var], drop=True).values
-                    else:
-                        boxplot_values = cell_data.sel({x_axis['names_var']: x_var}).values
+                    # if x_axis['names_var'] == 'horizon':
+                    #     boxplot_values = cell_data.where(cell_data[x_var], drop=True).values
+                    # else:
+                    #     boxplot_values = cell_data.sel({x_axis['names_var']: x_var}).values
                     cell_boxplots.append(boxplot_values[~np.isnan(boxplot_values)])
                 i += 1
-                x_position = position_main + 0.2 * i
+                x_position = position_main + 0.35 * i
+
 
                 # Plot by sub box categories
                 bp = ax.boxplot(cell_boxplots, positions=x_position, widths=0.3, patch_artist=True,
@@ -116,7 +103,7 @@ def boxplot(ds, x_axis, y_axis, cols, rows, path_result, ymin=None, ymax=None,
                 ax.yaxis.set_major_formatter(mtick.PercentFormatter())
 
     # Headers
-    add_headers(fig, col_headers=cols['names_plot'], row_headers=rows['names_plot'], row_pad=25, col_pad=5, **text_kwargs)
+    add_headers(fig, col_headers=cols['names_plot'], row_headers=rows['names_plot'], row_pad=35, col_pad=5, **text_kwargs)
 
     plt.savefig(path_result, bbox_inches='tight')
 

@@ -103,6 +103,19 @@ def find_extrema(ds_plot, x_axis, y_axis, xmin, xmax, ymin, ymax):
 
     return xmin, xmax, ymin, ymax
 
+def plot_selection(ds_selection, names_var, value):
+    if names_var == 'horizon':
+        ds_selection = ds_selection.sel(time = ds_selection[value])
+    elif names_var == 'month':
+        ds_selection = ds_selection.sel(time = ds_selection.time.dt.month == value)
+    elif names_var == 'indicator':
+        ds_selection = ds_selection[value]
+    else:
+        temp_dict = {names_var: value}
+        ds_selection = ds_selection.sel(temp_dict)
+
+    return ds_selection
+
 def save_shp_figure(back_shp:gpd.GeoDataFrame, path_result:str, study_shp:gpd.GeoDataFrame=None,
                     rivers_shp:gpd.GeoDataFrame=None,
                     figsize:tuple=None, **kwargs):
