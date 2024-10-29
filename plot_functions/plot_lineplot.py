@@ -1,5 +1,6 @@
 import math
 import numpy as np
+import matplotlib.ticker as mtick
 from plot_functions.plot_common import *
 
 def lineplot(ds, x_axis, y_axis, cols, rows, path_result, xmin=None, xmax=None, ymin=None, ymax=None,
@@ -19,14 +20,13 @@ def lineplot(ds, x_axis, y_axis, cols, rows, path_result, xmin=None, xmax=None, 
     #     row_values = list(row_headers.values())
     #     len_rows = len(row_keys)
 
-    ds_plot = ds.sel({cols['name_var']: cols['values_var'],
-                      rows['name_var']: rows['values_var']})
+    ds_plot = ds.sel({cols['names_var']: cols['values_var'],
+                      rows['names_var']: rows['values_var']})
 
     if isinstance(x_axis['names_var'], str):
         x_axis['names_var'] = [x_axis['names_var']]
     if isinstance(x_axis['names_var'], str):
         y_axis['names_var'] = [y_axis['names_var']]
-
 
     if xmin is None:
         x_min_temp = [ds_plot.variables[i].min() for i in x_axis['names_var']]
@@ -53,7 +53,7 @@ def lineplot(ds, x_axis, y_axis, cols, rows, path_result, xmin=None, xmax=None, 
         try:
             ymax = np.nanmax(y_max_temp)
         except ValueError:
-            ymax = max(y_min_temp)
+            ymax = max(y_max_temp)
 
 
     plt.rcParams['font.family'] = font
@@ -76,10 +76,10 @@ def lineplot(ds, x_axis, y_axis, cols, rows, path_result, xmin=None, xmax=None, 
             ax = axes_flatten[idx]
 
             temp_dict = {}
-            if cols['name_var'] is not None and col is not None:
-                temp_dict |= {cols['name_var']: col}
-            if rows['name_var'] is not None and row is not None:
-                temp_dict |= {rows['name_var']: row}
+            if cols['names_var'] is not None and col is not None:
+                temp_dict |= {cols['names_var']: col}
+            if rows['names_var'] is not None and row is not None:
+                temp_dict |= {rows['names_var']: row}
 
             for y_var in y_axis['names_var']:
                 for x_var in x_axis['names_var']:
@@ -89,10 +89,13 @@ def lineplot(ds, x_axis, y_axis, cols, rows, path_result, xmin=None, xmax=None, 
 
             ax.set_xlim(xmin, xmax)
             ax.set_ylim(ymin, ymax)
+
+            if percent:
+                ax.yaxis.set_major_formatter(mtick.PercentFormatter())
             # ax.set_axis_off()
 
     # Headers
-    add_headers(fig, col_headers=cols['name_plot'], row_headers=rows['name_plot'], row_pad=25, col_pad=5, **text_kwargs)
+    add_headers(fig, col_headers=cols['names_plot'], row_headers=rows['names_plot'], row_pad=25, col_pad=5, **text_kwargs)
 
     # Colorbar
     # define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=cbar_title, percent=percent, **text_kwargs)

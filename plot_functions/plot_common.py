@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import geopandas.geodataframe as gpd
 import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
+import numpy as np
 
 def define_bounds(shapefile, zoom=5000):
     raw_bounds = shapefile.geometry.total_bounds
@@ -61,7 +62,8 @@ def add_headers(fig, *, row_headers=None, col_headers=None, row_pad=1, col_pad=5
             ax.annotate(
                 row_headers[sbs.rowspan.start],
                 xy=(0, 0.5),
-                xytext=(-ax.yaxis.labelpad - row_pad, 0),
+                # xytext=(-ax.yaxis.labelpad - row_pad, 0),
+                # xytext=(-ax.yaxis.labelpad - row_pad, 0),
                 # xycoords=ax.yaxis.label,
                 xycoords="axes fraction",
                 textcoords="offset points",
@@ -70,6 +72,36 @@ def add_headers(fig, *, row_headers=None, col_headers=None, row_pad=1, col_pad=5
                 rotation=rotate_row_headers * 90,
                 **text_kwargs,
             )
+
+def find_extrema(ds_plot, x_axis, y_axis, xmin, xmax, ymin, ymax):
+    if xmin is None:
+        x_min_temp = [ds_plot.variables[i].min() for i in x_axis['values_var']]
+        try:
+            xmin = np.nanmin(x_min_temp)
+        except ValueError:
+            xmin = min(x_min_temp)
+    if xmax is None:
+        x_max_temp = max([ds_plot.variables[i].max() for i in x_axis['values_var']])
+        try:
+            xmax = np.nanmin(x_max_temp)
+        except ValueError:
+            xmax = max(x_max_temp)
+
+    if ymin is None:
+        y_min_temp = [ds_plot.variables[i].min() for i in y_axis['values_var']]
+        try:
+            ymin = np.nanmin(y_min_temp)
+        except ValueError:
+            ymin = min(y_min_temp)
+
+    if ymax is None:
+        y_max_temp = np.nanmax([ds_plot.variables[i].max() for i in y_axis['values_var']])
+        try:
+            ymax = np.nanmax(y_max_temp)
+        except ValueError:
+            ymax = max(y_max_temp)
+
+    return xmin, xmax, ymin, ymax
 
 def save_shp_figure(back_shp:gpd.GeoDataFrame, path_result:str, study_shp:gpd.GeoDataFrame=None,
                     rivers_shp:gpd.GeoDataFrame=None,

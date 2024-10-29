@@ -2,23 +2,9 @@ import math
 import numpy as np
 from plot_functions.plot_common import *
 
-def mapplot(gdf, ds, indicator_plot, path_result, row_name=None, row_headers=None, col_name=None, col_headers=None,
+def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
              cbar_title=None, title=None, dict_shapefiles=None, percent=True, bounds=None, discretize=7,
              vmin=None, vmax=None, palette='BrBG', fontsize=14, font='sans-serif'):
-    col_keys = [None]
-    col_values = None
-    len_cols = 1
-    row_keys = [None]
-    row_values = None
-    len_rows = 1
-    if isinstance(col_headers, dict) and len(col_headers) > 0:
-        col_keys = list(col_headers.keys())
-        col_values = list(col_headers.values())
-        len_cols = len(col_keys)
-    if isinstance(row_headers, dict) and len(row_headers) > 0:
-        row_keys = list(row_headers.keys())
-        row_values = list(row_headers.values())
-        len_rows = len(row_keys)
 
     if percent:
         if vmax is None:
@@ -31,13 +17,15 @@ def mapplot(gdf, ds, indicator_plot, path_result, row_name=None, row_headers=Non
         vmin = -vmax
 
     bounds_cmap = np.linspace(vmin, vmax, discretize+1)
-    # cmap = mpl.cm.get_cmap(palette, discretize)
     cmap = plt.get_cmap(palette, discretize)
     norm = mpl.colors.BoundaryNorm(bounds_cmap, cmap.N)
 
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
     text_kwargs ={'weight': 'bold'}
+
+    len_rows = len(rows['values_var'])
+    len_cols = len(cols['values_var'])
 
     fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 4 * len_cols, len_rows * 4), constrained_layout=True)
     # Main title
@@ -46,16 +34,16 @@ def mapplot(gdf, ds, indicator_plot, path_result, row_name=None, row_headers=Non
 
     axes_flatten = axes.flatten()
 
-    for col_idx, col in enumerate(col_keys):
-        for row_idx, row in enumerate(row_keys):
+    for col_idx, col in enumerate(cols['values_var']):
+        for row_idx, row in enumerate(rows['values_var']):
             idx = len_cols * row_idx + col_idx
             ax = axes_flatten[idx]
 
             temp_dict = {}
-            if col_name is not None and col is not None:
-                temp_dict |= {col_name: col}
-            if row_name is not None and row is not None:
-                temp_dict |= {row_name: row}
+            if cols['names_var'] is not None and col is not None:
+                temp_dict |= {cols['names_var']: col}
+            if rows['names_var'] is not None and row is not None:
+                temp_dict |= {rows['names_var']: row}
 
             row_data = ds.sel(temp_dict)[indicator_plot].values
             gdf[indicator_plot] = row_data
@@ -75,7 +63,7 @@ def mapplot(gdf, ds, indicator_plot, path_result, row_name=None, row_headers=Non
             ax.set_axis_off()
 
     # Headers
-    add_headers(fig, col_headers=col_values, row_headers=row_values, row_pad=0, col_pad=5, **text_kwargs)
+    add_headers(fig, col_headers=cols['names_plot'], row_headers=rows['names_plot'], row_pad=0, col_pad=5, **text_kwargs)
 
     # Colorbar
     define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=cbar_title, percent=percent, **text_kwargs)

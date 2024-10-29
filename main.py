@@ -186,13 +186,14 @@ for data_type, subdict in path_files.items():
 
             print(f'################################ PLOT DATA ################################', end='\n')
             print(f"> Initialize plot...")
-            col_name='horizon'
-            col_headers = {'horizon1': 'Horizon 1 (2021-2050)',
-                           'horizon2': 'Horizon 2 (2041-2070)',
-                           'horizon3': 'Horizon 3 (2070-2100)'}
-
+            # col_name='horizon'
+            # col_headers = {'horizon1': 'Horizon 1 (2021-2050)',
+            #                'horizon2': 'Horizon 2 (2041-2070)',
+            #                'horizon3': 'Horizon 3 (2070-2100)'}
+            #
             row_name = None
-            iterates = {'': None}
+
+            subplots = {'': None}
             discretize = 7
             vmax = None
             percent = True
@@ -200,7 +201,7 @@ for data_type, subdict in path_files.items():
                 vmax = 100
                 row_name = 'month'
                 discretize = 11
-                iterates = {
+                subplots = {
                     'DJF' : {12: 'Décembre',
                              1: 'Janvier',
                              2: 'Février'},
@@ -237,20 +238,32 @@ for data_type, subdict in path_files.items():
             if not os.path.isdir(path_indicator_figures):
                 os.makedirs(path_indicator_figures)
 
-            for key, value in iterates.items():
-
+            for key, value in subplots.items():
                 path_results = f"{path_indicator_figures}{timestep}_{rcp}_{key}_"
+                cols_map = {
+                    'names_var': 'horizon',
+                    'values_var': ['horizon1', 'horizon2', 'horizon3'],
+                    'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2100)']
+                }
+
+                rows = {
+                    'name_var': row_name,
+                    'values_var': list(value.keys()),
+                    'names_plot': list(value.values())
+                }
+
                 # Plot map
                 # Relative
                 print(f"> Relative map plot {indicator}_{timestep}_{rcp}_{key}...")
-                mapplot(gdf, ds, indicator_plot=indicator_horizon_deviation[0], path_result=path_indicator_figures+'map_deviation.pdf',
-                         row_name=row_name, row_headers=value, col_name=col_name, col_headers=col_headers,
+                mapplot(gdf, ds, indicator_plot=indicator_horizon_deviation[0], path_result=path_indicator_figures+'map_deviation2.pdf',
+                        cols=cols_map, rows=rows,
+                         # row_name=row_name, row_headers=value, col_name=col_name, col_headers=col_headers,
                          cbar_title=indicator + ' relatif (%)', title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
-                         discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=vmax)
+                         discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=100)
                 # Abs diff
                 print(f"> Difference map plot {indicator}_{timestep}_{rcp}_{key}...")
                 mapplot(gdf, ds, indicator_plot=indicator_horizon_difference[0], path_result=path_indicator_figures+'map_difference.pdf',
-                        row_name=row_name, row_headers=value, col_name=col_name, col_headers=col_headers,
+                        # row_name=row_name, row_headers=value, col_name=col_name, col_headers=col_headers,
                         cbar_title=indicator, title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
                         discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=None)
 
@@ -258,28 +271,51 @@ for data_type, subdict in path_files.items():
                 from plot_functions.plot_lineplot import *
 
 
-                cols = {
-                    'name_var': 'id_geometry',
-                    'values_var': ['K001872200', 'M850301010'],
-                    'name_plot': ['Station 1', 'Station 2']
-                }
-
-                rows = {
-                    'name_var': 'month',
-                    'values_var': [9, 10, 11],
-                    'name_plot': ['Septembre', 'Octobre', 'Novembre']
-                }
-
                 x_axis = {
                     'names_var': 'time',
-                    'name_plot': 'Date'
+                    'names_plot': 'Date'
                 }
                 y_axis = {
                     'names_var': indicator_cols,
-                    'name_plot': 'QA'
+                    'names_plot': 'QA'
+                }
+
+                cols = {'names_var': 'id_geometry', 'values_var': ['K001872200', 'M850301010'], 'names_plot': ['Station 1', 'Station 2']}
+
+                lineplot(ds, x_axis, y_axis, cols, rows, cols_map, path_result=path_indicator_figures+'lineplot.pdf',
+                        title=None, percent=False, palette='BrBG', fontsize=14, font='sans-serif', ymax=None)
+
+
+                from plot_functions.plot_boxplot import *
+                # Cols  and rows of subplots
+                cols = {'names_var': 'id_geometry', 'values_var': ['K001872200', 'M850301010'], 'names_plot': ['Station 1', 'Station 2']}
+                rows = {
+                    'names_var': row_name,
+                    'values_var': list(value.keys()),
+                    'names_plot': list(value.values())
+                }
+
+                y_axis = {
+                    'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
+                                  'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
+                                  'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
+                    'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']
+                }
+                x_axis = {
+                    'values_var': ['horizon1', 'horizon2', 'horizon3'],
+                    'names_plot': ['H1', 'H2', 'H3']
+                }
+
+                cols = {'names_var': 'horizon',
+                        'values_var': ['horizon1', 'horizon2', 'horizon3'],
+                        'names_plot': ['H1', 'H2', 'H3']}
+                x_axis = {
+                    'names_var': 'id_geometry',
+                    'values_var': ['K001872200', 'M850301010'],
+                    'names_plot': ['K001872200', 'M850301010'],
                 }
 
 
-                lineplot(ds, x_axis, y_axis, cols, rows, path_result=path_indicator_figures+'lineplot.pdf',
-                        title=None, percent=True, palette='BrBG', fontsize=14, font='sans-serif', ymax=None)
+                boxplot(ds, x_axis, y_axis, cols, rows, path_result=path_indicator_figures+'boxplot.pdf',
+                         title=None, percent=False, palette='BrBG', fontsize=14, font='sans-serif', ymax=None)
 
