@@ -27,7 +27,16 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
     len_rows = len(rows['values_var'])
     len_cols = len(cols['values_var'])
 
-    fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 4 * len_cols, len_rows * 4), constrained_layout=True)
+    if bounds is not None :
+        x_y_ratio = abs((bounds[2] - bounds[0]) / (bounds[3] - bounds[1]))
+        if x_y_ratio > 1:
+            figsize = (4 * len_cols , len_rows * 4 / x_y_ratio)
+        else:
+            figsize = (4 * len_cols * x_y_ratio , len_rows * 4)
+    else:
+        figsize = (4 * len_cols, len_rows * 4)
+
+    fig, axes = plt.subplots(len_rows, len_cols, figsize=figsize, constrained_layout=True)
     # Main title
     if title is not None:
         fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2)
@@ -63,7 +72,7 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
             ax.set_axis_off()
 
     # Headers
-    add_headers(fig, col_headers=cols['names_plot'], row_headers=rows['names_plot'], row_pad=0, col_pad=5, **text_kwargs)
+    add_headers(fig, col_headers=cols['names_plot'], row_headers=rows['names_plot'], row_pad=5, col_pad=5, **text_kwargs)
 
     # Colorbar
     define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=cbar_title, percent=percent, **text_kwargs)

@@ -4,9 +4,6 @@ import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 
-def define_bounds(shapefile, zoom=5000):
-    raw_bounds = shapefile.geometry.total_bounds
-    return [raw_bounds[0] - zoom, raw_bounds[1] - zoom, raw_bounds[2] + zoom, raw_bounds[3] + zoom]
 
 def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=False, **text_kwargs):
     # fig.subplots_adjust(right=0.95)
@@ -23,10 +20,12 @@ def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=F
     else:
         x_diff = axes_flatten[-1].get_position().x1 * 0.01
 
+    y_diff = (axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0) / 25
+
     cbar_ax = fig.add_axes([axes_flatten[-1].get_position().x1 + x_diff,
-                            axes_flatten[-1].get_position().y0,
+                            axes_flatten[-1].get_position().y0 - y_diff,
                             0.02,
-                            axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0 - 0.02])
+                            axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0])
 
     sm._A = []
     if percent:

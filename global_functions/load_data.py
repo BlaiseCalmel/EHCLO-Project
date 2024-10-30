@@ -6,26 +6,8 @@ import geopandas
 from tqdm import tqdm
 import xarray as xr
 import os
-from global_functions.format_data import weighted_mean_per_region
+from global_functions.shp_geometry import define_bounds, overlay_shapefile
 
-def open_shp(path_shp: str):
-    current_shp = geopandas.read_file(path_shp)
-
-    # Correct if current shapefile is not from Lambert93 projection
-    if 'Lambert-93' not in current_shp.crs.name:
-        current_shp = current_shp.to_crs(crs={'init': 'epsg:2154'})
-
-    return current_shp
-
-def load_csv(path_file, sep=',', index_col=None):
-    """
-    :param path_file:
-    :param sep:
-    :return:
-    """
-    df = pd.read_csv(path_file, sep=sep, index_col=index_col)
-
-    return df
 
 def resample_ds(ds, var, timestep, operation='mean'):
     # Seasonal indicator
@@ -85,6 +67,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             ds = xr.open_dataset(file)
             # Add sim suffix
             ds_renamed = rename_variables(ds, file_name, indicator)
+            # Load only selected period
             if start is not None:
                 ds_renamed = ds_renamed.sel(time=slice(dt.datetime(
                     start, 1, 1), None))
@@ -97,15 +80,15 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                 # TODO Look for seasonal indicator (climate) DJF/JJA
                 if timestep is not None:
                     resampled_var = resample_ds(ds_renamed, var, timestep)
-                    coordinates = {i: ds_renamed[i] for i in ds_renamed._coord_names if i != 'time'}
-                    coordinates['time'] = resampled_var['time']
+                    # coordinates = {i: ds_renamed[i] for i in ds_renamed._coord_names if i != 'time'}
+                    # coordinates['time'] = resampled_var['time']
+                    # ds_renamed = xr.Dataset({
+                    #     var: (('time', 'y', 'x'), resampled_var.values)
+                    # }, coords=coordinates
+                    # )
 
-                    ds_renamed = xr.Dataset({
-                        var: (('time', 'y', 'x'), resampled_var.values)
-                    }, coords=coordinates
-                    )
+                    ds_renamed[var] = resampled_var
 
-                # Temporal selection, it's not a grid anymore
                 ds_selection = ds_renamed.sel(
                     x=sim_points_gdf.iloc[:]['x'].values,
                     y=sim_points_gdf.iloc[:]['y'].values,

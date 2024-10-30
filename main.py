@@ -1,5 +1,3 @@
-import os
-
 print(f'################################ IMPORT & INITIALIZATION ################################', end='\n')
 
 print(f'> General imports...', end='\n')
@@ -13,6 +11,8 @@ print(f'> Local imports...', end='\n')
 from global_functions.load_data import *
 from global_functions.format_data import *
 from plot_functions.plot_map import *
+from plot_functions.plot_lineplot import *
+from plot_functions.plot_boxplot import *
 from global_functions.shp_geometry import *
 from global_functions.path_functions import  *
 
@@ -53,11 +53,7 @@ if not os.path.isdir(dict_paths['folder_study_data'] + 'shapefiles'):
 #%% LOAD STUDY REGION SHAPEFILE
 print(f'################################ DEFINE STUDY AREA ################################', end='\n')
 print(f'> Load shapefiles...', end='\n')
-regions_shp = open_shp(path_shp=dict_paths['file_regions_shp'])
-study_ug_shp = open_shp(path_shp=dict_paths['file_ug_shp'])
-study_ug_shp = study_ug_shp[study_ug_shp['gid'].isin(files_setup['gid'])]
-rivers_shp = open_shp(path_shp=dict_paths['file_rivers_shp'])
-# rivers_shp = open_shp(path_shp='/home/bcalmel/Documents/InfoVigiCru.geojson.json')
+regions_shp, study_ug_shp, rivers_shp = load_shp(dict_paths, files_setup)
 
 # Check if study area is already matched with sim points
 print(f'> Searching sim points in study area...', end='\n')
@@ -70,25 +66,9 @@ for data_type, path in dict_paths['dict_study_points_sim'].items():
     else:
         print(f'>> {data_type.capitalize()} data points already in the study area')
 
-# Study geographical limits
-bounds = define_bounds(study_ug_shp, zoom=2500)
-
-# Select long rivers
 print(f'> Simplify shapefiles...', end='\n')
-tolerance = 1000
-print(f'>> Simplify rivers...', end='\n')
-# Select rivers in study area
-study_rivers_shp_simplified = overlay_shapefile(shapefile=study_ug_shp, data=rivers_shp)
-study_rivers_shp_simplified = simplify_shapefiles(study_rivers_shp_simplified, tolerance=tolerance)
-
-print(f'>> Simplify regions background...', end='\n')
-# Simplify regions shapefile (background)
-regions_shp_simplified = overlay_shapefile(shapefile=bounds, data=regions_shp)
-regions_shp_simplified = simplify_shapefiles(regions_shp_simplified, tolerance=tolerance)
-
-print(f'>> Simplify study area...', end='\n')
-# Simplify study areas shapefile
-study_ug_shp_simplified = simplify_shapefiles(study_ug_shp, tolerance=tolerance)
+study_ug_shp_simplified, study_rivers_shp_simplified, regions_shp_simplified = (
+    simplify_shapefiles(study_ug_shp, rivers_shp, regions_shp, tolerance=1000, zoom=50000))
 
 print(f'################################ RUN OVER NCDF ################################', end='\n')
 # Get paths for selected sim
@@ -96,7 +76,7 @@ print(f'> Load ncdf data paths...', end='\n')
 path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 
 # Run among data type climate/hydro
-data_type='hydro'
+data_type='climate'
 subdict=path_files[data_type]
 rcp='rcp85'
 subdict2=subdict[rcp]
@@ -104,7 +84,8 @@ for data_type, subdict in path_files.items():
     # Load simulation points for current data type
     sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim'][data_type])
     if data_type == "hydro":
-        sim_points_gdf = sim_points_gdf[sim_points_gdf['REFERENCE'] == 1]
+        # sim_points_gdf = sim_points_gdf[sim_points_gdf['REFERENCE'] == 1]
+        sim_points_gdf = sim_points_gdf[sim_points_gdf['n'] >= 4]
         valid_stations = pd.isna(sim_points_gdf['PointsSupp'])
         sim_points_gdf = sim_points_gdf[valid_stations].reset_index(drop=True).set_index('Suggestion')
         sim_points_gdf.index.names = ['name']
@@ -112,15 +93,15 @@ for data_type, subdict in path_files.items():
         sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
 
     for rcp, subdict2 in subdict.items():
-        for indicator_raw, paths in subdict2.items():
-            split_indicator = indicator_raw.split('-')
-            indicator = split_indicator[0]
-            timestep = 'YE'
-            if len(split_indicator) > 1:
-                timestep = split_indicator[1]
-
-            if timestep == 'mon':
-                timestep = 'M'
+        for indicator, paths in subdict2.items():
+            # split_indicator = indicator_raw.split('-')
+            # indicator = split_indicator[0]
+            timestep = 'ME'
+            # if len(split_indicator) > 1:
+            #     timestep = split_indicator[1]
+            #
+            # if timestep == 'mon':
+            #     timestep = 'M'
 
             path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_{timestep}_{rcp}.nc"
 
@@ -133,7 +114,7 @@ for data_type, subdict in path_files.items():
 
             print(f'################################ FORMAT DATA ################################', end='\n')
             print(f'> Load from {indicator} export...', end='\n')
-            # path_ncdf = f"{dict_paths['folder_study_data']}QA_M_rcp85.nc"
+            # path_ncdf = f"{dict_paths['folder_study_data']}QA_mon_M_rcp85.nc"
             # indicator='QA'
             ds = xr.open_dataset(path_ncdf)
             indicator_cols = [i for i in list(ds.variables) if indicator in i]
@@ -147,9 +128,11 @@ for data_type, subdict in path_files.items():
                 ds = ds.rename({'region': 'id_geometry'})
             else:
                 sim_points_gdf_simplified = sim_points_gdf.copy()
-                sim_points_gdf_simplified.simplify(tolerance, preserve_topology=True)
+                sim_points_gdf_simplified = sim_points_gdf_simplified.simplify(tolerance, preserve_topology=True)
                 geometry_dict = sim_points_gdf['geometry'].to_dict()
-                ds['geometry'] = ('code', [geometry_dict[code] for code in ds['code'].values])
+                ds['geometry'] = ('code', [
+                    geometry_dict[code] if code in geometry_dict.keys() else None for code in ds['code'].values
+                ])
                 # ds = ds.assign_coords(geometry=('code', [geometry_dict[code] for code in ds['code'].values]))
                 ds = ds.rename({'code': 'id_geometry'})
 
@@ -222,7 +205,7 @@ for data_type, subdict in path_files.items():
             })
 
             dict_shapefiles = {'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'paleturquoise',
-                                              'linewidth': 0.7, 'zorder': 20, 'alpha': 1},
+                                              'linewidth': 1, 'zorder': 20, 'alpha': 1},
                                'background_shp': {'shp': regions_shp_simplified, 'color': 'gainsboro',
                                                   'edgecolor': 'black', 'zorder': 0},
                                }
@@ -257,22 +240,21 @@ for data_type, subdict in path_files.items():
                 print(f"> Relative map plot {indicator}_{timestep}_{rcp}_{key}...")
                 mapplot(gdf, ds, indicator_plot=indicator_horizon_deviation[0], path_result=path_indicator_figures+'map_deviation2.pdf',
                         cols=cols_map, rows=rows,
-                         # row_name=row_name, row_headers=value, col_name=col_name, col_headers=col_headers,
-                         cbar_title=indicator + ' relatif (%)', title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
-                         discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=100)
+                        cbar_title=indicator + ' relatif (%)', title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
+                        discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=100)
+
                 # Abs diff
                 print(f"> Difference map plot {indicator}_{timestep}_{rcp}_{key}...")
                 mapplot(gdf, ds, indicator_plot=indicator_horizon_difference[0], path_result=path_indicator_figures+'map_difference.pdf',
-                        # row_name=row_name, row_headers=value, col_name=col_name, col_headers=col_headers,
                         cbar_title=indicator, title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
                         discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=None)
 
                 print(f"> Relative line plot {indicator}_{timestep}_{rcp}_{key}...")
-                from plot_functions.plot_lineplot import *
 
 
                 x_axis = {
                     'names_var': 'time',
+                    'values_var': 'time',
                     'name_axis': 'Date'
                 }
                 y_axis = {
@@ -281,13 +263,19 @@ for data_type, subdict in path_files.items():
                     'name_axis': 'QA'
                 }
 
-                cols = {'names_var': 'id_geometry', 'values_var': ['K001872200', 'M850301010'], 'names_plot': ['Station 1', 'Station 2']}
+                rows = {'names_var': 'id_geometry',
+                        'values_var': ds['id_geometry'].where(ds['geometry'].notnull(), drop=True).values,
+                        'names_plot': ds['id_geometry'].where(ds['geometry'].notnull(), drop=True).values}
+                cols = {
+                    'names_var': row_name,
+                    'values_var': list(value.keys()),
+                    'names_plot': list(value.values())
+                }
 
                 lineplot(ds, x_axis, y_axis, path_result=path_indicator_figures+'lineplot.pdf', cols=cols, rows=rows,
-                         title=None, percent=False, fontsize=14, font='sans-serif', ymax=None)
+                         title=None, percent=False, fontsize=14, font='sans-serif', ymax=None, plot_type='line')
 
 
-                from plot_functions.plot_boxplot import *
                 # Cols  and rows of subplots
                 cols = {'names_var': 'id_geometry', 'values_var': ['K001872200', 'M850301010'], 'names_plot': ['Station 1', 'Station 2']}
                 rows = {

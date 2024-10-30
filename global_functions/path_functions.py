@@ -50,10 +50,9 @@ def get_files_path(dict_paths, setup, extension='.nc'):
     for data_type in ['hydro', 'climate']:
         dict_path[data_type] = {}
         setup_indicator = setup[f'{data_type}_indicator']
-        indicators = [i.split('-')[0] for i in setup_indicator]
 
         # Filter by indicator name
-        data_files = [s for s in ext_files if any(word in s for word in indicators)]
+        data_files = [s for s in ext_files if any(word in s for word in setup_indicator)]
 
         # Filter by sim chain
         keys = ['select_gcm', 'select_rcm', 'select_bc']
@@ -70,11 +69,11 @@ def get_files_path(dict_paths, setup, extension='.nc'):
                 rcp_files = [s for s in data_files if any(word in s for word in [rcp])]
 
             for indic in setup_indicator:
-                indicator = indic.split('_')[0]
-                indic_values = [s for s in rcp_files if indicator in s]
+                indic_values = [s for s in rcp_files if indic in s]
                 # Filter by HM
                 if indic in setup['hydro_indicator']:
-                    indic_values = [s for s in indic_values if any(word in s for word in setup['select_hm'])]
+                    if len(setup['select_hm']) > 0:
+                        indic_values = [s for s in indic_values if any(word in s for word in setup['select_hm'])]
 
                 # Save in dict
                 dict_path[data_type][rcp][indic] = indic_values

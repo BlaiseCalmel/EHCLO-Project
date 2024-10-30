@@ -4,7 +4,7 @@ import matplotlib.ticker as mtick
 from plot_functions.plot_common import *
 
 def lineplot(ds, x_axis, y_axis, path_result, cols, rows, xmin=None, xmax=None, ymin=None, ymax=None,
-             title=None, percent=True, fontsize=14, font='sans-serif', ):
+             title=None, percent=True, fontsize=14, font='sans-serif', plot_type='line'):
 
     ds_plot = copy.deepcopy(ds)
     if cols is not None:
@@ -31,7 +31,6 @@ def lineplot(ds, x_axis, y_axis, path_result, cols, rows, xmin=None, xmax=None, 
     plt.rcParams['font.size'] = fontsize
     text_kwargs ={'weight': 'bold'}
 
-
     fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 6 * len_cols, len_rows * 4), constrained_layout=True)
     if hasattr(axes, 'flatten'):
         axes_flatten = axes.flatten()
@@ -55,7 +54,10 @@ def lineplot(ds, x_axis, y_axis, path_result, cols, rows, xmin=None, xmax=None, 
 
             for y_var in y_axis['values_var']:
                 data = plot_selection(ds_selection, y_axis['names_var'], y_var)
-                ax.plot(data[x_axis['values_var']], data.values, color='lightgrey', alpha=0.8)
+                if plot_type == 'line':
+                    ax.plot(data[x_axis['values_var']], data.values, color='lightgrey', alpha=0.8)
+                else:
+                    ax.scatter(data[x_axis['values_var']], data.values, color='lightgrey', alpha=0.8)
 
             ax.spines[['right', 'top']].set_visible(False)
             ax.set_xlim(xmin, xmax)

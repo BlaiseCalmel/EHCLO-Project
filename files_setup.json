@@ -1,18 +1,12 @@
 {
   "gid": [1, 2, 3, 4, 5, 6],
-  "hydro_indicator": ["Q90A", "QA_mon-M"],
-  "climate_indicator": [
-    "tasminAdjust-YE", "tasminAdjust-JJA", "tasminAdjust-DJF",
-    "evspsblpotAdjust-YE", "evspsblpotAdjust-JJA", "evspsblpotAdjust-DJF",
-    "prtotAdjust-YE", "prtotAdjust-JJA", "prtotAdjust-DJF",
-    "tasAdjust-YE", "tasAdjust-JJA", "tasAdjust-DJF",
-    "tasmaxAdjust-YE", "tasmaxAdjust-JJA", "tasmaxAdjust-DJF"
-  ],
+  "hydro_indicator": ["Q90A", "QA_mon", "QA_seas-JJA", "QA_seas-DJF"],
+  "climate_indicator": ["tasminAdjust", "evspsblpotAdjust", "prtotAdjust", "tasAdjust", "tasmaxAdjust"],
   "select_rcp": ["rcp85", "rcp45", "rcp26"],
   "select_gcm": [],
   "select_rcm": [],
-  "select_bc": ["ADAMONT"],
-  "select_hm": ["CTRIP", "EROS", "GRSD", "J2000", "MORDOR-SD", "MORDOR-TS", "ORCHIDEE", "SIM2", "SMASH"],
+  "select_bc": [],
+  "select_hm": [],
 
   "historical": [1990, 2020],
   "horizons": {

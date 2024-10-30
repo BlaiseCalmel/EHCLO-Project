@@ -5,6 +5,10 @@ import netCDF4
 import numpy as np
 import geopandas as gpd
 
+def define_bounds(shapefile, zoom=5000):
+    raw_bounds = shapefile.geometry.total_bounds
+    return [raw_bounds[0] - zoom, raw_bounds[1] - zoom, raw_bounds[2] + zoom, raw_bounds[3] + zoom]
+
 def overlay_shapefile(shapefile, data, path_result=None, col='gid'):
 
     # x = data[cols[0]]
@@ -123,12 +127,49 @@ def create_polygon_from_point(point, cell_size=8000):
 
     return polygon
 
-def simplify_shapefiles(shapefile, tolerance=1000):
+def simplify(shapefile, tolerance=1000):
     shapefile_simplified = shapefile.copy()
     shapefile_simplified['geometry'] = shapefile_simplified['geometry'].simplify(
         tolerance, preserve_topology=True)
 
     return shapefile_simplified
+
+def open_shp(path_shp: str):
+    current_shp = geopandas.read_file(path_shp)
+
+    # Correct if current shapefile is not from Lambert93 projection
+    if 'Lambert-93' not in current_shp.crs.name:
+        current_shp = current_shp.to_crs(crs={'init': 'epsg:2154'})
+
+    return current_shp
+
+def load_shp(dict_paths, files_setup):
+    regions_shp = open_shp(path_shp=dict_paths['file_regions_shp'])
+    study_ug_shp = open_shp(path_shp=dict_paths['file_ug_shp'])
+    study_ug_shp = study_ug_shp[study_ug_shp['gid'].isin(files_setup['gid'])]
+    rivers_shp = open_shp(path_shp=dict_paths['file_rivers_shp'])
+
+    return regions_shp, study_ug_shp, rivers_shp
+
+def simplify_shapefiles(study_ug_shp, rivers_shp, regions_shp, tolerance=1000, zoom=50000):
+    # Study geographical limits
+    bounds = define_bounds(study_ug_shp, zoom=zoom)
+
+    print(f'>> Simplify rivers...', end='\n')
+    # Select rivers in study area
+    study_rivers_shp_simplified = overlay_shapefile(shapefile=study_ug_shp, data=rivers_shp)
+    study_rivers_shp_simplified = simplify(study_rivers_shp_simplified, tolerance=tolerance)
+
+    print(f'>> Simplify regions background...', end='\n')
+    # Simplify regions shapefile (background)
+    regions_shp_simplified = overlay_shapefile(shapefile=bounds, data=regions_shp)
+    regions_shp_simplified = simplify(regions_shp_simplified, tolerance=tolerance)
+
+    print(f'>> Simplify study area...', end='\n')
+    # Simplify study areas shapefile
+    study_ug_shp_simplified = simplify(study_ug_shp, tolerance=tolerance)
+
+    return study_ug_shp_simplified, study_rivers_shp_simplified, regions_shp_simplified
 
 def test_merge_rivers(study_rivers_shp, study_rivers_shp_simplified):
     from shapely.ops import linemerge, unary_union
