@@ -75,31 +75,39 @@ def add_headers(fig, *, row_headers=None, col_headers=None, row_pad=1, col_pad=5
 
 def find_extrema(ds_plot, x_axis, y_axis, xmin, xmax, ymin, ymax):
     if xmin is None:
-        x_min_temp = [ds_plot.variables[i].min() for i in x_axis['values_var']]
         try:
+            x_min_temp = [ds_plot.variables[i].min() for i in x_axis['values_var']]
             xmin = np.nanmin(x_min_temp)
         except ValueError:
             xmin = min(x_min_temp)
+        except KeyError:
+            xmin = None
     if xmax is None:
-        x_max_temp = max([ds_plot.variables[i].max() for i in x_axis['values_var']])
         try:
+            x_max_temp = max([ds_plot.variables[i].max() for i in x_axis['values_var']])
             xmax = np.nanmin(x_max_temp)
         except ValueError:
             xmax = max(x_max_temp)
+        except KeyError:
+            xmax = None
 
     if ymin is None:
-        y_min_temp = [ds_plot.variables[i].min() for i in y_axis['values_var']]
         try:
+            y_min_temp = [ds_plot.variables[i].min() for i in y_axis['values_var']]
             ymin = np.nanmin(y_min_temp)
         except ValueError:
             ymin = min(y_min_temp)
+        except KeyError:
+            ymin = None
 
     if ymax is None:
-        y_max_temp = np.nanmax([ds_plot.variables[i].max() for i in y_axis['values_var']])
         try:
+            y_max_temp = np.nanmax([ds_plot.variables[i].max() for i in y_axis['values_var']])
             ymax = np.nanmax(y_max_temp)
         except ValueError:
             ymax = max(y_max_temp)
+        except KeyError:
+            ymax = None
 
     return xmin, xmax, ymin, ymax
 

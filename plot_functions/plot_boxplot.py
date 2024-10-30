@@ -1,6 +1,4 @@
 import copy
-import math
-
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.ticker as mtick
@@ -37,14 +35,13 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     colors = cmap(np.linspace(0, 1, len(y_axis['values_var'])))
 
     fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 6 * len_cols, len_rows * 4), constrained_layout=True)
-    # Main title
-    if title is not None:
-        fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2)
-
     if hasattr(axes, 'flatten'):
         axes_flatten = axes.flatten()
     else:
         axes_flatten = [axes]
+    # Main title
+    if title is not None:
+        fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2)
 
     for col_idx, col in enumerate(cols['values_var']):
         for row_idx, row in enumerate(rows['values_var']):
@@ -89,10 +86,11 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
             if percent:
                 ax.yaxis.set_major_formatter(mtick.PercentFormatter())
 
-    if 'name_axis' in x_axis.keys():
-        fig.supxlabel(x_axis['name_axis'])
-    if 'name_axis' in y_axis.keys():
-        fig.supylabel(y_axis['name_axis'])
+            sbs = ax.get_subplotspec()
+            if sbs.is_first_col():
+                ax.set_ylabel(y_axis['name_axis'])
+            if sbs.is_last_row():
+                ax.set_xlabel(x_axis['name_axis'])
 
     # Headers
     add_headers(fig, col_headers=cols['names_plot'], row_headers=rows['names_plot'], row_pad=35, col_pad=5, **text_kwargs)

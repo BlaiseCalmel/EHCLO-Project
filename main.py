@@ -273,17 +273,18 @@ for data_type, subdict in path_files.items():
 
                 x_axis = {
                     'names_var': 'time',
-                    'names_plot': 'Date'
+                    'name_axis': 'Date'
                 }
                 y_axis = {
-                    'names_var': indicator_cols,
-                    'names_plot': 'QA'
+                    'names_var': 'indicator',
+                    'values_var': indicator_cols,
+                    'name_axis': 'QA'
                 }
 
                 cols = {'names_var': 'id_geometry', 'values_var': ['K001872200', 'M850301010'], 'names_plot': ['Station 1', 'Station 2']}
 
-                lineplot(ds, x_axis, y_axis, cols, rows, cols_map, path_result=path_indicator_figures+'lineplot.pdf',
-                        title=None, percent=False, palette='BrBG', fontsize=14, font='sans-serif', ymax=None)
+                lineplot(ds, x_axis, y_axis, path_result=path_indicator_figures+'lineplot.pdf', cols=cols, rows=rows,
+                         title=None, percent=False, fontsize=14, font='sans-serif', ymax=None)
 
 
                 from plot_functions.plot_boxplot import *

@@ -1,91 +1,61 @@
-import math
+import copy
 import numpy as np
 import matplotlib.ticker as mtick
 from plot_functions.plot_common import *
 
-def lineplot(ds, x_axis, y_axis, cols, rows, path_result, xmin=None, xmax=None, ymin=None, ymax=None,
-             title=None, percent=True, palette='BrBG', fontsize=14, font='sans-serif', ):
-    # col_keys = [None]
-    # col_values = None
-    # len_cols = 1
-    # row_keys = [None]
-    # row_values = None
-    # len_rows = 1
-    # if isinstance(col_headers, dict) and len(col_headers) > 0:
-    #     col_keys = list(col_headers.keys())
-    #     col_values = list(col_headers.values())
-    #     len_cols = len(col_keys)
-    # if isinstance(row_headers, dict) and len(row_headers) > 0:
-    #     row_keys = list(row_headers.keys())
-    #     row_values = list(row_headers.values())
-    #     len_rows = len(row_keys)
+def lineplot(ds, x_axis, y_axis, path_result, cols, rows, xmin=None, xmax=None, ymin=None, ymax=None,
+             title=None, percent=True, fontsize=14, font='sans-serif', ):
 
-    ds_plot = ds.sel({cols['names_var']: cols['values_var'],
-                      rows['names_var']: rows['values_var']})
+    ds_plot = copy.deepcopy(ds)
+    if cols is not None:
+        len_cols = len(cols['values_var'])
+        if cols['names_var'] != 'indicator':
+            ds_plot = ds_plot.sel({cols['names_var']: cols['values_var']})
+    else:
+        len_cols = 1
+        cols = {'values_var': [None], 'names_plot': [None]}
 
-    if isinstance(x_axis['names_var'], str):
-        x_axis['names_var'] = [x_axis['names_var']]
-    if isinstance(x_axis['names_var'], str):
-        y_axis['names_var'] = [y_axis['names_var']]
+    if rows is not None:
+        len_rows = len(rows['values_var'])
+        if rows['names_var'] != 'indicator':
+            ds_plot = ds_plot.sel({rows['names_var']: rows['values_var']})
+    else:
+        len_rows = 1
+        rows = {'values_var': [None], 'names_plot': [None]}
 
-    if xmin is None:
-        x_min_temp = [ds_plot.variables[i].min() for i in x_axis['names_var']]
-        try:
-            xmin = np.nanmin(x_min_temp)
-        except ValueError:
-            xmin = min(x_min_temp)
-    if xmax is None:
-        x_max_temp = max([ds_plot.variables[i].max() for i in x_axis['names_var']])
-        try:
-            xmax = np.nanmin(x_max_temp)
-        except ValueError:
-            xmax = max(x_max_temp)
+    # Find extrema
+    xmin, xmax, ymin, ymax = find_extrema(ds_plot, x_axis, y_axis, xmin, xmax, ymin, ymax)
 
-    if ymin is None:
-        y_min_temp = [ds_plot.variables[i].min() for i in y_axis['names_var']]
-        try:
-            ymin = np.nanmin(y_min_temp)
-        except ValueError:
-            ymin = min(y_min_temp)
-
-    if ymax is None:
-        y_max_temp = np.nanmax([ds_plot.variables[i].max() for i in y_axis['names_var']])
-        try:
-            ymax = np.nanmax(y_max_temp)
-        except ValueError:
-            ymax = max(y_max_temp)
-
-
+    # Font parameters
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
     text_kwargs ={'weight': 'bold'}
 
-    len_rows = len(rows['values_var'])
-    len_cols = len(cols['values_var'])
 
     fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 6 * len_cols, len_rows * 4), constrained_layout=True)
+    if hasattr(axes, 'flatten'):
+        axes_flatten = axes.flatten()
+    else:
+        axes_flatten = [axes]
+
     # Main title
     if title is not None:
         fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2)
-
-    axes_flatten = axes.flatten()
 
     for col_idx, col in enumerate(cols['values_var']):
         for row_idx, row in enumerate(rows['values_var']):
             idx = len_cols * row_idx + col_idx
             ax = axes_flatten[idx]
 
-            temp_dict = {}
-            if cols['names_var'] is not None and col is not None:
-                temp_dict |= {cols['names_var']: col}
-            if rows['names_var'] is not None and row is not None:
-                temp_dict |= {rows['names_var']: row}
+            ds_selection = copy.deepcopy(ds_plot)
+            if col is not None and cols['names_var'] is not None:
+                ds_selection = plot_selection(ds_selection, cols['names_var'], col)
+            if row is not None and rows['names_var'] is not None:
+                ds_selection = plot_selection(ds_selection, rows['names_var'], row)
 
-            for y_var in y_axis['names_var']:
-                for x_var in x_axis['names_var']:
-                    row_data = ds_plot.sel(temp_dict)[y_var]
-                    # ds.sel(id_geometry=1)[var_name].plot(ax=ax, color='lightgrey')
-                    ax.plot(row_data[x_var], row_data.values, color='lightgrey', alpha=0.8)
+            for y_var in y_axis['values_var']:
+                data = plot_selection(ds_selection, y_axis['names_var'], y_var)
+                ax.plot(data[x_axis['values_var']], data.values, color='lightgrey', alpha=0.8)
 
             ax.set_xlim(xmin, xmax)
             ax.set_ylim(ymin, ymax)
@@ -94,11 +64,14 @@ def lineplot(ds, x_axis, y_axis, cols, rows, path_result, xmin=None, xmax=None, 
                 ax.yaxis.set_major_formatter(mtick.PercentFormatter())
             # ax.set_axis_off()
 
+            sbs = ax.get_subplotspec()
+            if sbs.is_first_col():
+                ax.set_ylabel(y_axis['name_axis'])
+            if sbs.is_last_row():
+                ax.set_xlabel(x_axis['name_axis'])
+
     # Headers
     add_headers(fig, col_headers=cols['names_plot'], row_headers=rows['names_plot'], row_pad=25, col_pad=5, **text_kwargs)
-
-    # Colorbar
-    # define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=cbar_title, percent=percent, **text_kwargs)
 
     plt.savefig(path_result, bbox_inches='tight')
 
