@@ -82,6 +82,7 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
             ax.legend(bp_legend, y_axis['names_plot'], loc="upper right")
 
             # ax.set_ylim(ymin, ymax)
+            ax.spines[['right', 'top']].set_visible(False)
 
             if percent:
                 ax.yaxis.set_major_formatter(mtick.PercentFormatter())
@@ -91,6 +92,7 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
                 ax.set_ylabel(y_axis['name_axis'])
             if sbs.is_last_row():
                 ax.set_xlabel(x_axis['name_axis'])
+
 
     # Headers
     add_headers(fig, col_headers=cols['names_plot'], row_headers=rows['names_plot'], row_pad=35, col_pad=5, **text_kwargs)

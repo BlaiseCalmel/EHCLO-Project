@@ -111,9 +111,9 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                     y=sim_points_gdf.iloc[:]['y'].values,
                     method="nearest")
 
-                # TODO use different region shape
-                ds_selection = weighted_mean_per_region(ds=ds_selection, var=var, sim_points_gdf=sim_points_gdf,
-                                                        region_col='gid')
+                # Removed spatial aggregation
+                # ds_selection = weighted_mean_per_region(ds=ds_selection, var=var, sim_points_gdf=sim_points_gdf,
+                #                                         region_col='gid')
 
             else:
                 ds_renamed = ds_renamed.set_coords('code')

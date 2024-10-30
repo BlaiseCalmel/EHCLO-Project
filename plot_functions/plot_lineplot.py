@@ -57,6 +57,7 @@ def lineplot(ds, x_axis, y_axis, path_result, cols, rows, xmin=None, xmax=None, 
                 data = plot_selection(ds_selection, y_axis['names_var'], y_var)
                 ax.plot(data[x_axis['values_var']], data.values, color='lightgrey', alpha=0.8)
 
+            ax.spines[['right', 'top']].set_visible(False)
             ax.set_xlim(xmin, xmax)
             ax.set_ylim(ymin, ymax)
 
