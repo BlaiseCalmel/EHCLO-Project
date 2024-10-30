@@ -368,15 +368,16 @@ for data_type, subdict in path_files.items():
                     'names_var': 'id_geometry',
                     'values_var': ['K001872200', 'M850301010'],
                     'names_plot': ['K001872200', 'M850301010'],
+                    'name_axis': 'Stations'
 
                 }
                 y_axis = {
                     'names_var': row_name,
                     'values_var': list(value.keys()),
-                    'names_plot': list(value.values())
+                    'names_plot': list(value.values()),
+                    'name_axis': indicator + ' (m3/s)'
                 }
 
-
-                boxplot(ds, x_axis, y_axis, cols, rows, path_result=path_indicator_figures+'boxplot.pdf',
+                boxplot(ds, x_axis, y_axis, path_result=path_indicator_figures+'boxplot.pdf', cols=cols, rows=rows,
                          title=None, percent=False, palette='BrBG', fontsize=14, font='sans-serif', ymax=None)
 

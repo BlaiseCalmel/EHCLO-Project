@@ -6,33 +6,25 @@ import numpy as np
 import matplotlib.ticker as mtick
 from plot_functions.plot_common import *
 
-def boxplot(ds, x_axis, y_axis, cols, rows, path_result, ymin=None, ymax=None,
+def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ymax=None,
              title=None, percent=False, palette='BrBG', fontsize=14, font='sans-serif', ):
-    # col_keys = [None]
-    # col_values = None
-    # len_cols = 1
-    # row_keys = [None]
-    # row_values = None
-    # len_rows = 1
-    # if isinstance(col_headers, dict) and len(col_headers) > 0:
-    #     col_keys = list(col_headers.keys())
-    #     col_values = list(col_headers.values())
-    #     len_cols = len(col_keys)
-    # if isinstance(row_headers, dict) and len(row_headers) > 0:
-    #     row_keys = list(row_headers.keys())
-    #     row_values = list(row_headers.values())
-    #     len_rows = len(row_keys)
+
     ds_plot = copy.deepcopy(ds)
-    if cols['names_var'] != 'indicator':
-        ds_plot = ds_plot.sel({cols['names_var']: cols['values_var']})
+    if cols is not None:
+        len_cols = len(cols['values_var'])
+        if cols['names_var'] != 'indicator':
+            ds_plot = ds_plot.sel({cols['names_var']: cols['values_var']})
+    else:
+        len_cols = 1
+        cols = {'values_var': [None], 'names_plot': [None]}
 
-    if rows['names_var'] != 'indicator':
-        ds_plot = ds_plot.sel({rows['names_var']: rows['values_var']})
-
-    # if isinstance(x_axis['names_var'], str):
-    #     x_axis['names_var'] = [x_axis['names_var']]
-    # if isinstance(y_axis['names_var'], str):
-    #     y_axis['names_var'] = [y_axis['names_var']]
+    if rows is not None:
+        len_rows = len(rows['values_var'])
+        if rows['names_var'] != 'indicator':
+            ds_plot = ds_plot.sel({rows['names_var']: rows['values_var']})
+    else:
+        len_rows = 1
+        rows = {'values_var': [None], 'names_plot': [None]}
 
     # Find extrema
     # _, _, ymin, ymax = find_extrema(ds_plot, x_axis, y_axis, 0, 0, ymin, ymax)
@@ -40,9 +32,6 @@ def boxplot(ds, x_axis, y_axis, cols, rows, path_result, ymin=None, ymax=None,
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
     text_kwargs ={'weight': 'bold'}
-
-    len_rows = len(rows['values_var'])
-    len_cols = len(cols['values_var'])
 
     cmap = plt.get_cmap(palette)
     colors = cmap(np.linspace(0, 1, len(y_axis['values_var'])))
@@ -52,7 +41,10 @@ def boxplot(ds, x_axis, y_axis, cols, rows, path_result, ymin=None, ymax=None,
     if title is not None:
         fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2)
 
-    axes_flatten = axes.flatten()
+    if hasattr(axes, 'flatten'):
+        axes_flatten = axes.flatten()
+    else:
+        axes_flatten = [axes]
 
     for col_idx, col in enumerate(cols['values_var']):
         for row_idx, row in enumerate(rows['values_var']):
@@ -60,9 +52,9 @@ def boxplot(ds, x_axis, y_axis, cols, rows, path_result, ymin=None, ymax=None,
             ax = axes_flatten[idx]
 
             ds_selection = copy.deepcopy(ds_plot)
-            if cols['names_var'] is not None and col is not None:
+            if col is not None and cols['names_var'] is not None:
                 ds_selection = plot_selection(ds_selection, cols['names_var'], col)
-            if rows['names_var'] is not None and row is not None:
+            if row is not None and rows['names_var'] is not None:
                 ds_selection = plot_selection(ds_selection, rows['names_var'], row)
 
             position_main = np.arange(len(x_axis['values_var'])) * 2
@@ -75,14 +67,9 @@ def boxplot(ds, x_axis, y_axis, cols, rows, path_result, ymin=None, ymax=None,
                 j += 1
                 for x_var in x_axis['values_var']:
                     # cell_data = ds_selection[y_var]
-                    boxplot_values = plot_selection(cell_data, x_axis['names_var'], x_var)
-
-                    # Where for horizon value
-                    # if x_axis['names_var'] == 'horizon':
-                    #     boxplot_values = cell_data.where(cell_data[x_var], drop=True).values
-                    # else:
-                    #     boxplot_values = cell_data.sel({x_axis['names_var']: x_var}).values
-                    cell_boxplots.append(boxplot_values[~np.isnan(boxplot_values)])
+                    boxplot_values = plot_selection(cell_data, x_axis['names_var'], x_var).values
+                    mask = ~np.isnan(boxplot_values)
+                    cell_boxplots.append(boxplot_values[mask])
                 i += 1
                 x_position = position_main + 0.35 * i
 
@@ -101,6 +88,11 @@ def boxplot(ds, x_axis, y_axis, cols, rows, path_result, ymin=None, ymax=None,
 
             if percent:
                 ax.yaxis.set_major_formatter(mtick.PercentFormatter())
+
+    if 'name_axis' in x_axis.keys():
+        fig.supxlabel(x_axis['name_axis'])
+    if 'name_axis' in y_axis.keys():
+        fig.supylabel(y_axis['name_axis'])
 
     # Headers
     add_headers(fig, col_headers=cols['names_plot'], row_headers=rows['names_plot'], row_pad=35, col_pad=5, **text_kwargs)
