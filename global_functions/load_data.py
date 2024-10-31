@@ -34,7 +34,11 @@ def rename_variables(dataset, suffix, indicator):
 
 def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, timestep=None,
                            start=None, path_result=None):
-    datasets = []
+
+    # Create temporary directory
+    temp_dir = os.path.dirname(path_result) + os.sep + '_temp'
+    if not os.path.isdir(temp_dir):
+        os.makedirs(temp_dir)
 
     if param_type == 'climate':
         # Only load historical paths for available sim
@@ -42,9 +46,11 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
         rcp_paths =  [path for path in paths_data if 'rcp' in path]
         historical_dir = [path.split(os.sep)[-4:-1] for path in historical_paths]
         rcp_dir =  [path.split(os.sep)[-4:-1] for path in rcp_paths]
-        indexes_sim = [i for i, val in enumerate(historical_dir) if val in rcp_dir]
 
-        paths_data = [historical_paths[idx] for idx in indexes_sim] + rcp_paths
+        indexes_sim = [historical_dir.index(i) for i in rcp_dir]
+        paths_data = [[historical_paths[val], rcp_paths[idx]] for idx, val in enumerate(indexes_sim)]
+    else:
+        paths_data = [[i] for i in paths_data]
 
     # Progress bar setup
     if path_result is None:
@@ -54,8 +60,8 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
     total_iterations = len(paths_data)
 
     with tqdm(total=total_iterations, desc=f"Create {title} file") as pbar:
+        for i, files in enumerate(paths_data):
 
-        for i, file in enumerate(paths_data):
             if param_type == "climate":
                 split_name = file.split(os.sep)[-5:-1]
             else:
@@ -63,78 +69,70 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             indicator = indicator.split('_')[0]
             file_name = '_'.join(split_name)
             var = indicator+'_'+file_name
+            datasets = []
 
-            ds = xr.open_dataset(file)
-            # Add sim suffix
-            ds_renamed = rename_variables(ds, file_name, indicator)
-            # Load only selected period
-            if start is not None:
-                ds_renamed = ds_renamed.sel(time=slice(dt.datetime(
-                    start, 1, 1), None))
+            for file in files:
+                ds = xr.open_dataset(file)
+                # Add sim suffix
+                ds = rename_variables(ds, file_name, indicator)
+                # Load only selected period
+                if start is not None:
+                    ds = ds.sel(time=slice(dt.datetime(
+                        start, 1, 1), None))
 
-            # LII generates bug
-            if 'LII' in ds_renamed.variables:
-                del ds_renamed['LII']
+                # LII generates bug
+                if 'LII' in ds.variables:
+                    del ds['LII']
 
-            if param_type == "climate":
-                # TODO Look for seasonal indicator (climate) DJF/JJA
-                if timestep is not None:
-                    resampled_var = resample_ds(ds_renamed, var, timestep)
-                    # coordinates = {i: ds_renamed[i] for i in ds_renamed._coord_names if i != 'time'}
-                    # coordinates['time'] = resampled_var['time']
-                    # ds_renamed = xr.Dataset({
-                    #     var: (('time', 'y', 'x'), resampled_var.values)
-                    # }, coords=coordinates
-                    # )
+                if param_type == "climate":
+                    # TODO Look for seasonal indicator (climate) DJF/JJA
+                    if timestep is not None:
+                        resampled_var = resample_ds(ds, var, timestep)
+                        coordinates = {i: ds[i] for i in ds._coord_names if i != 'time'}
+                        coordinates['time'] = resampled_var['time']
+                        ds = xr.Dataset({
+                            var: (('time', 'y', 'x'), resampled_var.values)
+                        }, coords=coordinates
+                        )
 
-                    ds_renamed[var] = resampled_var
+                    ds = ds.sel(x=xr.DataArray(sim_points_gdf['x']), y=xr.DataArray(sim_points_gdf['y']))
+                    ds = ds.assign_coords(dim_0=sim_points_gdf['name']).rename(dim_0='name')
 
-                ds_selection = ds_renamed.sel(
-                    x=sim_points_gdf.iloc[:]['x'].values,
-                    y=sim_points_gdf.iloc[:]['y'].values,
-                    method="nearest")
+                else:
+                    ds = ds.set_coords('code')
+                    ds = ds.swap_dims({'station': 'code'})
+                    del ds['station']
 
-                # Removed spatial aggregation
-                # ds_selection = weighted_mean_per_region(ds=ds_selection, var=var, sim_points_gdf=sim_points_gdf,
-                #                                         region_col='gid')
+                    ds['code'] = ds['code'].astype(str)
+                    code_values = np.unique(sim_points_gdf.index.values)
+                    codes_to_select = [code for code in code_values if code in ds['code'].values]
+                    # TODO Rename dims to name
+                    ds = ds.sel(code=codes_to_select)
 
-            else:
-                ds_renamed = ds_renamed.set_coords('code')
-                ds_renamed = ds_renamed.swap_dims({'station': 'code'})
-                del ds_renamed['station']
+                datasets.append(ds)
 
-                ds_renamed['code'] = ds_renamed['code'].astype(str)
-                code_values = np.unique(sim_points_gdf.index.values)
-                codes_to_select = [code for code in code_values if code in ds_renamed['code'].values]
-                # TODO Rename dims to name
-                ds_selection = ds_renamed.sel(code=codes_to_select)
+            if len(datasets) > 1:
+                ds = xr.concat(datasets, dim="time").sortby("time")
 
-            datasets.append(ds_selection)
+            # datasets.append(ds[var])
+            ds.to_netcdf(path=f"{temp_dir}{os.sep}{var}.nc")
 
             # Update progress bar
             pbar.update(1)
 
     # Merge datasets
-    combined_dataset = xr.merge(datasets, compat='override')
-    # if climate data merge historical and sim data
-    if param_type == 'climate':
-        column_groups = {}
-        # Find historical and recent variable name
-        for col in list(combined_dataset.variables.keys()):
-            if 'rcp' in col or 'historical' in col:
-                group_id = '_'.join(col.split('_')[2:])
+    temp_paths = []
+    for i, file in enumerate(paths_data):
+        if param_type == "climate":
+            split_name = file.split(os.sep)[-5:-1]
+        else:
+            split_name = file.split(os.sep)[-6:-1]
+        indicator = indicator.split('_')[0]
+        file_name = '_'.join(split_name)
+        var = indicator+'_'+file_name
+        temp_paths.append(f"{temp_dir}{os.sep}{var}.nc")
 
-                if group_id not in column_groups:
-                    column_groups[group_id] = []
-                column_groups[group_id].append(col)
-
-        # Join historical and recent data
-        for group_id, columns in column_groups.items():
-            columns_sorted = sorted(columns, key=lambda x: ('rcp' in x, x))
-            if len(columns_sorted) > 1:
-                for col in columns_sorted[1:]:
-                    combined_dataset[col] = combined_dataset[col].fillna(combined_dataset[columns_sorted[0]])
-                combined_dataset = combined_dataset.drop_vars(columns_sorted[0])
+    combined_dataset = xr.open_mfdataset(temp_paths[30:40], combine='nested', compat='override')
 
     # Save as ncdf
     if path_result is not None:

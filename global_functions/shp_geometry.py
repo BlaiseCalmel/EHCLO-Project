@@ -147,17 +147,19 @@ def load_shp(dict_paths, files_setup):
     regions_shp = open_shp(path_shp=dict_paths['file_regions_shp'])
     study_ug_shp = open_shp(path_shp=dict_paths['file_ug_shp'])
     study_ug_shp = study_ug_shp[study_ug_shp['gid'].isin(files_setup['gid'])]
+    study_ug_bv_shp = open_shp(path_shp=dict_paths['file_ug_bv_shp'])
+    study_ug_bv_shp = study_ug_bv_shp[study_ug_bv_shp['gid'].isin(files_setup['gid'])]
     rivers_shp = open_shp(path_shp=dict_paths['file_rivers_shp'])
 
-    return regions_shp, study_ug_shp, rivers_shp
+    return regions_shp, study_ug_shp, study_ug_bv_shp, rivers_shp
 
-def simplify_shapefiles(study_ug_shp, rivers_shp, regions_shp, tolerance=1000, zoom=50000):
+def simplify_shapefiles(study_ug_shp, study_ug_bv_shp, rivers_shp, regions_shp, tolerance=1000, zoom=50000):
     # Study geographical limits
     bounds = define_bounds(study_ug_shp, zoom=zoom)
 
     print(f'>> Simplify rivers...', end='\n')
     # Select rivers in study area
-    study_rivers_shp_simplified = overlay_shapefile(shapefile=study_ug_shp, data=rivers_shp)
+    study_rivers_shp_simplified = overlay_shapefile(shapefile=study_ug_bv_shp, data=rivers_shp)
     study_rivers_shp_simplified = simplify(study_rivers_shp_simplified, tolerance=tolerance)
 
     print(f'>> Simplify regions background...', end='\n')
@@ -168,8 +170,10 @@ def simplify_shapefiles(study_ug_shp, rivers_shp, regions_shp, tolerance=1000, z
     print(f'>> Simplify study area...', end='\n')
     # Simplify study areas shapefile
     study_ug_shp_simplified = simplify(study_ug_shp, tolerance=tolerance)
+    study_ug_bv_shp_simplified = simplify(study_ug_bv_shp, tolerance=tolerance)
 
-    return study_ug_shp_simplified, study_rivers_shp_simplified, regions_shp_simplified
+    return (study_ug_shp_simplified, study_ug_bv_shp_simplified, study_rivers_shp_simplified,
+            regions_shp_simplified, bounds)
 
 def test_merge_rivers(study_rivers_shp, study_rivers_shp_simplified):
     from shapely.ops import linemerge, unary_union

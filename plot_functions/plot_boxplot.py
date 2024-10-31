@@ -8,21 +8,23 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
              title=None, percent=False, palette='BrBG', fontsize=14, font='sans-serif', ):
 
     ds_plot = copy.deepcopy(ds)
-    if cols is not None:
-        len_cols = len(cols['values_var'])
-        if cols['names_var'] != 'indicator':
-            ds_plot = ds_plot.sel({cols['names_var']: cols['values_var']})
-    else:
-        len_cols = 1
-        cols = {'values_var': [None], 'names_plot': [None]}
-
-    if rows is not None:
-        len_rows = len(rows['values_var'])
-        if rows['names_var'] != 'indicator':
-            ds_plot = ds_plot.sel({rows['names_var']: rows['values_var']})
-    else:
-        len_rows = 1
-        rows = {'values_var': [None], 'names_plot': [None]}
+    len_cols, cols, ds_plot = init_grid(cols, ds_plot)
+    len_rows, rows, ds_plot = init_grid(rows, ds_plot)
+    # if cols is not None:
+    #     len_cols = len(cols['values_var'])
+    #     if cols['names_var'] != 'indicator':
+    #         ds_plot = ds_plot.sel({cols['names_var']: cols['values_var']})
+    # else:
+    #     len_cols = 1
+    #     cols = {'values_var': [None], 'names_plot': [None]}
+    #
+    # if rows is not None:
+    #     len_rows = len(rows['values_var'])
+    #     if rows['names_var'] != 'indicator':
+    #         ds_plot = ds_plot.sel({rows['names_var']: rows['values_var']})
+    # else:
+    #     len_rows = 1
+    #     rows = {'values_var': [None], 'names_plot': [None]}
 
     # Find extrema
     # _, _, ymin, ymax = find_extrema(ds_plot, x_axis, y_axis, 0, 0, ymin, ymax)

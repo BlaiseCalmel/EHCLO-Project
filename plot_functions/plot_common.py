@@ -5,6 +5,17 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 
 
+def init_grid(grid_dict, ds_plot):
+    if grid_dict is not None:
+        length = len(grid_dict['values_var'])
+        if grid_dict['names_var'] != 'indicator':
+            ds_plot = ds_plot.sel({grid_dict['names_var']: grid_dict['values_var']})
+    else:
+        length = 1
+        grid_dict = {'values_var': [None], 'names_plot': [None], 'names_var': [None]}
+
+    return length, grid_dict, ds_plot
+
 def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=False, **text_kwargs):
     # fig.subplots_adjust(right=0.95)
     # cbar_ax = fig.add_axes([1, 0.15, 0.04, 0.7])

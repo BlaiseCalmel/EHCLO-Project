@@ -31,6 +31,7 @@ def define_paths(config):
         'file_regions_shp': folder_data_contour + config['regions_shp'],
         'file_rivers_shp': folder_data_contour + config['rivers_shp'],
         'file_ug_shp': folder_data_contour + config['ug_shp'],
+        'file_ug_bv_shp': folder_data_contour + config['ug_bv_shp'],
         'dict_global_points_sim': dict_global_points_sim,
         'dict_study_points_sim': dict_study_points_sim,
     }

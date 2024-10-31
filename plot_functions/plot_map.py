@@ -1,20 +1,25 @@
 import math
-import numpy as np
+import copy
 from plot_functions.plot_common import *
 
 def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
              cbar_title=None, title=None, dict_shapefiles=None, percent=True, bounds=None, discretize=7,
              vmin=None, vmax=None, palette='BrBG', fontsize=14, font='sans-serif'):
 
+    ds_plot = copy.deepcopy(ds)
+    len_cols, cols, ds_plot = init_grid(cols, ds_plot)
+    len_rows, rows, ds_plot = init_grid(rows, ds_plot)
+
     if percent:
         if vmax is None:
-            vmax = math.ceil(abs(ds.variables[indicator_plot]).max() / 5) * 5
+            vmax = math.ceil(abs(ds_plot.variables[indicator_plot]).max() / 5) * 5
+        if vmin is None:
+            vmin = -vmax
     else:
         if vmax is None:
-            vmax = math.ceil((abs(ds.variables[indicator_plot]).max()))
-
-    if vmin is None:
-        vmin = -vmax
+            vmax = int((ds_plot.variables[indicator_plot].max()))
+        if vmin is None:
+            vmin = int(ds_plot.variables[indicator_plot].min()) - 1
 
     bounds_cmap = np.linspace(vmin, vmax, discretize+1)
     cmap = plt.get_cmap(palette, discretize)
@@ -23,9 +28,6 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
     text_kwargs ={'weight': 'bold'}
-
-    len_rows = len(rows['values_var'])
-    len_cols = len(cols['values_var'])
 
     if bounds is not None :
         x_y_ratio = abs((bounds[2] - bounds[0]) / (bounds[3] - bounds[1]))
@@ -54,7 +56,7 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
             if rows['names_var'] is not None and row is not None:
                 temp_dict |= {rows['names_var']: row}
 
-            row_data = ds.sel(temp_dict)[indicator_plot].values
+            row_data = ds_plot.sel(temp_dict)[indicator_plot].values
             gdf[indicator_plot] = row_data
 
             # Background shapefiles
