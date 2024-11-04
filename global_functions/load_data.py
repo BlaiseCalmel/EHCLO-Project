@@ -6,7 +6,7 @@ import geopandas
 from tqdm import tqdm
 import xarray as xr
 import os
-from global_functions.shp_geometry import define_bounds, overlay_shapefile
+import itertools
 
 
 def resample_ds(ds, var, timestep, operation='mean'):
@@ -59,13 +59,13 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
         title = os.path.basename(path_result)
     total_iterations = len(paths_data)
 
+    temp_paths = []
     with tqdm(total=total_iterations, desc=f"Create {title} file") as pbar:
         for i, files in enumerate(paths_data):
-
             if param_type == "climate":
-                split_name = file.split(os.sep)[-5:-1]
+                split_name = files[0].split(os.sep)[-4:-1]
             else:
-                split_name = file.split(os.sep)[-6:-1]
+                split_name = files[0].split(os.sep)[-6:-1]
             indicator = indicator.split('_')[0]
             file_name = '_'.join(split_name)
             var = indicator+'_'+file_name
@@ -116,23 +116,18 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
             # datasets.append(ds[var])
             ds.to_netcdf(path=f"{temp_dir}{os.sep}{var}.nc")
+            temp_paths.append(f"{temp_dir}{os.sep}{var}.nc")
 
             # Update progress bar
             pbar.update(1)
 
-    # Merge datasets
-    temp_paths = []
-    for i, file in enumerate(paths_data):
-        if param_type == "climate":
-            split_name = file.split(os.sep)[-5:-1]
-        else:
-            split_name = file.split(os.sep)[-6:-1]
-        indicator = indicator.split('_')[0]
-        file_name = '_'.join(split_name)
-        var = indicator+'_'+file_name
-        temp_paths.append(f"{temp_dir}{os.sep}{var}.nc")
+    # Open temporary files and merge datasets
+    combined_dataset = xr.open_mfdataset(temp_paths, combine='nested', compat='override')
 
-    combined_dataset = xr.open_mfdataset(temp_paths[30:40], combine='nested', compat='override')
+    # Delete temporary directory
+    for path in temp_paths:
+        os.remove(path)
+    os.removedirs(temp_dir)
 
     # Save as ncdf
     if path_result is not None:

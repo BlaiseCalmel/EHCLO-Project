@@ -270,7 +270,7 @@ for data_type, subdict in path_files.items():
                 mapplot(gdf, ds, indicator_plot=indicator_horizon_difference[0], path_result=path_indicator_figures+'map_difference.pdf',
                         cols=cols_map, rows=rows,
                         cbar_title=f"{indicator} difference", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
-                        discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif')
+                        discretize=4, palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor=None, vmin=0, vmax=4)
 
 
                 print(f"> Relative line plot {indicator}_{timestep}_{rcp}_{key}...")

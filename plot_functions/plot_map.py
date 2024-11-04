@@ -1,10 +1,11 @@
 import math
 import copy
 from plot_functions.plot_common import *
+import matplotlib.cm as cm
 
 def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
              cbar_title=None, title=None, dict_shapefiles=None, percent=True, bounds=None, discretize=7,
-             vmin=None, vmax=None, palette='BrBG', fontsize=14, font='sans-serif'):
+             vmin=None, vmax=None, palette='BrBG', cmap_zero=False, fontsize=14, edgecolor='k', font='sans-serif'):
 
     ds_plot = copy.deepcopy(ds)
     len_cols, cols, ds_plot = init_grid(cols, ds_plot)
@@ -22,8 +23,13 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
             vmin = int(ds_plot.variables[indicator_plot].min()) - 1
 
     bounds_cmap = np.linspace(vmin, vmax, discretize+1)
-    cmap = plt.get_cmap(palette, discretize)
-    norm = mpl.colors.BoundaryNorm(bounds_cmap, cmap.N)
+    if cmap_zero:
+        cmap_temp = plt.get_cmap(palette, 256)
+        cmap = mpl.colors.LinearSegmentedColormap.from_list(palette, cmap_temp(np.linspace(0.5, 1, 128)),
+                                                            N=discretize)
+    else:
+        cmap = plt.get_cmap(palette, discretize)
+    norm = mpl.colors.BoundaryNorm(boundaries=bounds_cmap, ncolors=discretize)
 
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
@@ -65,8 +71,8 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
                     shp_kwargs = {k: subdict[k] for k in subdict.keys() if k != 'shp'}
                     subdict['shp'].plot(ax=ax, figsize=(18, 18), **shp_kwargs)
 
-            gdf.plot(column=indicator_plot, cmap=cmap, norm=norm, ax=ax, legend=False, markersize=100, edgecolor='k',
-                     alpha=0.9, zorder=10)
+            gdf.plot(column=indicator_plot, cmap=cmap, norm=norm, ax=ax, legend=False, markersize=100,
+                     edgecolor=edgecolor, alpha=0.9, zorder=10)
 
             if bounds is not None:
                 ax.set_xlim(bounds[0], bounds[2])
