@@ -1,6 +1,7 @@
 {
   "study_name":  "HMUC_Loire_Bretagne",
   "folder_hydro_data": "/media/bcalmel/Explore2/hydrological-projection_yearly-variables_by-chain_netcdf",
+  "folder_hydro_data2": "/media/bcalmel/Explore2/hydrological-projection_daily-time-series_by-chain_merged-netcdf/",
   "folder_climate_data": "/media/bcalmel/Explore2/climatological-projection_daily-time-series_by-chain_netcdf",
   "folder_contour_data": "/home/bcalmel/Documents/2_data/contours",
   "folder_results": "/home/bcalmel/Documents/3_results",

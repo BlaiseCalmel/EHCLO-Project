@@ -9,7 +9,7 @@ import os
 import itertools
 
 
-def resample_ds(ds, var, timestep, operation='mean'):
+def resample_ds(ds, var, timestep, operation='mean', q=None):
     # Seasonal indicator
     if timestep.lower() == 'jja':
         ds = ds.sel(time=ds['time'].dt.month.isin([6, 7, 8]))
@@ -26,11 +26,13 @@ def resample_ds(ds, var, timestep, operation='mean'):
         return ds[var].resample(time=timestep).max()
     elif operation == 'min':
         return ds[var].resample(time=timestep).min()
+    elif operation == 'quantile':
+        return ds[var].resample(time=timestep).quantile(q)
     else:
         raise ValueError(f"Operation '{operation}' is not supported.")
 
-def rename_variables(dataset, suffix, indicator):
-    return dataset.rename({var: var + '_' + suffix for var in dataset.data_vars if var == indicator})
+def rename_variables(dataset, suffix, var_name, indicator):
+    return dataset.rename({var: indicator + '_' + suffix for var in dataset.data_vars if var == var_name})
 
 def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, timestep=None,
                            start=None, path_result=None):
@@ -65,16 +67,21 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             if param_type == "climate":
                 split_name = files[0].split(os.sep)[-4:-1]
             else:
-                split_name = files[0].split(os.sep)[-6:-1]
+                split_name = files[0].split(os.sep)[-5:-1]
+
             indicator = indicator.split('_')[0]
+            var_name = indicator.split('$')[-1]
+            indicator = indicator.split('$')[0]
+
             file_name = '_'.join(split_name)
             var = indicator+'_'+file_name
+            # temp_paths.append(f"{temp_dir}{os.sep}{var}.nc")
             datasets = []
 
             for file in files:
                 ds = xr.open_dataset(file)
                 # Add sim suffix
-                ds = rename_variables(ds, file_name, indicator)
+                ds = rename_variables(ds, file_name, var_name, indicator)
                 # Load only selected period
                 if start is not None:
                     ds = ds.sel(time=slice(dt.datetime(
@@ -99,6 +106,15 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                     ds = ds.assign_coords(dim_0=sim_points_gdf['name']).rename(dim_0='name')
 
                 else:
+                    if indicator == 'Q2':
+                        resampled_var = resample_ds(ds, var, timestep, operation='quantile', q=0.98)
+                        coordinates = {i: ds[i] for i in ds._coord_names if i != 'time'}
+                        coordinates['time'] = resampled_var['time']
+                        ds = xr.Dataset({
+                            var: (('time', 'station'), resampled_var.values)
+                        }, coords=coordinates
+                        )
+
                     ds = ds.set_coords('code')
                     ds = ds.swap_dims({'station': 'code'})
                     del ds['station']
@@ -108,6 +124,16 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                     codes_to_select = [code for code in code_values if code in ds['code'].values]
                     # TODO Rename dims to name
                     ds = ds.sel(code=codes_to_select)
+
+                    # Clean dataset
+                    ds = xr.Dataset({
+                        var: (('time', 'code'), ds[var].values),
+                        'x': (('code'), ds['L93_X'].values),
+                        'y': (('code'), ds['L93_Y'].values),
+                    }, coords={i: ds[i] for i in ds._coord_names}
+                    )
+                    ds = ds.set_coords('x')
+                    ds = ds.set_coords('y')
 
                 datasets.append(ds)
 
@@ -124,14 +150,13 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
     # Open temporary files and merge datasets
     combined_dataset = xr.open_mfdataset(temp_paths, combine='nested', compat='override')
 
-    # Delete temporary directory
-    for path in temp_paths:
-        os.remove(path)
-    os.removedirs(temp_dir)
-
     # Save as ncdf
     if path_result is not None:
         combined_dataset.to_netcdf(path=f"{path_result}")
+        # Delete temporary directory
+        for path in temp_paths:
+            os.remove(path)
+        os.removedirs(temp_dir)
     else:
          return combined_dataset
 

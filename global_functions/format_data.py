@@ -1,4 +1,6 @@
 import xarray as xr
+from ipykernel.pickleutil import istype
+
 
 def weighted_mean_per_region(ds, var, sim_points_gdf, region_col='gid'):
     # Spatial selection
@@ -58,25 +60,42 @@ def compute_mean_by_horizon(ds, indicator_cols, files_setup, other_dimension=Non
     return combined_means
 
 def apply_statistic(ds, function='mean', q=None):
-    # Apply selected function
-    if function.lower() == 'mean':
-        return ds.mean(dim='new')
-    elif function.lower() == 'median':
-        return ds.median(dim='new')
-    elif function.lower() == 'quantile':
-        if q is None:
-            raise ValueError("You need to specify a quantile value")
-        try:
-            q = float(q)
-        except ValueError:
-            raise ValueError("Quantile should be a number")
-        return ds.quantile(q, dim='new')
-    elif  function.lower() == 'max':
-        return ds.max(dim='time')
-    elif  function.lower() == 'min':
-        return ds.min(dim='time')
+    if isinstance(function, list):
+        agg_vars = {}
+        for func_name in function:
+            if func_name.lower() == 'mean':
+                agg_vars[func_name] = ds.mean(dim='new')
+            elif func_name.lower() == 'median':
+                agg_vars[func_name] = ds.median(dim='new')
+            elif func_name.lower() == 'quantile':
+                for q_value in q:
+                    if q_value > 1:
+                        q_value = q_value / 100
+                    da_quantile = ds.quantile(q_value, dim='new')
+                    del da_quantile['quantile']
+                    agg_vars[func_name+str(int(q_value*100))] = da_quantile
+        ds_agg = xr.Dataset(agg_vars)
+        return ds_agg
     else:
-        raise ValueError("Unknown function, chose 'mean', 'median', 'max', 'min' or 'quantile'")
+        # Apply selected function
+        if function.lower() == 'mean':
+            return ds.mean(dim='new')
+        elif function.lower() == 'median':
+            return ds.median(dim='new')
+        elif function.lower() == 'quantile':
+            if q is None:
+                raise ValueError("You need to specify a quantile value")
+            try:
+                q = float(q)
+            except ValueError:
+                raise ValueError("Quantile should be a number")
+            return ds.quantile(q, dim='new')
+        elif  function.lower() == 'max':
+            return ds.max(dim='time')
+        elif  function.lower() == 'min':
+            return ds.min(dim='time')
+        else:
+            raise ValueError("Unknown function, chose 'mean', 'median', 'max', 'min' or 'quantile'")
 
 def compute_deviation_to_ref(ds, cols, ref='historical'):
     horizons = [i for i in ds.horizon.data if i != ref]

@@ -83,10 +83,12 @@ print(f'> Load ncdf data paths...', end='\n')
 path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 
 # Run among data type climate/hydro
-data_type='climate'
+data_type='hydro'
 subdict=path_files[data_type]
 rcp='rcp85'
 subdict2=subdict[rcp]
+indicator = 'QA_mon'
+paths = subdict2[indicator]
 for data_type, subdict in path_files.items():
     # Load simulation points for current data type
     sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim'][data_type])
@@ -110,14 +112,15 @@ for data_type, subdict in path_files.items():
             # if timestep == 'mon':
             #     timestep = 'M'
 
-            path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_{timestep}_{rcp}.nc"
+            path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_{timestep}_{rcp}.nc"
 
             if not os.path.isfile(path_ncdf):
                 print(f'> Create {indicator} export...', end='\n')
-                extract_ncdf_indicator(
-                    paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf,
-                    indicator=indicator, timestep=timestep, start=files_setup['historical'][0], path_result=path_ncdf,
-                )
+                if len(paths) > 0 :
+                    extract_ncdf_indicator(
+                        paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf, indicator=indicator,
+                        timestep=timestep, start=files_setup['historical'][0], path_result=path_ncdf,
+                    )
 
             print(f'################################ FORMAT DATA ################################', end='\n')
             print(f'> Load from {indicator} export...', end='\n')
@@ -170,12 +173,15 @@ for data_type, subdict in path_files.items():
             # Compute statistic among all sims
             ds_mean_spatial_horizon = apply_statistic(ds=ds[indicator_horizon].to_array(dim='new'),
                                                       function=files_setup['function'],
-                                                      # function="median",
-                                                      q=files_setup['quantile']).to_dataset(name=indicator)
-            ds[indicator+'_by_horizon_among_sims'] = ds_mean_spatial_horizon[indicator]
+                                                      q=files_setup['quantile']
+                                                      )
+            indicator_statistics = [f"{indicator}_{i}" for i in list(ds_mean_spatial_horizon.data_vars)]
+            ds[indicator_statistics] = ds_mean_spatial_horizon
+
+            # ds[indicator+'_by_horizon_among_sims'] = ds_mean_spatial_horizon
 
             # Compute deviation to historical
-            ds = compute_deviation_to_ref(ds, cols=indicator_horizon + [indicator+'_by_horizon_among_sims'])
+            ds = compute_deviation_to_ref(ds, cols=indicator_horizon + indicator_statistics)
 
             indicator_horizon_deviation = [i for i in list(ds.variables) if
                                            indicator+'_by_horizon_among_sims_deviation' in i]
