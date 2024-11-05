@@ -170,25 +170,27 @@ for data_type, subdict in path_files.items():
 
             indicator_horizon = [i for i in list(ds.variables) if '_by_horizon' in i]
 
-            # Compute statistic among all sims
-            ds_mean_spatial_horizon = apply_statistic(ds=ds[indicator_horizon].to_array(dim='new'),
-                                                      function=files_setup['function'],
-                                                      q=files_setup['quantile']
-                                                      )
-            indicator_statistics = [f"{indicator}_{i}" for i in list(ds_mean_spatial_horizon.data_vars)]
-            ds[indicator_statistics] = ds_mean_spatial_horizon
-
-            # ds[indicator+'_by_horizon_among_sims'] = ds_mean_spatial_horizon
-
-            # Compute deviation to historical
-            ds = compute_deviation_to_ref(ds, cols=indicator_horizon + indicator_statistics)
-
-            indicator_horizon_deviation = [i for i in list(ds.variables) if
-                                           indicator+'_by_horizon_among_sims_deviation' in i]
-            indicator_horizon_difference = [i for i in list(ds.variables) if
-                                            indicator+'_by_horizon_among_sims_difference' in i]
+            # Compute deviation/difference to reference
+            ds = compute_deviation_to_ref(ds, cols=indicator_horizon)
             indicator_horizon_deviation_sims = [i for i in list(ds.variables) if '_by_horizon_deviation' in i]
             indicator_horizon_difference_sims = [i for i in list(ds.variables) if '_by_horizon_difference' in i]
+
+            # Compute statistic among all sims
+            ds_deviation_stats = apply_statistic(ds=ds[indicator_horizon_deviation_sims].to_array(dim='new'),
+                                                 function=files_setup['function'],
+                                                 q=files_setup['quantile']
+                                                 )
+            ds_difference_stats = apply_statistic(ds=ds[indicator_horizon_difference_sims].to_array(dim='new'),
+                                                  function=files_setup['function'],
+                                                  q=files_setup['quantile']
+                                                  )
+
+            indicator_horizon_deviation_sims = [f"{indicator}_deviation_{i}" for i in
+                                                list(ds_deviation_stats.data_vars)]
+            indicator_horizon_difference_sims = [f"{indicator}_difference_{i}" for i in
+                                                 list(ds_difference_stats.data_vars)]
+            ds[indicator_horizon_deviation_sims] = ds_deviation_stats
+            ds[indicator_horizon_difference_sims] = ds_difference_stats
 
             print(f'################################ PLOT DATA ################################', end='\n')
             print(f"> Initialize plot...")
