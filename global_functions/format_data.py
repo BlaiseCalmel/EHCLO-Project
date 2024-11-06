@@ -146,7 +146,7 @@ def compute_return_period(ds, indicator_cols, files_setup, return_period=5, othe
         coords = {"id_geometry": ds['id_geometry'].data, "horizon": horizons, other_dimension: data_dim.data}
     else:
         dict_by_horizon = {
-            f"{i}_by_horizon_PdR{return_period}": (["id_geometry", "horizon"],
+            f"{i}_PdR{return_period}_by_horizon": (["id_geometry", "horizon"],
                                                    np.full((len(ds['id_geometry']), len(horizons)), np.nan))
             for i in indicator_cols
         }
@@ -166,9 +166,10 @@ def compute_return_period(ds, indicator_cols, files_setup, return_period=5, othe
                 for dim in data_dim:
                     ds_dim = ds_horizon.sel(time=ds_horizon.time.where(ds_horizon.month == dim, drop=True))
                     Xn = xr.apply_ufunc(compute_LogNormal, ds_dim, input_core_dims=[["time"]], vectorize=True)
-                    result[f"{var_name}_by_horizon_PdR{return_period}"].loc[:, horizon, dim] = Xn
+                    result[f"{var_name}_PdR{return_period}_by_horizon"].loc[:, horizon, dim] = Xn
             else:
-                Xn = xr.apply_ufunc(compute_LogNormal, ds_horizon, input_core_dims=[["time"]], vectorize=True)
+                ds_dim = ds_horizon.groupby('time.year').min()
+                Xn = xr.apply_ufunc(compute_LogNormal, ds_dim, input_core_dims=[["year"]], vectorize=True)
                 result[f"{var_name}_by_horizon_PdR{return_period}"].loc[:, horizon] = Xn
 
         combined_means = xr.merge([ds, result])
