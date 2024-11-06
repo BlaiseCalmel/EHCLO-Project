@@ -1,6 +1,6 @@
 {
   "gid": [1, 2, 3, 4, 5, 6],
-  "hydro_indicator": ["Q2$debit", "Q90A", "QA_mon", "QA_seas-JJA", "QA_seas-DJF", "QMNA"],
+  "hydro_indicator": ["Q2$debit", "Q90A", "QA_mon", "QA_seas-JJA", "QA_seas-DJF", "QMNA5$QA_mon"],
   "climate_indicator": ["tasminAdjust", "evspsblpotAdjust", "prtotAdjust", "tasAdjust", "tasmaxAdjust"],
   "select_rcp": ["rcp85", "rcp45", "rcp26"],
   "select_gcm": [],

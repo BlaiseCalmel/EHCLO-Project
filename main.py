@@ -124,7 +124,7 @@ for data_type, subdict in path_files.items():
 
             print(f'################################ FORMAT DATA ################################', end='\n')
             print(f'> Load from {indicator} export...', end='\n')
-            # path_ncdf = f"{dict_paths['folder_study_data']}QA_mon_M_rcp85.nc"
+            # path_ncdf = f"{dict_paths['folder_study_data']}QA_mon_ME_rcp85.nc"
             # indicator='QA'
             ds = xr.open_dataset(path_ncdf)
             indicator_cols = [i for i in list(ds.variables) if indicator in i]
@@ -164,6 +164,9 @@ for data_type, subdict in path_files.items():
             # Define horizons
             ds = define_horizon(ds, files_setup)
 
+            # Return period
+            ds = compute_return_period(ds, indicator_cols, files_setup, return_period=5, other_dimension=other_dimension)
+
             # Compute mean value for each horizon for each sim
             ds = compute_mean_by_horizon(ds=ds, indicator_cols=indicator_cols,
                                          files_setup=files_setup, other_dimension=other_dimension)
@@ -184,13 +187,12 @@ for data_type, subdict in path_files.items():
                                                   function=files_setup['function'],
                                                   q=files_setup['quantile']
                                                   )
-
-            indicator_horizon_deviation_sims = [f"{indicator}_deviation_{i}" for i in
+            indicator_horizon_deviation = [f"{indicator}_deviation_{i}" for i in
                                                 list(ds_deviation_stats.data_vars)]
-            indicator_horizon_difference_sims = [f"{indicator}_difference_{i}" for i in
+            indicator_horizon_difference = [f"{indicator}_difference_{i}" for i in
                                                  list(ds_difference_stats.data_vars)]
-            ds[indicator_horizon_deviation_sims] = ds_deviation_stats
-            ds[indicator_horizon_difference_sims] = ds_difference_stats
+            ds[indicator_horizon_deviation] = ds_deviation_stats
+            ds[indicator_horizon_difference] = ds_difference_stats
 
             print(f'################################ PLOT DATA ################################', end='\n')
             print(f"> Initialize plot...")

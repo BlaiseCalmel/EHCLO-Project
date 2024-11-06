@@ -1,5 +1,6 @@
 import xarray as xr
-from ipykernel.pickleutil import istype
+import numpy as np
+from scipy.stats import norm
 
 
 def weighted_mean_per_region(ds, var, sim_points_gdf, region_col='gid'):
@@ -105,3 +106,110 @@ def compute_deviation_to_ref(ds, cols, ref='historical'):
 
     return ds
 
+
+def compute_return_period(ds, indicator_cols, files_setup, return_period=5, other_dimension=None):
+    """
+    Compute the LogNormal return period value for each station in an xarray Dataset.
+
+    Parameters:
+    ds (xarray.Dataset): The dataset containing flow data with dimensions ('time', 'station').
+    indicator_cols (str): The name of the variable representing flow rates in the dataset.
+    return_period (float): The return period for which to calculate the threshold value.
+
+    Returns:
+    xarray.DataArray: An array with the computed LogNormal return period values for each station.
+    """
+
+    # Check that return_period is a valid numeric value and greater than 1
+    if not isinstance(return_period, (int, float)):
+        raise ValueError("return_period must be a numeric value")
+    if return_period <= 1:
+        raise ValueError("return_period must be greater than 1")
+
+    # Initialize the output array to store results for each station
+    horizons = ['historical'] + list(files_setup['horizons'].keys())
+
+    # if other_dimension:
+    #     mean_historical = mean_historical[indicator_cols].groupby(other_dimension).mean(dim='time')
+    # else:
+    #     mean_historical = mean_historical.mean(dim='time')
+
+    if other_dimension:
+        data_dim = np.unique(ds[other_dimension])
+        dict_by_horizon = {
+            f"{i}_by_horizon_PdR{return_period}": (["id_geometry", "horizon", other_dimension],
+                                                   np.full((len(ds['id_geometry']),
+                                                            len(horizons),
+                                                            len(data_dim)), np.nan))
+            for i in indicator_cols
+        }
+        coords = {"id_geometry": ds['id_geometry'].data, "horizon": horizons, other_dimension: data_dim.data}
+    else:
+        dict_by_horizon = {
+            f"{i}_by_horizon_PdR{return_period}": (["id_geometry", "horizon"],
+                                                   np.full((len(ds['id_geometry']), len(horizons)), np.nan))
+            for i in indicator_cols
+        }
+        coords = {"id_geometry": ds['id_geometry'].data, "horizon": horizons}
+
+    result = xr.Dataset(dict_by_horizon, coords=coords)
+
+    for var_name in indicator_cols:
+        print(var_name)
+        ds_var = ds[var_name]
+        # Iterate over horizon
+        for horizon in horizons:
+            print(f"> {horizon}")
+            # Select period
+            ds_horizon = ds_var.sel(time=ds_var[horizon])
+            if other_dimension:
+                for dim in data_dim:
+                    ds_dim = ds_horizon.sel(time=ds_horizon.time.where(ds_horizon.month == dim, drop=True))
+                    Xn = xr.apply_ufunc(compute_LogNormal, ds_dim, input_core_dims=[["time"]], vectorize=True)
+                    result[f"{var_name}_by_horizon_PdR{return_period}"].loc[:, horizon, dim] = Xn
+            else:
+                Xn = xr.apply_ufunc(compute_LogNormal, ds_horizon, input_core_dims=[["time"]], vectorize=True)
+                result[f"{var_name}_by_horizon_PdR{return_period}"].loc[:, horizon] = Xn
+
+        combined_means = xr.merge([ds, result])
+
+    return combined_means
+
+
+def compute_LogNormal(X, return_period=5):
+    """
+    Compute the quantile value (e.g., QMNA5) based on a log-normal distribution
+    by calculating the 1/returnPeriod quantile of the data.
+
+    Parameters:
+    - X : xarray.DataArray
+        The data to analyze (should be a 1D array of discharge values).
+    - return_period : float
+        The return period, typically 5 for QMNA5 (i.e., 1/5 probability of not exceeding the value).
+
+    Returns:
+    - Xn : float
+        The computed quantile value corresponding to the return period.
+    """
+    # Remove NaN values from X
+    X = X[~np.isnan(X)]
+
+    # Check if there are valid values to compute
+    if len(X) == 0:
+        return np.nan  # Return NaN if no valid values exist
+
+    # Frequency corresponding to the return period
+    Freq = 1 / return_period
+
+    # Handle the case where there are no zeros or very few zeros
+    nbXnul = np.sum(X == 0)
+    nbY = len(X)
+
+    if (nbXnul / nbY) <= Freq:
+        # If the proportion of zeros is small enough, calculate the quantile
+        Xn = np.exp(np.percentile(np.log(X[X > 0]), Freq * 100))
+    else:
+        # If too many zeros, return zero
+        Xn = 0
+
+    return Xn
