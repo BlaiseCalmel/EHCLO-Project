@@ -27,7 +27,7 @@ plt.switch_backend('agg')
 
 # Load environments variables
 print(f'> Load json inputs...', end='\n')
-with open('config.json') as config_file:
+with open('config-perso.json') as config_file:
     config = json.load(config_file)
 
 with open('files_setup.json') as files_setup:

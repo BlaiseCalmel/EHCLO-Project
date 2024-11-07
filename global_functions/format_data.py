@@ -129,15 +129,10 @@ def compute_return_period(ds, indicator_cols, files_setup, return_period=5, othe
     # Initialize the output array to store results for each station
     horizons = ['historical'] + list(files_setup['horizons'].keys())
 
-    # if other_dimension:
-    #     mean_historical = mean_historical[indicator_cols].groupby(other_dimension).mean(dim='time')
-    # else:
-    #     mean_historical = mean_historical.mean(dim='time')
-
     if other_dimension:
         data_dim = np.unique(ds[other_dimension])
         dict_by_horizon = {
-            f"{i}_by_horizon_PdR{return_period}": (["id_geometry", "horizon", other_dimension],
+            f"{i}_PdR{return_period}_by_horizon": (["id_geometry", "horizon", other_dimension],
                                                    np.full((len(ds['id_geometry']),
                                                             len(horizons),
                                                             len(data_dim)), np.nan))
@@ -170,7 +165,7 @@ def compute_return_period(ds, indicator_cols, files_setup, return_period=5, othe
             else:
                 ds_dim = ds_horizon.groupby('time.year').min()
                 Xn = xr.apply_ufunc(compute_LogNormal, ds_dim, input_core_dims=[["year"]], vectorize=True)
-                result[f"{var_name}_by_horizon_PdR{return_period}"].loc[:, horizon] = Xn
+                result[f"{var_name}_PdR{return_period}_by_horizon"].loc[:, horizon] = Xn
 
         combined_means = xr.merge([ds, result])
 
