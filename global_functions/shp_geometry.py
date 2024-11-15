@@ -1,7 +1,7 @@
 import geopandas
 import pandas as pd
 from shapely.geometry import Point, Polygon, LineString
-import netCDF4
+import os
 import numpy as np
 import geopandas as gpd
 
@@ -10,6 +10,13 @@ def define_bounds(shapefile, zoom=5000):
     return [raw_bounds[0] - zoom, raw_bounds[1] - zoom, raw_bounds[2] + zoom, raw_bounds[3] + zoom]
 
 def overlay_shapefile(shapefile, data, path_result=None, col='gid'):
+
+    # lat = data['lat']
+    # lon = data['lon']
+    # geo_df = geopandas.GeoDataFrame(
+    #         data, geometry=geopandas.points_from_xy(lon, lat),
+    #         crs={'init': 'epsg:4326'})
+    # data = geo_df.to_crs(crs={'init': 'epsg:2154'})
 
     # x = data[cols[0]]
     # y = data[cols[1]]
@@ -48,8 +55,11 @@ def overlay_shapefile(shapefile, data, path_result=None, col='gid'):
 
         matched_points = matched_points.merge(total_surface, left_on=col, right_index=True)
 
+        matched_points = matched_points.loc[matched_points.groupby('name')['gid'].idxmin()].reset_index()
+
     else:
         matched_points = data.sjoin(shapefile, how='inner', predicate='intersects')
+        # matched_points = matched_points.drop_duplicates(subset=['nom_fichier'], keep='first')
         matched_points = matched_points.drop('index_right', axis=1)
 
         # if geometry_type.value_counts().idxmax() == "LineString":
@@ -106,7 +116,7 @@ def get_coordinates(data, path_result):
 
     geo_df93 = geo_df2.to_crs(crs={'init': 'epsg:2154'})
 
-    geo_df93.to_file(path_result+'climate_points_sim.shp')
+    geo_df93.to_file(path_result+os.sep+'climate_points_sim.shp')
 
 def create_polygon_from_point(point, cell_size=8000):
     half_size = cell_size / 2
@@ -155,7 +165,7 @@ def load_shp(dict_paths, files_setup):
 
 def simplify_shapefiles(study_ug_shp, study_ug_bv_shp, rivers_shp, regions_shp, tolerance=1000, zoom=50000):
     # Study geographical limits
-    bounds = define_bounds(study_ug_shp, zoom=zoom)
+    bounds = define_bounds(study_ug_bv_shp, zoom=zoom)
 
     print(f'>> Simplify rivers...', end='\n')
     # Select rivers in study area

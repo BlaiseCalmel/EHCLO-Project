@@ -31,7 +31,10 @@ def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=F
     else:
         x_diff = axes_flatten[-1].get_position().x1 * 0.01
 
-    y_diff = (axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0) / 25
+    if len(axes_flatten) > 1:
+        y_diff = (axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0) / 25
+    else:
+        y_diff = 0
 
     cbar_ax = fig.add_axes([axes_flatten[-1].get_position().x1 + x_diff,
                             axes_flatten[-1].get_position().y0 - y_diff,

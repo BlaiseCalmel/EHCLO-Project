@@ -35,7 +35,7 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
     plt.rcParams['font.size'] = fontsize
     text_kwargs ={'weight': 'bold'}
 
-    if bounds is not None :
+    if bounds is not None:
         x_y_ratio = abs((bounds[2] - bounds[0]) / (bounds[3] - bounds[1]))
         if x_y_ratio > 1:
             figsize = (4 * len_cols , len_rows * 4 / x_y_ratio)
@@ -49,7 +49,10 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
     if title is not None:
         fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2)
 
-    axes_flatten = axes.flatten()
+    if len_rows > 1 or len_cols > 1:
+        axes_flatten = axes.flatten()
+    else:
+        axes_flatten = [axes]
 
     for col_idx, col in enumerate(cols['values_var']):
         for row_idx, row in enumerate(rows['values_var']):

@@ -27,7 +27,7 @@ plt.switch_backend('agg')
 
 # Load environments variables
 print(f'> Load json inputs...', end='\n')
-with open('config-perso.json') as config_file:
+with open('config.json') as config_file:
     config = json.load(config_file)
 
 with open('files_setup.json') as files_setup:
@@ -77,6 +77,36 @@ print(f'> Simplify shapefiles...', end='\n')
 study_ug_shp_simplified, study_ug_bv_shp_simplified, study_rivers_shp_simplified, regions_shp_simplified, bounds = (
     simplify_shapefiles(study_ug_shp, study_ug_bv_shp, rivers_shp, regions_shp, tolerance=1000, zoom=50000))
 
+# path_sh = f"/home/bcalmel/Documents/2_data/climat/SH/Liste_SH_TX_metro.csv"
+#
+# data_sh = pd.read_csv(path_sh, sep=";", header=None, engine="python", names=[str(i) for i in range(9)])
+# new_header = data_sh.iloc[2] #grab the first row for the header
+# data_sh = data_sh[3:] #take the data less the header row
+# data_sh.columns = new_header
+#
+# search_path = f"/home/bcalmel/Documents/2_data/climat/SH/SH_TN_metropole"
+# result_path = f"/home/bcalmel/Documents/2_data/climat/SH/Loire/SH_TN_Loire"
+# if not os.path.isdir(result_path):
+#     os.makedirs(result_path)
+# import glob
+# import shutil
+# df_station = pd.read_csv(f"/home/bcalmel/Documents/2_data/climat/SH/Loire/Liste_SH_IN_Loire.csv", sep=';')
+# stations = df_station['num_poste'].to_list()
+# stations = [str(i) for i in stations]
+# stations = [i[6:] for i in stations]
+# files_in_dir = glob.glob(f"{search_path}/*")
+# for file in files_in_dir:
+#     if any(word in os.path.basename(file) for word in stations):
+#         data = pd.read_csv(file, sep=";", header=None, engine="python", names=[str(i) for i in range(3)])
+#         new_header = data.iloc[12]
+#         data = data[13:] #take the data less the header row
+#         data.columns = new_header
+#         data.to_csv(result_path +os.sep+ os.path.basename(file), index=False)
+#         # shutil.copy2(file, result_path +os.sep+ os.path.basename(file))
+#
+# data = df_station
+# shapefile = sim_points_gdf
+
 print(f'################################ RUN OVER NCDF ################################', end='\n')
 # Get paths for selected sim
 print(f'> Load ncdf data paths...', end='\n')
@@ -92,6 +122,7 @@ paths = subdict2[indicator]
 for data_type, subdict in path_files.items():
     # Load simulation points for current data type
     sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim'][data_type])
+
     if data_type == "hydro":
         # sim_points_gdf = sim_points_gdf[sim_points_gdf['REFERENCE'] == 1]
         sim_points_gdf = sim_points_gdf[sim_points_gdf['n'] >= 4]
@@ -159,13 +190,31 @@ for data_type, subdict in path_files.items():
                     # other_dimension = {'time': 'time.month'}
                     ds = ds.assign_coords(month=ds['time.month'])
                     other_dimension = 'month'
+                elif indicator == 'seas':
+                    def get_season(month):
+                        if month in [12, 1, 2]:
+                            return 'DJF'
+                        elif month in [3, 4, 5]:
+                            return 'MAM'
+                        elif month in [6, 7, 8]:
+                            return 'JJA'
+                        else:
+                            return 'SON'
+
+                    seasons = xr.DataArray(
+                        [get_season(i) for i in ds['time.month'].values],
+                        coords={'time': ds['time']},
+                        dims='time'
+                    )
+                    ds = ds.assign_coords(season=seasons)
+                    other_dimension = 'season'
 
             print(f'> Define horizons...', end='\n')
             # Define horizons
             ds = define_horizon(ds, files_setup)
 
             # Return period
-            ds = compute_return_period(ds, indicator_cols, files_setup, return_period=5, other_dimension=other_dimension)
+            # ds = compute_return_period(ds, indicator_cols, files_setup, return_period=5, other_dimension=other_dimension)
 
             # Compute mean value for each horizon for each sim
             ds = compute_mean_by_horizon(ds=ds, indicator_cols=indicator_cols,
@@ -188,9 +237,9 @@ for data_type, subdict in path_files.items():
                                                   q=files_setup['quantile']
                                                   )
             indicator_horizon_deviation = [f"{indicator}_deviation_{i}" for i in
-                                                list(ds_deviation_stats.data_vars)]
+                                           list(ds_deviation_stats.data_vars)]
             indicator_horizon_difference = [f"{indicator}_difference_{i}" for i in
-                                                 list(ds_difference_stats.data_vars)]
+                                            list(ds_difference_stats.data_vars)]
             ds[indicator_horizon_deviation] = ds_deviation_stats
             ds[indicator_horizon_difference] = ds_difference_stats
 
@@ -226,22 +275,34 @@ for data_type, subdict in path_files.items():
                             11: 'Novembre'},
                 }
 
+            shape_hp = {
+                'CTRIP': 'o',
+                'EROS': 'H',
+                'GRSD': '*',
+                'J2000': 's',
+                'MORDOR-TS': '^',
+                'MORDOR-SD': 'v',
+                'SIM2': '>',
+                'SMASH': '<',
+                'ORCHIDEE': 'D',
+            }
+
             gdf = gpd.GeoDataFrame({
                 'geometry': ds['geometry'].values,
                 'id_geometry': ds['id_geometry'].values
             })
 
             dict_shapefiles = {'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'paleturquoise',
-                                              'linewidth': 1, 'zorder': 20, 'alpha': 1},
+                                              'linewidth': 1, 'zorder': 2, 'alpha': 0.8},
                                'background_shp': {'shp': regions_shp_simplified, 'color': 'gainsboro',
                                                   'edgecolor': 'black', 'zorder': 0},
                                }
             if data_type == 'hydro':
-                dict_shapefiles |= {'study_shp': {'shp': study_ug_shp_simplified, 'color': 'white',
-                                                 'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
+                dict_shapefiles |= {'study_shp': {'shp': study_ug_bv_shp_simplified, 'color': 'white',
+                                                  'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
             else:
-                dict_shapefiles |= {'study_shp': {'shp': study_ug_shp_simplified, 'color': 'none',
-                                                 'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
+                dict_shapefiles |= {'study_shp': {'shp': study_ug_bv_shp_simplified, 'color': 'white',
+                                                  'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
 
             print(f"> Map plot...")
             path_indicator_figures = dict_paths['folder_study_figures'] + indicator + os.sep
@@ -280,7 +341,19 @@ for data_type, subdict in path_files.items():
                 mapplot(gdf, ds, indicator_plot=indicator_horizon_difference[0], path_result=path_indicator_figures+'map_difference.pdf',
                         cols=cols_map, rows=rows,
                         cbar_title=f"{indicator} difference", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
-                        discretize=4, palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor=None, vmin=0, vmax=4)
+                        discretize=4, palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k', vmin=0, vmax=4)
+
+                # Plot number of HM by station
+                indicator = 'n'
+                ds = sim_points_gdf
+                gdf = sim_points_gdf
+                cols_map = None
+                rows = None
+
+                mapplot(gdf, ds, indicator_plot='n', path_result=path_indicator_figures+'HM.pdf',
+                        cols=cols_map, rows=rows,
+                        cbar_title=f"Nombre de HM", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
+                        discretize=8, palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor=None, vmin=4, vmax=8)
 
 
                 print(f"> Relative line plot {indicator}_{timestep}_{rcp}_{key}...")
@@ -309,7 +382,6 @@ for data_type, subdict in path_files.items():
                 lineplot(ds, x_axis, y_axis, path_result=path_indicator_figures+'lineplot.pdf', cols=cols, rows=rows,
                          title=None, percent=False, fontsize=14, font='sans-serif', ymax=None, plot_type='line')
 
-
                 # Cols  and rows of subplots
                 cols = {'names_var': 'id_geometry', 'values_var': ['K001872200', 'M850301010'], 'names_plot': ['Station 1', 'Station 2']}
                 rows = {
@@ -320,8 +392,8 @@ for data_type, subdict in path_files.items():
 
                 y_axis = {
                     'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
-                                  'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
-                                  'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
+                                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
+                                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
                     'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']
                 }
                 x_axis = {
@@ -333,8 +405,8 @@ for data_type, subdict in path_files.items():
                 # TEST 1
                 cols = {
                     'names_var': 'id_geometry',
-                        'values_var': ['K001872200', 'M850301010'],
-                        'names_plot': ['K001872200', 'M850301010'],
+                    'values_var': ['K001872200', 'M850301010'],
+                    'names_plot': ['K001872200', 'M850301010'],
                 }
                 rows = {
                     'names_var': row_name,
@@ -402,5 +474,77 @@ for data_type, subdict in path_files.items():
                 }
 
                 boxplot(ds, x_axis, y_axis, path_result=path_indicator_figures+'boxplot.pdf', cols=cols, rows=rows,
-                         title=None, percent=False, palette='BrBG', fontsize=14, font='sans-serif', ymax=None)
+                        title=None, percent=False, palette='BrBG', fontsize=14, font='sans-serif', ymax=None)
+
+                import matplotlib.lines as mlines
+                from sklearn.cluster import KMeans
+
+                stations = list(sim_points_gdf[sim_points_gdf['INDEX'].isin([1774,1895,2294,1633,1786,2337])].index)
+                stations = ['M842001000']
+
+                fig, ax = plt.subplots(1, 1, figsize=(6,4), constrained_layout=True)
+
+                x = ds[indicator_horizon_deviation_sims].sel(season='DJF', horizon='horizon3', id_geometry=stations)
+                y = ds[indicator_horizon_deviation_sims].sel(season = 'JJA', horizon='horizon3', id_geometry=stations)
+                ax.grid()
+                dict_hm = {key: [] for key in shape_hp.keys()}
+                x_list = []
+                y_list = []
+                for var in x.data_vars:
+                    print(var)
+                    # Identifier la clé du dictionnaire présente dans le nom de la variable
+                    hm = next((key for key in shape_hp if key in var), 'NONE')
+                    marker = shape_hp[hm]
+                    dict_hm[hm].append(var)
+
+                    if ~np.isnan(x[var].values) and ~np.isnan(y[var].values):
+                        x_list.append(np.nanmedian(x[var].values))
+                        y_list.append(np.nanmedian(y[var].values))
+
+                    # Tracer la variable
+                    plt.scatter(np.nanmedian(x[var].values), np.nanmedian(y[var].values), marker=marker, alpha=0.8,
+                                color='k')
+
+
+                for key, shape in shape_hp.items():
+                    plt.scatter(np.nanmedian(x[dict_hm[key]].to_array()), np.nanmedian(y[dict_hm[key]].to_array()),
+                                marker=shape, alpha=0.8,
+                                color='firebrick')
+
+
+                kmeans = KMeans(n_clusters=4, random_state=0)
+                df = pd.DataFrame({'x': x_list, 'y': y_list})
+                df['cluster'] = kmeans.fit_predict(df[['x','y']])
+
+                # Sélectionner un point représentatif par cluster (par exemple, le plus proche du centroïde)
+                representative_points = df.loc[
+                    df.groupby('cluster').apply(
+                        lambda group: group[['x', 'y']].sub(kmeans.cluster_centers_[group.name]).pow(2).sum(axis=1).idxmin()
+                    )
+                ]
+                plt.scatter(representative_points['x'], representative_points['y'],
+                            marker='o', alpha=0.5,
+                            color='green')
+
+
+                ax.spines[['right', 'top']].set_visible(False)
+                ax.set_xlim(-70, 70)
+                ax.set_ylim(-70, 70)
+                ax.yaxis.set_major_formatter(mtick.PercentFormatter())
+                ax.xaxis.set_major_formatter(mtick.PercentFormatter())
+                ax.set_ylabel('Qm estival')
+                ax.set_xlabel('Qm hivernal')
+                legend_handles = [
+                    mlines.Line2D([], [], color='black', marker=shape, linestyle='None', markersize=8,
+                                  label=f'{key}')
+                    for key, shape in shape_hp.items()
+                ]
+                plt.legend(
+                    handles=legend_handles,
+                    loc="center left",  # Position relative
+                    bbox_to_anchor=(1, 0.5)  # Placer la légende à droite du graphique
+                )
+
+                plt.savefig(f"/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/figures/global/narratifs2_M842001000.pdf",
+                                            bbox_inches='tight')
 
