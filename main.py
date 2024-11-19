@@ -1,3 +1,5 @@
+from scipy.special import linestyle
+
 print(f'################################ IMPORT & INITIALIZATION ################################', end='\n')
 
 print(f'> General imports...', end='\n')
@@ -353,7 +355,7 @@ for data_type, subdict in path_files.items():
                 mapplot(gdf, ds, indicator_plot='n', path_result=path_indicator_figures+'HM.pdf',
                         cols=cols_map, rows=rows,
                         cbar_title=f"Nombre de HM", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
-                        discretize=8, palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor=None, vmin=4, vmax=8)
+                        discretize=6, cbar_ticks='mid', palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k', vmin=3.5, vmax=9.5)
 
 
                 print(f"> Relative line plot {indicator}_{timestep}_{rcp}_{key}...")
@@ -478,18 +480,40 @@ for data_type, subdict in path_files.items():
 
                 import matplotlib.lines as mlines
                 from sklearn.cluster import KMeans
+                from scipy.spatial import Voronoi, voronoi_plot_2d
 
                 stations = list(sim_points_gdf[sim_points_gdf['INDEX'].isin([1774,1895,2294,1633,1786,2337])].index)
                 stations = ['M842001000']
 
-                fig, ax = plt.subplots(1, 1, figsize=(6,4), constrained_layout=True)
-
                 x = ds[indicator_horizon_deviation_sims].sel(season='DJF', horizon='horizon3', id_geometry=stations)
                 y = ds[indicator_horizon_deviation_sims].sel(season = 'JJA', horizon='horizon3', id_geometry=stations)
-                ax.grid()
-                dict_hm = {key: [] for key in shape_hp.keys()}
                 x_list = []
                 y_list = []
+                for var in x.data_vars:
+                    if any(np.isnan(x[var].values)) and any(~np.isnan(y[var].values)):
+                        x_list.append(np.nanmedian(x[var].values))
+                        y_list.append(np.nanmedian(y[var].values))
+
+                # Narratifs by clustering (K-means)
+                kmeans = KMeans(n_clusters=4, random_state=0)
+                df = pd.DataFrame({'x': x_list, 'y': y_list})
+                df['cluster'] = kmeans.fit_predict(df[['x','y']])
+                # Sélectionner un point représentatif par cluster (par exemple, le plus proche du centroïde)
+                representative_points = df.loc[
+                    df.groupby('cluster').apply(
+                        lambda group: group[['x', 'y']].sub(kmeans.cluster_centers_[group.name]).pow(2).sum(axis=1).idxmin()
+                    )
+                ]
+                couples = list(zip(representative_points['x'], representative_points['y']))
+                # Obtenir les centroïdes
+                centroids = kmeans.cluster_centers_
+                # Créer un Voronoi pour délimiter les aires
+                vor = Voronoi(centroids)
+
+                fig, ax = plt.subplots(1, 1, figsize=(6,4), constrained_layout=True)
+                ax.grid()
+                dict_hm = {key: [] for key in shape_hp.keys()}
+
                 for var in x.data_vars:
                     print(var)
                     # Identifier la clé du dictionnaire présente dans le nom de la variable
@@ -497,34 +521,26 @@ for data_type, subdict in path_files.items():
                     marker = shape_hp[hm]
                     dict_hm[hm].append(var)
 
-                    if ~np.isnan(x[var].values) and ~np.isnan(y[var].values):
-                        x_list.append(np.nanmedian(x[var].values))
-                        y_list.append(np.nanmedian(y[var].values))
-
                     # Tracer la variable
-                    plt.scatter(np.nanmedian(x[var].values), np.nanmedian(y[var].values), marker=marker, alpha=0.8,
-                                color='k')
+                    x_value = np.nanmedian(x[var].values)
+                    y_value = np.nanmedian(y[var].values)
+
+                    if (x_value, y_value) in couples:
+                        plt.scatter(x_value, y_value, marker=marker, alpha=1,
+                                    color='green', zorder=2)
+                    else:
+                        plt.scatter(x_value, y_value, marker=marker, alpha=0.8,
+                                    color='k', zorder=0)
 
 
                 for key, shape in shape_hp.items():
                     plt.scatter(np.nanmedian(x[dict_hm[key]].to_array()), np.nanmedian(y[dict_hm[key]].to_array()),
                                 marker=shape, alpha=0.8,
-                                color='firebrick')
+                                color='firebrick', zorder=1)
 
-
-                kmeans = KMeans(n_clusters=4, random_state=0)
-                df = pd.DataFrame({'x': x_list, 'y': y_list})
-                df['cluster'] = kmeans.fit_predict(df[['x','y']])
-
-                # Sélectionner un point représentatif par cluster (par exemple, le plus proche du centroïde)
-                representative_points = df.loc[
-                    df.groupby('cluster').apply(
-                        lambda group: group[['x', 'y']].sub(kmeans.cluster_centers_[group.name]).pow(2).sum(axis=1).idxmin()
-                    )
-                ]
-                plt.scatter(representative_points['x'], representative_points['y'],
-                            marker='o', alpha=0.5,
-                            color='green')
+                # Tracer les aires des clusters avec Voronoi
+                voronoi_plot_2d(vor, ax=plt.gca(), show_vertices=False, line_colors='green',
+                                line_width=0.4, line_alpha=0.6, point_size=0, linestyle='--')
 
 
                 ax.spines[['right', 'top']].set_visible(False)
@@ -545,6 +561,6 @@ for data_type, subdict in path_files.items():
                     bbox_to_anchor=(1, 0.5)  # Placer la légende à droite du graphique
                 )
 
-                plt.savefig(f"/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/figures/global/narratifs2_M842001000.pdf",
+                plt.savefig(f"/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/figures/global/narratifs.pdf",
                                             bbox_inches='tight')
 

@@ -55,7 +55,7 @@ def overlay_shapefile(shapefile, data, path_result=None, col='gid'):
 
         matched_points = matched_points.merge(total_surface, left_on=col, right_index=True)
 
-        matched_points = matched_points.loc[matched_points.groupby('name')['gid'].idxmin()].reset_index()
+        # matched_points = matched_points.loc[matched_points.groupby('name')['gid'].idxmin()].reset_index()
 
     else:
         matched_points = data.sjoin(shapefile, how='inner', predicate='intersects')

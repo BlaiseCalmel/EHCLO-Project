@@ -29,14 +29,14 @@ def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=F
         else:
             x_diff = axes_flatten[-1].get_position().x1 * 0.01
     else:
-        x_diff = axes_flatten[-1].get_position().x1 * 0.01
+        x_diff = axes_flatten[-1].get_position().x1 * 0.02
 
     if len(axes_flatten) > 1:
         y_diff = (axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0) / 25
     else:
         y_diff = 0
 
-    cbar_ax = fig.add_axes([axes_flatten[-1].get_position().x1 + x_diff,
+    cbar_ax = fig.add_subplot([axes_flatten[-1].get_position().x1 + x_diff + 0.02,
                             axes_flatten[-1].get_position().y0 - y_diff,
                             0.02,
                             axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0])
@@ -46,8 +46,11 @@ def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=F
         cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap, format='%.0f')
     else:
         cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap)
+
     if cbar_title:
         cbar.set_label(cbar_title, **text_kwargs)
+
+    return cbar
 
 
 def add_headers(fig, *, row_headers=None, col_headers=None, row_pad=1, col_pad=5, rotate_row_headers=True,

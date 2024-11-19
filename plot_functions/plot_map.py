@@ -4,8 +4,9 @@ from plot_functions.plot_common import *
 import matplotlib.cm as cm
 
 def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
-             cbar_title=None, title=None, dict_shapefiles=None, percent=True, bounds=None, discretize=7,
-             vmin=None, vmax=None, palette='BrBG', cmap_zero=False, fontsize=14, edgecolor='k', font='sans-serif'):
+            cbar_title=None, title=None, dict_shapefiles=None, percent=True, bounds=None, discretize=7,
+            cbar_ticks=None, vmin=None, vmax=None, palette='BrBG', cmap_zero=False, fontsize=14, edgecolor='k',
+            font='sans-serif'):
 
     ds_plot = copy.deepcopy(ds)
     len_cols, cols, ds_plot = init_grid(cols, ds_plot)
@@ -45,6 +46,8 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
         figsize = (4 * len_cols, len_rows * 4)
 
     fig, axes = plt.subplots(len_rows, len_cols, figsize=figsize, constrained_layout=True)
+    initial_position = axes.get_position()
+    axes.set_position(initial_position)
     # Main title
     if title is not None:
         fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2)
@@ -59,14 +62,15 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
             idx = len_cols * row_idx + col_idx
             ax = axes_flatten[idx]
 
-            temp_dict = {}
-            if cols['names_var'] is not None and col is not None:
-                temp_dict |= {cols['names_var']: col}
-            if rows['names_var'] is not None and row is not None:
-                temp_dict |= {rows['names_var']: row}
+            if indicator_plot not in gdf.columns:
+                temp_dict = {}
+                if cols['names_var'] is not None and col is not None:
+                    temp_dict |= {cols['names_var']: col}
+                if rows['names_var'] is not None and row is not None:
+                    temp_dict |= {rows['names_var']: row}
 
-            row_data = ds_plot.sel(temp_dict)[indicator_plot].values
-            gdf[indicator_plot] = row_data
+                row_data = ds_plot.sel(temp_dict)[indicator_plot].values
+                gdf[indicator_plot] = row_data
 
             # Background shapefiles
             if dict_shapefiles is not None:
@@ -75,7 +79,7 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
                     subdict['shp'].plot(ax=ax, figsize=(18, 18), **shp_kwargs)
 
             gdf.plot(column=indicator_plot, cmap=cmap, norm=norm, ax=ax, legend=False, markersize=100,
-                     edgecolor=edgecolor, alpha=0.9, zorder=10)
+                     edgecolor=edgecolor, alpha=0.9, zorder=10, )
 
             if bounds is not None:
                 ax.set_xlim(bounds[0], bounds[2])
@@ -86,7 +90,11 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
     add_headers(fig, col_headers=cols['names_plot'], row_headers=rows['names_plot'], row_pad=5, col_pad=5, **text_kwargs)
 
     # Colorbar
-    define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=cbar_title, percent=percent, **text_kwargs)
+    cbar = define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=cbar_title, percent=percent, **text_kwargs)
+    if cbar_ticks == 'mid':
+        cbar.set_ticks((bounds_cmap[1:] + bounds_cmap[:-1])/2)
+        cbar.ax.tick_params(size=0)
+        cbar.set_ticklabels((bounds_cmap[1:] + bounds_cmap[:-1])/2)
 
     plt.savefig(path_result, bbox_inches='tight')
 
