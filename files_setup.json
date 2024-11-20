@@ -8,7 +8,7 @@
   "select_bc": [],
   "select_hm": [],
 
-  "historical": [1990, 2020],
+  "historical": [1991, 2020],
   "horizons": {
     "horizon1": [2021, 2050],
     "horizon2": [2041, 2070],

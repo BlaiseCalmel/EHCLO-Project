@@ -185,8 +185,12 @@ for data_type, subdict in path_files.items():
                 ds['geometry'] = ('code', [
                     geometry_dict[code] if code in geometry_dict.keys() else None for code in ds['code'].values
                 ])
-                # ds = ds.assign_coords(geometry=('code', [geometry_dict[code] for code in ds['code'].values]))
                 ds = ds.rename({'code': 'id_geometry'})
+
+                # Compute PK
+                value = compute_river_distance(rivers_shp, sim_points_gdf_simplified, river_name='loire',
+                                               start_from='last')
+                sim_points_gdf['PK'] = value
 
                 if indicator == 'QA':
                     # other_dimension = {'time': 'time.month'}
@@ -293,8 +297,39 @@ for data_type, subdict in path_files.items():
                 'geometry': ds['geometry'].values,
                 'id_geometry': ds['id_geometry'].values
             })
+            from shapely.geometry import LineString, MultiLineString
+            test = study_rivers_shp_simplified
+            test = study_rivers_shp_simplified[study_rivers_shp_simplified['LbEntCru'].str.contains('loire', case=False, na=False)]
 
-            dict_shapefiles = {'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'paleturquoise',
+            test.to_file('/home/bcalmel/Documents/loire.shp', index=False)
+            test = open_shp(path_shp='/home/bcalmel/Documents/loire.shp')
+
+            # Étape 1 : Fusionner MULTILINESTRING en une seule LINESTRING continue
+            # Cela garantit une structure simple
+            unified_line = LineString(
+                [coord for line in test.loc[0].geometry.geoms for coord in line.coords]
+            )
+
+            # Étape 2 : Trouver l'extrémité finale (le dernier point)
+            line_end = unified_line.coords[-1]  # Dernière coordonnée
+
+            # Étape 3 : Calculer la distance le long de la ligne, à partir du dernier point
+            # Pour cela, projeter chaque point sur la ligne
+            def calculate_distance_from_end(point, line):
+                # Trouver le point projeté sur la ligne
+                projected_point = line.interpolate(line.project(point))
+                # Distance à partir de la fin de la ligne
+                return (line.length - line.project(projected_point)) / 1000
+
+            # Ajouter la distance dans le GeoDataFrame des points
+            values = sim_points_gdf_simplified.geometry.apply(
+                lambda point: calculate_distance_from_end(point, unified_line)
+            )
+
+
+            test['geometry'] = unified_multilinestring
+
+            dict_shapefiles = {'rivers_shp': {'shp': test, 'color': 'paleturquoise',
                                               'linewidth': 1, 'zorder': 2, 'alpha': 0.8},
                                'background_shp': {'shp': regions_shp_simplified, 'color': 'gainsboro',
                                                   'edgecolor': 'black', 'zorder': 0},
@@ -327,7 +362,6 @@ for data_type, subdict in path_files.items():
                     'values_var': list(value.keys()),
                     'names_plot': list(value.values())
                 }
-
                 rows = None
 
                 # Plot map
@@ -352,7 +386,7 @@ for data_type, subdict in path_files.items():
                 cols_map = None
                 rows = None
 
-                mapplot(gdf, ds, indicator_plot='n', path_result=path_indicator_figures+'HM.pdf',
+                mapplot(gdf, ds, indicator_plot='J2000', path_result=path_indicator_figures+'HM.pdf',
                         cols=cols_map, rows=rows,
                         cbar_title=f"Nombre de HM", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
                         discretize=6, cbar_ticks='mid', palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k', vmin=3.5, vmax=9.5)

@@ -1,6 +1,6 @@
 import geopandas
 import pandas as pd
-from shapely.geometry import Point, Polygon, LineString
+from shapely.geometry import Point, Polygon, LineString, MultiLineString
 import os
 import numpy as np
 import geopandas as gpd
@@ -59,7 +59,7 @@ def overlay_shapefile(shapefile, data, path_result=None, col='gid'):
 
     else:
         matched_points = data.sjoin(shapefile, how='inner', predicate='intersects')
-        # matched_points = matched_points.drop_duplicates(subset=['nom_fichier'], keep='first')
+        matched_points = matched_points.loc[~matched_points.index.duplicated(keep='first')]
         matched_points = matched_points.drop('index_right', axis=1)
 
         # if geometry_type.value_counts().idxmax() == "LineString":
@@ -162,6 +162,45 @@ def load_shp(dict_paths, files_setup):
     rivers_shp = open_shp(path_shp=dict_paths['file_rivers_shp'])
 
     return regions_shp, study_ug_shp, study_ug_bv_shp, rivers_shp
+
+def compute_river_distance(rivers_shp, sim_points_gdf_simplified, river_name='loire', start_from='first'):
+    main_river = rivers_shp[rivers_shp['LbEntCru'].str.contains(river_name, case=False, na=False)]
+    main_river = main_river.reindex(index=main_river.index[::-1])
+
+    all_lines = []
+    # Iterate over multilinestrings
+    for geom in main_river['geometry']:
+        if isinstance(geom, LineString):
+            all_lines.append(geom)
+        else:
+            for line in geom.geoms:
+                all_lines.append(line)
+    # Generate a single linestring
+    unified_line = MultiLineString(all_lines)
+
+    # Compute distance
+    if start_from == 'first':
+        values = sim_points_gdf_simplified.geometry.apply(
+            lambda point: calculate_distance_along_line(point, unified_line)
+        )
+    elif start_from == 'last':
+        values = sim_points_gdf_simplified.geometry.apply(
+            lambda point: calculate_distance_from_end(point, unified_line)
+        )
+    else:
+        values = None
+    return values
+
+def calculate_distance_from_end(point, line):
+    # Find projected point on the line
+    projected_point = line.interpolate(line.project(point))
+    return (line.length - line.project(projected_point)) / 1000
+
+def calculate_distance_along_line(point, line):
+    # Trouver le point projeté sur la ligne
+    projected_point = line.interpolate(line.project(point))
+    # Distance cumulée à partir du début de la ligne
+    return line.project(projected_point) / 1000
 
 def simplify_shapefiles(study_ug_shp, study_ug_bv_shp, rivers_shp, regions_shp, tolerance=1000, zoom=50000):
     # Study geographical limits
