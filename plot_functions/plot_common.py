@@ -1,3 +1,5 @@
+import copy
+
 import matplotlib.pyplot as plt
 import geopandas.geodataframe as gpd
 import matplotlib as mpl
@@ -6,15 +8,24 @@ import numpy as np
 
 
 def init_grid(grid_dict, ds_plot):
-    if grid_dict is not None:
-        length = len(grid_dict['values_var'])
-        if grid_dict['names_var'] != 'indicator':
-            ds_plot = ds_plot.sel({grid_dict['names_var']: grid_dict['values_var']})
+    grid_dict_temp = copy.deepcopy(grid_dict)
+    if grid_dict_temp is not None:
+        if isinstance(grid_dict_temp, int):
+            length_dict = grid_dict_temp
+            grid_dict_temp = {'values_var': [None], 'names_plot': [None], 'names_coord': [None]}
+        else:
+            length_dict = len(grid_dict_temp['values_var'])
+            if 'names_coord' in grid_dict_temp.keys():
+                if grid_dict_temp['names_coord'] != 'indicator':
+                    if grid_dict_temp['names_coord'] is not None:
+                        ds_plot = ds_plot.sel({grid_dict_temp['names_coord']: grid_dict_temp['values_var']})
+            else:
+                grid_dict_temp |= {'names_plot': [None], 'names_coord': [None]}
     else:
-        length = 1
-        grid_dict = {'values_var': [None], 'names_plot': [None], 'names_var': [None]}
+        length_dict = 1
+        grid_dict_temp = {'values_var': [None], 'names_plot': [None], 'names_coord': [None]}
 
-    return length, grid_dict, ds_plot
+    return length_dict, grid_dict_temp, ds_plot
 
 def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=False, **text_kwargs):
     # fig.subplots_adjust(right=0.95)
@@ -31,13 +42,13 @@ def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=F
     else:
         x_diff = axes_flatten[-1].get_position().x1 * 0.02
 
-    if len(axes_flatten) > 1:
-        y_diff = (axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0) / 25
-    else:
-        y_diff = 0
+    # if len(axes_flatten) > 1:
+    #     y_diff = (axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0) / 25
+    # else:
+    #     y_diff = 0
 
     cbar_ax = fig.add_subplot([axes_flatten[-1].get_position().x1 + x_diff + 0.02,
-                            axes_flatten[-1].get_position().y0 - y_diff,
+                            axes_flatten[-1].get_position().y0,
                             0.02,
                             axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0])
 
