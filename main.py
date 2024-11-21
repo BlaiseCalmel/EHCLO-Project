@@ -158,6 +158,7 @@ for data_type, subdict in path_files.items():
             # path_ncdf = f"{dict_paths['folder_study_data']}QA_mon_ME_rcp85.nc"
             # indicator='QA'
             ds = xr.open_dataset(path_ncdf)
+            # TODO ITERATE OVER QA INDICATORS
             indicator_cols = [i for i in list(ds.variables) if indicator in i]
 
             # Define geometry for each data (Points hydro, Polygon climate)
