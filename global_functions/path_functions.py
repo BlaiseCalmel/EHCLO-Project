@@ -4,13 +4,14 @@ import os
 def define_paths(config):
 
     param_type = ['hydro', 'climate']
-    folder_data_contour = config['folder_contour_data'] + os.sep
+    folder_data_contour = os.path.abspath(config['folder_path_contour_data']) + os.sep
 
     # Main folders path
-    folder_results = config['folder_results'] + os.sep
+    # folder_results = config['folder_path_results'] + os.sep
+    folder_results = os.path.abspath(config['folder_path_results'])  + os.sep
     folder_study = folder_results + config['study_name'] + os.sep
-    folder_study_figures = folder_study + config['folder_figures'] + os.sep
-    folder_study_data = folder_study + config['folder_data'] + os.sep
+    folder_study_figures = folder_study + 'figures' + os.sep
+    folder_study_data = folder_study + 'data' + os.sep
 
     # File paths
     # points_sim = config['param_type'] + '_points_sim.csv'
@@ -22,16 +23,16 @@ def define_paths(config):
 
 
     dict_paths = {
-        'folder_hydro_data': config['folder_hydro_data'],
-        'folder_climate_data': config['folder_climate_data'],
+        'folder_hydro_data': os.path.abspath(config['folder_path_hydro_data']),
+        'folder_climate_data': os.path.abspath(config['folder_path_climate_data']),
         'folder_data_contour': folder_data_contour,
         'folder_study_results': folder_study,
         'folder_study_figures': folder_study_figures,
         'folder_study_data': folder_study_data,
         'file_regions_shp': folder_data_contour + config['regions_shp'],
         'file_rivers_shp': folder_data_contour + config['rivers_shp'],
-        'file_ug_shp': folder_data_contour + config['ug_shp'],
-        'file_ug_bv_shp': folder_data_contour + config['ug_bv_shp'],
+        'file_hydro_shp': folder_data_contour + config['hydro_shp'],
+        'file_climate_shp': folder_data_contour + config['climate_shp'],
         'dict_global_points_sim': dict_global_points_sim,
         'dict_study_points_sim': dict_study_points_sim,
     }

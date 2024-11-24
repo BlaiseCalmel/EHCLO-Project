@@ -1,3 +1,8 @@
+import pyfiglet
+ascii_banner = pyfiglet.figlet_format("FORMAT NCDF")
+print(f'##########################################################################################', end='\n')
+print(ascii_banner, end='\n')
+
 print(f'################################ IMPORT & INITIALIZATION ################################', end='\n')
 
 print(f'> General imports...', end='\n')
@@ -6,9 +11,7 @@ import os
 # sys.path.insert(0, os.getcwd())
 import time
 import json
-# import pyfiglet
-# ascii_banner = pyfiglet.figlet_format("Hello")
-# print(ascii_banner)
+
 
 print(f'> Local imports...', end='\n')
 from global_functions.load_data import *
@@ -56,7 +59,7 @@ if not os.path.isdir(dict_paths['folder_study_data'] + 'shapefiles'):
 #%% LOAD STUDY REGION SHAPEFILE
 print(f'################################ DEFINE STUDY AREA ################################', end='\n')
 print(f'> Load shapefiles...', end='\n')
-regions_shp, study_ug_shp, study_ug_bv_shp, rivers_shp = load_shp(dict_paths, files_setup)
+regions_shp, study_hydro_shp, study_climate_shp, rivers_shp = load_shp(dict_paths, files_setup)
 
 # Check if study area is already matched with sim points
 print(f'> Searching sim points in study area...', end='\n')
@@ -65,17 +68,17 @@ for data_type, path in dict_paths['dict_study_points_sim'].items():
         print(f'>> Find {data_type} data points in study area')
         sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
         if data_type == 'hydro':
-            overlay_shapefile(shapefile=study_ug_shp, data=sim_all_points_info,
+            overlay_shapefile(shapefile=study_hydro_shp, data=sim_all_points_info,
                               path_result=path)
         else:
-            overlay_shapefile(shapefile=study_ug_bv_shp, data=sim_all_points_info,
+            overlay_shapefile(shapefile=study_climate_shp, data=sim_all_points_info,
                               path_result=path)
     else:
         print(f'>> {data_type.capitalize()} data points already in the study area')
 
 print(f'> Simplify shapefiles...', end='\n')
-study_ug_shp_simplified, study_ug_bv_shp_simplified, study_rivers_shp_simplified, regions_shp_simplified, bounds = (
-    simplify_shapefiles(study_ug_shp, study_ug_bv_shp, rivers_shp, regions_shp, tolerance=1000, zoom=50000))
+study_hydro_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified, regions_shp_simplified, bounds = (
+    simplify_shapefiles(study_hydro_shp, study_climate_shp, rivers_shp, regions_shp, tolerance=1000, zoom=50000))
 
 # path_sh = f"/home/bcalmel/Documents/2_data/climat/SH/Liste_SH_TX_metro.csv"
 #
@@ -113,11 +116,11 @@ print(f'> Load ncdf data paths...', end='\n')
 path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 
 # Run among data type climate/hydro
-data_type='hydro'
+data_type='climate'
 subdict=path_files[data_type]
 rcp='rcp85'
 subdict2=subdict[rcp]
-indicator = 'QA_mon'
+indicator = "tasminAdjust"
 paths = subdict2[indicator]
 for data_type, subdict in path_files.items():
     # Load simulation points for current data type
@@ -152,6 +155,12 @@ for data_type, subdict in path_files.items():
                         paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf, indicator=indicator,
                         timestep=timestep, start=files_setup['historical'][0], path_result=path_ncdf,
                     )
+                else:
+                    print(f'> Invalid {indicator} name', end='\n')
+            else:
+                print(f'> {path_ncdf} already exists', end='\n')
+
+            continue
 
             print(f'################################ FORMAT DATA ################################', end='\n')
             print(f'> Load from {indicator} export...', end='\n')
@@ -165,13 +174,13 @@ for data_type, subdict in path_files.items():
             print(f'> Match geometry and data...', end='\n')
             other_dimension = None
             if data_type == 'climate':
-                sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
+                sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
+                # TODO Rename 'name' with id_geometry
                 ds = ds.assign_coords(geometry=(
                     'name', sim_all_points_info.set_index('name').loc[ds['name'].values, 'geometry']))
-                ds = ds.rename({'name': 'id_geometry'})
 
                 # Find matching area
-                geometry_dict = {row['gid']: row['geometry'] for _, row in study_ug_shp.iterrows()}
+                geometry_dict = {row['gid']: row['geometry'] for _, row in study_hydro_shp.iterrows()}
                 region_da = xr.DataArray(sim_points_gdf['gid'].values, dims=['name'],
                                          coords={'name': sim_points_gdf['name']})
                 ds = ds.assign_coords(region=region_da)
@@ -181,6 +190,7 @@ for data_type, subdict in path_files.items():
                 sim_points_gdf_simplified = sim_points_gdf.copy()
                 sim_points_gdf_simplified = sim_points_gdf_simplified.simplify(tolerance=1000, preserve_topology=True)
                 geometry_dict = sim_points_gdf['geometry'].to_dict()
+                # TODO Rename 'code' with id_geometry
                 ds['geometry'] = ('code', [
                     geometry_dict[code] if code in geometry_dict.keys() else None for code in ds['code'].values
                 ])
@@ -307,10 +317,10 @@ for data_type, subdict in path_files.items():
                                                   'edgecolor': 'black', 'zorder': 0},
                                }
             if data_type == 'hydro':
-                dict_shapefiles |= {'study_shp': {'shp': study_ug_bv_shp_simplified, 'color': 'white',
+                dict_shapefiles |= {'study_shp': {'shp': study_climate_shp_simplified, 'color': 'white',
                                                   'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
             else:
-                dict_shapefiles |= {'study_shp': {'shp': study_ug_bv_shp_simplified, 'color': 'white',
+                dict_shapefiles |= {'study_shp': {'shp': study_climate_shp_simplified, 'color': 'white',
                                                   'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
 
             print(f"> Map plot...")
@@ -324,13 +334,13 @@ for data_type, subdict in path_files.items():
                 else:
                     path_results = f"{path_indicator_figures}{timestep}_{rcp}_{key}_"
                 cols_map = {
-                    'names_var': 'horizon',
+                    'names_coord': 'horizon',
                     'values_var': ['horizon1', 'horizon2', 'horizon3'],
                     'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2100)']
                 }
 
                 rows = {
-                    'names_var': row_name,
+                    'names_coord': row_name,
                     'values_var': list(value.keys()),
                     'names_plot': list(value.values())
                 }
@@ -339,10 +349,10 @@ for data_type, subdict in path_files.items():
                 # Plot map
                 # Relative
                 print(f"> Relative map plot {indicator}_{timestep}_{rcp}_{key}...")
-                mapplot(gdf, ds, indicator_plot=indicator_horizon_deviation[0], path_result=path_indicator_figures+'map_deviation.pdf',
+                mapplot(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=indicator_horizon_deviation[0], path_result=path_indicator_figures+'map_deviation.pdf',
                         cols=cols_map, rows=rows,
                         cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
-                        discretize=discretize, palette='BrBG', fontsize=14, font='sans-serif', vmax=100)
+                        discretize=8, palette='BrBG', fontsize=14, font='sans-serif', vmax=100)
 
                 # Abs diff
                 print(f"> Difference map plot {indicator}_{timestep}_{rcp}_{key}...")
@@ -590,3 +600,6 @@ for data_type, subdict in path_files.items():
                 plt.savefig(f"/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/figures/global/narratifs.pdf",
                                             bbox_inches='tight')
 
+
+print(f'################################ END ################################', end='\n')
+input("Press Enter to close")

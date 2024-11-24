@@ -122,18 +122,21 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                     ds['code'] = ds['code'].astype(str)
                     code_values = np.unique(sim_points_gdf.index.values)
                     codes_to_select = [code for code in code_values if code in ds['code'].values]
-                    # TODO Rename dims to name
-                    ds = ds.sel(code=codes_to_select)
+                    if len(codes_to_select) > 0:
+                        # TODO Rename dims to name
+                        ds = ds.sel(code=codes_to_select)
 
-                    # Clean dataset
-                    ds = xr.Dataset({
-                        var: (('time', 'code'), ds[var].values),
-                        'x': (('code'), ds['L93_X'].values),
-                        'y': (('code'), ds['L93_Y'].values),
-                    }, coords={i: ds[i] for i in ds._coord_names}
-                    )
-                    ds = ds.set_coords('x')
-                    ds = ds.set_coords('y')
+                        # Clean dataset
+                        ds = xr.Dataset({
+                            var: (('time', 'code'), ds[var].values),
+                            'x': (('code'), ds['L93_X'].values),
+                            'y': (('code'), ds['L93_Y'].values),
+                        }, coords={i: ds[i] for i in ds._coord_names}
+                        )
+                        ds = ds.set_coords('x')
+                        ds = ds.set_coords('y')
+                    else:
+                        continue
 
                 datasets.append(ds)
 
@@ -153,9 +156,12 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
     # Save as ncdf
     if path_result is not None:
         combined_dataset.to_netcdf(path=f"{path_result}")
+        del combined_dataset
+        del ds
         # Delete temporary directory
         for path in temp_paths:
-            os.remove(path)
+            if os.path.isfile(path):
+                os.unlink(path)
         os.removedirs(temp_dir)
     else:
          return combined_dataset

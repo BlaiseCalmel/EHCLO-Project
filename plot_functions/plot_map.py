@@ -66,15 +66,15 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
             idx = len_cols * row_idx + col_idx
             ax = axes_flatten[idx]
 
-        # if indicator_plot not in gdf.columns:
-        #     temp_dict = {}
-        #     if cols_plot['names_var'] is not None and col is not None:
-        #         temp_dict |= {cols_plot['names_var']: col}
-        #     if rows_plot['names_var'] is not None and row is not None:
-        #         temp_dict |= {rows_plot['names_var']: row}
-        #
-        #     row_data = ds_plot.sel(temp_dict)[[indicator_plot]].values
-        #     gdf[indicator_plot] = row_data
+            if indicator_plot not in gdf.columns:
+                temp_dict = {}
+                if cols_plot['names_coord'] is not None and col is not None:
+                    temp_dict |= {cols_plot['names_coord']: col}
+                if rows_plot['names_coord'] is not None and row is not None:
+                    temp_dict |= {rows_plot['names_coord']: row}
+
+                row_data = ds_plot.sel(temp_dict)[[indicator_plot]].values
+                gdf[indicator_plot] = row_data
 
             # Background shapefiles
             if dict_shapefiles is not None:

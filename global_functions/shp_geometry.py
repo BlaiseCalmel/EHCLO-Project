@@ -45,22 +45,24 @@ def overlay_shapefile(shapefile, data, path_result=None, col='gid'):
     if geometry_type.value_counts().idxmax() == "Polygon":
         data['geometry'] = data.intersection(shapefile.union_all())
 
-        matched_points = gpd.overlay(data, shapefile, how='intersection')
-        matched_points['surface'] = matched_points.area
+        # matched_points = gpd.overlay(data, shapefile, how='intersection')
+        matched_points = data.sjoin(shapefile, how='inner', predicate='intersects')
 
-        total_surface = matched_points.groupby(col).agg({'surface':'sum'})
+        matched_points['surface'] = matched_points.area
+        total_surface = matched_points.groupby('index_right').agg({'surface': 'sum'})
+        # total_surface = matched_points.groupby(col).agg({'surface':'sum'})
         total_surface = total_surface.rename(columns={'surface': 'total_surface'})
         if 'total_surface' in matched_points.columns:
             matched_points = matched_points[[i for i in matched_points.columns if i != 'total_surface']]
 
-        matched_points = matched_points.merge(total_surface, left_on=col, right_index=True)
+        matched_points = matched_points.merge(total_surface, left_on='index_right', right_index=True)
 
         # matched_points = matched_points.loc[matched_points.groupby('name')['gid'].idxmin()].reset_index()
 
     else:
         matched_points = data.sjoin(shapefile, how='inner', predicate='intersects')
         matched_points = matched_points.loc[~matched_points.index.duplicated(keep='first')]
-        matched_points = matched_points.drop('index_right', axis=1)
+    matched_points = matched_points.drop('index_right', axis=1)
 
         # if geometry_type.value_counts().idxmax() == "LineString":
         #     # Keep only lines with more than 75% of their length inside polygons
@@ -155,13 +157,18 @@ def open_shp(path_shp: str):
 
 def load_shp(dict_paths, files_setup):
     regions_shp = open_shp(path_shp=dict_paths['file_regions_shp'])
-    study_ug_shp = open_shp(path_shp=dict_paths['file_ug_shp'])
-    study_ug_shp = study_ug_shp[study_ug_shp['gid'].isin(files_setup['gid'])]
-    study_ug_bv_shp = open_shp(path_shp=dict_paths['file_ug_bv_shp'])
-    study_ug_bv_shp = study_ug_bv_shp[study_ug_bv_shp['gid'].isin(files_setup['gid'])]
+    study_hydro_shp = open_shp(path_shp=dict_paths['file_hydro_shp'])
+
+    study_climate_shp = open_shp(path_shp=dict_paths['file_climate_shp'])
+    if isinstance(files_setup['gid'], dict):
+        study_hydro_shp = study_hydro_shp[
+            study_hydro_shp[list(files_setup['gid'].keys())].isin(list(files_setup['gid'].values()))]
+        study_climate_shp = study_climate_shp[
+            study_climate_shp[list(files_setup['gid'].keys())].isin(list(files_setup['gid'].values()))]
+
     rivers_shp = open_shp(path_shp=dict_paths['file_rivers_shp'])
 
-    return regions_shp, study_ug_shp, study_ug_bv_shp, rivers_shp
+    return regions_shp, study_hydro_shp, study_climate_shp, rivers_shp
 
 def compute_river_distance(rivers_shp, sim_points_gdf_simplified, river_name='loire', start_from='first'):
     main_river = rivers_shp[rivers_shp['LbEntCru'].str.contains(river_name, case=False, na=False)]
