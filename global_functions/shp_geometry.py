@@ -68,8 +68,8 @@ def overlay_shapefile(shapefile, data, path_result=None, col='gid', force_contai
             matched_points = matched_points[matched_points[key].str.contains(value, case=False, na=False)]
 
     if 'PointsSupp' in matched_points.columns:
-        valid_stations = pd.isna(sim_points_gdf_simplified['PointsSupp'])
-        sim_points_gdf_simplified = sim_points_gdf_simplified[valid_stations].reset_index(drop=True).set_index('Suggestion')
+        valid_stations = pd.isna(matched_points['PointsSupp'])
+        matched_points = matched_points[valid_stations]
 
 
 

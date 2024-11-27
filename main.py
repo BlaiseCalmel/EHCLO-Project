@@ -129,7 +129,7 @@ for data_type, subdict in path_files.items():
     if data_type == "hydro":
         # sim_points_gdf = sim_points_gdf[sim_points_gdf['REFERENCE'] == 1]
         sim_points_gdf_simplified = sim_points_gdf[sim_points_gdf['n'] >= 4]
-
+        sim_points_gdf_simplified = sim_points_gdf_simplified.reset_index(drop=True).set_index('Suggestion')
         sim_points_gdf_simplified.index.names = ['name']
     else:
         sim_points_gdf_simplified = sim_points_gdf.loc[sim_points_gdf.groupby('name')['gid'].idxmin()].reset_index(drop=True)
