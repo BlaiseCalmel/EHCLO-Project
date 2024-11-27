@@ -69,7 +69,7 @@ for data_type, path in dict_paths['dict_study_points_sim'].items():
         sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
         if data_type == 'hydro':
             overlay_shapefile(shapefile=study_hydro_shp, data=sim_all_points_info,
-                              path_result=path)
+                              path_result=path, force_contains={'Suggesti_2': 'LA LOIRE'})
         else:
             overlay_shapefile(shapefile=study_climate_shp, data=sim_all_points_info,
                               path_result=path)
@@ -116,11 +116,11 @@ print(f'> Load ncdf data paths...', end='\n')
 path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 
 # Run among data type climate/hydro
-data_type='climate'
+data_type='hydro'
 subdict=path_files[data_type]
 rcp='rcp85'
 subdict2=subdict[rcp]
-indicator = "tasminAdjust"
+indicator = "QA_mon"
 paths = subdict2[indicator]
 for data_type, subdict in path_files.items():
     # Load simulation points for current data type
@@ -128,12 +128,12 @@ for data_type, subdict in path_files.items():
 
     if data_type == "hydro":
         # sim_points_gdf = sim_points_gdf[sim_points_gdf['REFERENCE'] == 1]
-        sim_points_gdf = sim_points_gdf[sim_points_gdf['n'] >= 4]
-        valid_stations = pd.isna(sim_points_gdf['PointsSupp'])
-        sim_points_gdf = sim_points_gdf[valid_stations].reset_index(drop=True).set_index('Suggestion')
-        sim_points_gdf.index.names = ['name']
+        sim_points_gdf_simplified = sim_points_gdf[sim_points_gdf['n'] >= 4]
+
+        sim_points_gdf_simplified.index.names = ['name']
     else:
-        sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
+        sim_points_gdf_simplified = sim_points_gdf.loc[sim_points_gdf.groupby('name')['gid'].idxmin()].reset_index(drop=True)
+        # sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
 
     for rcp, subdict2 in subdict.items():
         for indicator, paths in subdict2.items():
@@ -152,7 +152,7 @@ for data_type, subdict in path_files.items():
                 print(f'> Create {indicator} export...', end='\n')
                 if len(paths) > 0 :
                     extract_ncdf_indicator(
-                        paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf, indicator=indicator,
+                        paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified, indicator=indicator,
                         timestep=timestep, start=files_setup['historical'][0], path_result=path_ncdf,
                     )
                 else:
@@ -166,6 +166,7 @@ for data_type, subdict in path_files.items():
             print(f'> Load from {indicator} export...', end='\n')
             # path_ncdf = f"{dict_paths['folder_study_data']}QA_mon_ME_rcp85.nc"
             # indicator='QA'
+            indicator = indicator.split('_')[0]
             ds = xr.open_dataset(path_ncdf)
             # TODO ITERATE OVER QA INDICATORS
             indicator_cols = [i for i in list(ds.variables) if indicator in i]
@@ -174,32 +175,34 @@ for data_type, subdict in path_files.items():
             print(f'> Match geometry and data...', end='\n')
             other_dimension = None
             if data_type == 'climate':
-                sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
-                # TODO Rename 'name' with id_geometry
+                # sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
+                # sim_points_gdf_simplified = sim_points_gdf
                 ds = ds.assign_coords(geometry=(
-                    'name', sim_all_points_info.set_index('name').loc[ds['name'].values, 'geometry']))
+                    'gid', sim_all_points_info.set_index('name').loc[ds['gid'].values, 'geometry']))
 
                 # Find matching area
-                geometry_dict = {row['gid']: row['geometry'] for _, row in study_hydro_shp.iterrows()}
-                region_da = xr.DataArray(sim_points_gdf['gid'].values, dims=['name'],
-                                         coords={'name': sim_points_gdf['name']})
-                ds = ds.assign_coords(region=region_da)
+                # geometry_dict = {row['gid']: row['geometry'] for _, row in study_hydro_shp.iterrows()}
+                # region_da = xr.DataArray(sim_points_gdf_simplified['gid'].values, dims=['gid'],
+                #                          coords={'gid': sim_points_gdf_simplified['name']})
+                # ds = ds.assign_coords(region=region_da)
                 # ds = ds.assign_coords(geometry=('region', [geometry_dict[code] for code in ds['region'].values]))
                 # ds = ds.rename({'region': 'id_geometry'})
             else:
-                sim_points_gdf_simplified = sim_points_gdf.copy()
-                sim_points_gdf_simplified = sim_points_gdf_simplified.simplify(tolerance=1000, preserve_topology=True)
-                geometry_dict = sim_points_gdf['geometry'].to_dict()
+                # sim_points_gdf_simplified = sim_points_gdf.copy()
+                # sim_points_gdf_simplified = sim_points_gdf_simplified.simplify(tolerance=1000, preserve_topology=True)
+                # geometry_dict = sim_points_gdf_simplified['geometry'].to_dict()
                 # TODO Rename 'code' with id_geometry
-                ds['geometry'] = ('code', [
-                    geometry_dict[code] if code in geometry_dict.keys() else None for code in ds['code'].values
-                ])
-                ds = ds.rename({'code': 'id_geometry'})
+                # ds['geometry'] = ('code', [
+                #     geometry_dict[code] if code in geometry_dict.keys() else None for code in ds['code'].values
+                # ])
+                # ds = ds.rename({'code': 'id_geometry'})
 
                 # Compute PK
-                value = compute_river_distance(rivers_shp, sim_points_gdf_simplified, river_name='loire',
+                value = compute_river_distance(rivers_shp, loire, river_name='loire',
                                                start_from='last')
-                sim_points_gdf['PK'] = value
+
+                sim_points_gdf_simplified['PK'] = np.nan
+                sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7, 'PK'] = value
 
                 if indicator == 'QA':
                     # other_dimension = {'time': 'time.month'}
@@ -258,9 +261,11 @@ for data_type, subdict in path_files.items():
             ds[indicator_horizon_deviation] = ds_deviation_stats
             ds[indicator_horizon_difference] = ds_difference_stats
 
+            # ds['geometry'] = ('id_geometry', sim_points_gdf_simplified.geometry)
+
             # Merge sim points information to dataset
-            for col in sim_points_gdf:
-                ds[col] = ("code", sim_points_gdf[col])
+            # for col in sim_points_gdf:
+            #     ds[col] = ("code", sim_points_gdf[col])
 
             print(f'################################ PLOT DATA ################################', end='\n')
             print(f"> Initialize plot...")
@@ -344,7 +349,6 @@ for data_type, subdict in path_files.items():
                     'values_var': list(value.keys()),
                     'names_plot': list(value.values())
                 }
-                rows = None
 
                 # Plot map
                 # Relative
@@ -356,17 +360,19 @@ for data_type, subdict in path_files.items():
 
                 # Abs diff
                 print(f"> Difference map plot {indicator}_{timestep}_{rcp}_{key}...")
-                mapplot(gdf, ds, indicator_plot=indicator_horizon_difference[0], path_result=path_indicator_figures+'map_difference.pdf',
+
+
+                mapplot(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=indicator_horizon_difference[0], path_result=path_indicator_figures+'map_difference.pdf',
                         cols=cols_map, rows=rows,
                         cbar_title=f"{indicator} difference", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
-                        discretize=4, palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k', vmin=0, vmax=4)
+                        discretize=4, palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor=None, vmin=0, vmax=4)
 
                 # Plot number of HM by station
-                indicator = 'n'
-                ds = sim_points_gdf
-                gdf = sim_points_gdf
-                cols_map = None
-                rows = None
+                # indicator = 'n'
+                # ds = sim_points_gdf
+                # gdf = sim_points_gdf
+                # cols_map = None
+                # rows = None
 
                 mapplot(gdf, ds, indicator_plot='J2000', path_result=path_indicator_figures+'HM.pdf',
                         cols=cols_map, rows=rows,
@@ -377,10 +383,8 @@ for data_type, subdict in path_files.items():
                 # Plot sim by station
                 # 3 cols * 3 rows
                 hm = list(shape_hp.keys())
-
-
-                gdf = gpd.GeoDataFrame({i: ds[i] for i in hm + ['id_geometry', 'geometry']})
-                gdf = gpd.GeoDataFrame({i: ds[i] for i in ['id_geometry', 'geometry']})
+                # gdf = gpd.GeoDataFrame({i: ds[i] for i in hm + ['id_geometry', 'geometry']})
+                # gdf = gpd.GeoDataFrame({i: ds[i] for i in ['id_geometry', 'geometry']})
                 cols_map = {
                     'values_var': hm,
                 }
@@ -391,8 +395,6 @@ for data_type, subdict in path_files.items():
                         cbar_title=f"Simulations présentes", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
                         discretize=2, cbar_ticks='mid', palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k', vmin=-0.5, vmax=1.5,
                         cbar_values=['Absente', 'Présente'])
-
-
 
                 print(f"> Relative line plot {indicator}_{timestep}_{rcp}_{key}...")
 
@@ -419,6 +421,38 @@ for data_type, subdict in path_files.items():
 
                 lineplot(ds, x_axis, y_axis, path_result=path_indicator_figures+'lineplot.pdf', cols=cols, rows=rows,
                          title=None, percent=False, fontsize=14, font='sans-serif', ymax=None, plot_type='line')
+
+
+                # Sim by PK + quantile
+                ds['PK'] = ('gid', sim_points_gdf_simplified['PK'])
+                plot_linear_pk(ds, indicator, name=indicator+'_deviation',
+                               simulations=indicator_horizon_deviation_sims,
+                               path_result=path_indicator_figures+'sim_dev_by_pk.pdf')
+                plot_linear_pk(ds, indicator, indicator+'_difference', indicator_horizon_difference_sims,
+                               path_result=path_indicator_figures+'sim_diff_by_pk.pdf')
+                def plot_linear_pk(ds, indicator, name, simulations, path_result):
+                    x_axis = {'PK': {},
+                              'name_axis': 'PK (km)'
+                              }
+
+                    y_axis = {i: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation'}
+                               for i in simulations}
+                    y_axis |= {
+                        f'{name}_quantile5': {'color': 'blue', 'linestyle': '--', 'label': 'Q05', 'zorder': 2},
+                        f'{name}_median': {'color': 'r', 'linestyle': '--', 'label': 'Q50', 'zorder': 2},
+                        f'{name}_quantile95': {'color': 'k', 'linestyle': '--', 'label': 'Q95', 'zorder': 2},
+                        'name_axis': f'Variation {indicator} (%)'
+                    }
+
+                    cols = None
+                    rows = {
+                        'names_coord': 'horizon',
+                        'values_var': ['horizon1', 'horizon2', 'horizon3'],
+                        'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2100)']
+                    }
+
+                    lineplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows,
+                             title=None, percent=True, fontsize=14, font='sans-serif', ymax=None, plot_type='line')
 
                 # Cols  and rows of subplots
                 cols = {'names_var': 'id_geometry', 'values_var': ['K001872200', 'M850301010'], 'names_plot': ['Station 1', 'Station 2']}

@@ -67,12 +67,12 @@ def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=F
 def add_headers(fig, *, row_headers=None, col_headers=None, row_pad=1, col_pad=5, rotate_row_headers=True,
                 **text_kwargs):
     axes = fig.get_axes()
-
     for ax in axes:
         sbs = ax.get_subplotspec()
 
         # Putting headers on cols
         if (col_headers is not None) and sbs.is_first_row():
+
             ax.annotate(
                 col_headers[sbs.colspan.start],
                 xy=(0.5, 1),
@@ -86,19 +86,20 @@ def add_headers(fig, *, row_headers=None, col_headers=None, row_pad=1, col_pad=5
 
         # Putting headers on rows
         if (row_headers is not None) and sbs.is_first_col():
-            ax.annotate(
-                row_headers[sbs.rowspan.start],
-                xy=(0, 0.5),
-                # xytext=(-ax.yaxis.labelpad - row_pad, 0),
-                # xytext=(-ax.yaxis.labelpad - row_pad, 0),
-                # xycoords=ax.yaxis.label,
-                xycoords="axes fraction",
-                textcoords="offset points",
-                ha="right",
-                va="center",
-                rotation=rotate_row_headers * 90,
-                **text_kwargs,
-            )
+            ax.text(50, 0.5, row_headers[sbs.rowspan.start], rotation=90, ha='left', va='center', **text_kwargs)
+            # ax.annotate(
+            #     row_headers[sbs.rowspan.start],
+            #     xy=(-1, 0.5),
+            #     # xytext=(-ax.yaxis.labelpad - row_pad, 0),
+            #     # xytext=(-ax.yaxis.labelpad - row_pad, 0),
+            #     # xycoords=ax.yaxis.label,
+            #     xycoords="axes fraction",
+            #     textcoords="offset points",
+            #     ha="right",
+            #     va="center",
+            #     rotation=rotate_row_headers * 90,
+            #     **text_kwargs,
+            # )
 
 def find_extrema(ds_plot, x_axis, y_axis, xmin, xmax, ymin, ymax):
     if xmin is None:
@@ -137,6 +138,15 @@ def find_extrema(ds_plot, x_axis, y_axis, xmin, xmax, ymin, ymax):
             ymax = None
 
     return xmin, xmax, ymin, ymax
+
+def flatten_to_strings(input_list):
+    result = []
+    for item in input_list:
+        if isinstance(item, list):
+            result.extend(flatten_to_strings(item))
+        else:
+            result.append(item)
+    return result
 
 def plot_selection(ds_selection, names_var, value):
     if names_var == 'horizon':

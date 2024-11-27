@@ -104,6 +104,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
                     ds = ds.sel(x=xr.DataArray(sim_points_gdf['x']), y=xr.DataArray(sim_points_gdf['y']))
                     ds = ds.assign_coords(dim_0=sim_points_gdf['name']).rename(dim_0='name')
+                    ds = ds.rename({'name': 'gid'})
 
                 else:
                     if indicator == 'Q2':
@@ -122,15 +123,16 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                     ds['code'] = ds['code'].astype(str)
                     code_values = np.unique(sim_points_gdf.index.values)
                     codes_to_select = [code for code in code_values if code in ds['code'].values]
+                    ds = ds.rename({'code': 'gid'})
                     if len(codes_to_select) > 0:
                         # TODO Rename dims to name
-                        ds = ds.sel(code=codes_to_select)
+                        ds = ds.sel(gid=codes_to_select)
 
                         # Clean dataset
                         ds = xr.Dataset({
-                            var: (('time', 'code'), ds[var].values),
-                            'x': (('code'), ds['L93_X'].values),
-                            'y': (('code'), ds['L93_Y'].values),
+                            var: (('time', 'gid'), ds[var].values),
+                            'x': (('gid'), ds['L93_X'].values),
+                            'y': (('gid'), ds['L93_Y'].values),
                         }, coords={i: ds[i] for i in ds._coord_names}
                         )
                         ds = ds.set_coords('x')

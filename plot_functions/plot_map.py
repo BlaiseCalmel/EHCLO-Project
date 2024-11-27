@@ -57,24 +57,33 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
     else:
         axes_flatten = [axes]
 
+    # Save axes position
     for ax in axes_flatten:
         initial_position = ax.get_position()
         ax.set_position(initial_position)
 
+    # Iterate over subplots
     for col_idx, col in enumerate(cols_plot['values_var']):
         for row_idx, row in enumerate(rows_plot['values_var']):
             idx = len_cols * row_idx + col_idx
             ax = axes_flatten[idx]
 
-            if indicator_plot not in gdf.columns:
+            if isinstance(indicator_plot, list):
+                current_indicator = indicator_plot[idx]
+            else:
+                current_indicator = indicator_plot
+
+            gdf_plot = copy.deepcopy(gdf)
+            # If not in gfp_plot, add a col from selection
+            if current_indicator not in gdf.columns:
                 temp_dict = {}
                 if cols_plot['names_coord'] is not None and col is not None:
                     temp_dict |= {cols_plot['names_coord']: col}
                 if rows_plot['names_coord'] is not None and row is not None:
                     temp_dict |= {rows_plot['names_coord']: row}
 
-                row_data = ds_plot.sel(temp_dict)[[indicator_plot]].values
-                gdf[indicator_plot] = row_data
+                row_data = ds_plot.sel(temp_dict)[current_indicator].values
+                gdf_plot[current_indicator] = row_data
 
             # Background shapefiles
             if dict_shapefiles is not None:
@@ -82,13 +91,12 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
                     shp_kwargs = {k: subdict[k] for k in subdict.keys() if k != 'shp'}
                     subdict['shp'].plot(ax=ax, figsize=(18, 18), **shp_kwargs)
 
+            # Plot
+            gdf_plot.plot(column=current_indicator, cmap=cmap, norm=norm, ax=ax, legend=False, markersize=100,
+                          edgecolor=edgecolor, alpha=0.9, zorder=10, )
+
             if isinstance(indicator_plot, list):
-                gdf.plot(column=indicator_plot[idx], cmap=cmap, norm=norm, ax=ax, legend=False, markersize=100,
-                         edgecolor=edgecolor, alpha=0.9, zorder=10, )
                 ax.set_title(indicator_plot[idx])
-            else:
-                gdf.plot(column=indicator_plot, cmap=cmap, norm=norm, ax=ax, legend=False, markersize=100,
-                         edgecolor=edgecolor, alpha=0.9, zorder=10, )
 
             if bounds is not None:
                 ax.set_xlim(bounds[0], bounds[2])

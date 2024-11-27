@@ -1,5 +1,6 @@
 import geopandas
 import pandas as pd
+from pandas.core.arrays.categorical import contains
 from shapely.geometry import Point, Polygon, LineString, MultiLineString
 import os
 import numpy as np
@@ -9,7 +10,7 @@ def define_bounds(shapefile, zoom=5000):
     raw_bounds = shapefile.geometry.total_bounds
     return [raw_bounds[0] - zoom, raw_bounds[1] - zoom, raw_bounds[2] + zoom, raw_bounds[3] + zoom]
 
-def overlay_shapefile(shapefile, data, path_result=None, col='gid'):
+def overlay_shapefile(shapefile, data, path_result=None, col='gid', force_contains=None):
 
     # lat = data['lat']
     # lon = data['lon']
@@ -41,7 +42,6 @@ def overlay_shapefile(shapefile, data, path_result=None, col='gid'):
         shapefile = gpd.GeoDataFrame({'geometry': [polygon]})
         shapefile.crs = data.crs
 
-    matched_points = None
     if geometry_type.value_counts().idxmax() == "Polygon":
         data['geometry'] = data.intersection(shapefile.union_all())
 
@@ -63,6 +63,15 @@ def overlay_shapefile(shapefile, data, path_result=None, col='gid'):
         matched_points = data.sjoin(shapefile, how='inner', predicate='intersects')
         matched_points = matched_points.loc[~matched_points.index.duplicated(keep='first')]
     matched_points = matched_points.drop('index_right', axis=1)
+    if force_contains:
+        for key, value in force_contains.items():
+            matched_points = matched_points[matched_points[key].str.contains(value, case=False, na=False)]
+
+    if 'PointsSupp' in matched_points.columns:
+        valid_stations = pd.isna(sim_points_gdf_simplified['PointsSupp'])
+        sim_points_gdf_simplified = sim_points_gdf_simplified[valid_stations].reset_index(drop=True).set_index('Suggestion')
+
+
 
         # if geometry_type.value_counts().idxmax() == "LineString":
         #     # Keep only lines with more than 75% of their length inside polygons
