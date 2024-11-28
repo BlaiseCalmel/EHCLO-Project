@@ -170,7 +170,7 @@ for data_type, subdict in path_files.items():
             # indicator='QA_seas-JJA'
 
             ds = xr.open_dataset(path_ncdf)
-            ds_formated = format_dataset(ds, data_type, files_setup)
+            ds, variables = format_dataset(ds, data_type, files_setup)
 
             # Compute PK
             loire = sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7]
@@ -203,34 +203,65 @@ for data_type, subdict in path_files.items():
             # Relative
             print(f"> Map plot...")
             print(f">> Deviation map plot {indicator}")
-            plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=simulation_horizon_deviation[0],
+            plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='deviation_median',
                           path_result=path_indicator_figures+'map_deviation.pdf',
                           cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
                           percent=True, bounds=bounds,
                           discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
 
             print(f">> Difference map plot {indicator}_{timestep}")
-            plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=simulation_horizon_difference[0],
+            plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='difference_median',
                           path_result=path_indicator_figures+'map_difference.pdf',
                           cbar_title=f"{indicator} difference", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
                           percent=False, bounds=bounds, palette='RdBu_r', cmap_zero=True, fontsize=14,
                           font='sans-serif', discretize=8)
 
             # Sim by PK + quantile
+            print(f"> Linear plot...")
             if 'PK' in sim_points_gdf_simplified.columns:
-                print(f"> Linear plot...")
                 ds['PK'] = ('gid', sim_points_gdf_simplified['PK'])
-                print(f"> Linear deviation by PK")
-                plot_linear_pk(ds, indicator, name='deviation',
-                               simulations=simulation_horizon_deviation_by_sims,
+                print(f">> Linear deviation by PK")
+                plot_linear_pk(ds, name='deviation',
+                               simulations=variables['simulation_horizon_deviation_by_sims'],
                                name_y_axis=f'{indicator} variation (%)',
                                path_result=path_indicator_figures+'sim_dev_by_pk.pdf')
-                print(f"> Linear difference by PK")
+                print(f">> Linear difference by PK")
                 plot_linear_pk(ds, name='difference', percent=False,
-                               simulations=simulation_horizon_difference_by_sims,
+                               simulations=variables['simulation_horizon_difference_by_sims'],
                                name_y_axis=f'{indicator} difference',
                                references=sim_points_gdf_simplified[sim_points_gdf_simplified['REFERENCE'] == 1],
                                path_result=path_indicator_figures+'sim_diff_by_pk.pdf')
+
+            print(f">> Linear deviation by time")
+            path_result=path_indicator_figures+'sim_diff_by_time.pdf'
+            x_axis = {'time': {},
+                      'name_axis': 'Date'
+                      }
+
+            y_axis = {i: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation'}
+                      for i in deviation_timeline}
+            y_axis |= {
+                f'{deviation_timeline}_quantile5': {'color': '#fdb863', 'linestyle': '--', 'label': 'q05', 'zorder': 2},
+                f'{deviation_timeline}_median': {'color': '#5e3c99', 'linestyle': '--', 'label': 'q50', 'zorder': 2},
+                f'{deviation_timeline}_quantile95': {'color': '#e66101', 'linestyle': '--', 'label': 'q95', 'zorder': 2},
+                'name_axis': f'{name_y_axis}'
+            }
+
+            cols = None
+            rows = {
+                'names_coord': 'gid',
+                'values_var': ['K091001011','M624001000'],
+                'names_plot': ['K091001011 amont','M624001000 aval']
+            }
+            # if references is not None:
+            #     if 'Suggesti_2' in references.columns:
+            #         cities = [i.split(' A ')[-1].split(' [')[0] for i in references['Suggesti_2']]
+            #         references.loc[:, 'tag'] = cities
+            #     else:
+            #         references = None
+
+            lineplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=references,
+                     title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None, plot_type='line')
 
 
 print(f'################################ PLOT GLOBAL ################################', end='\n')
@@ -255,7 +286,7 @@ cols_map = {
     'values_var': list(shape_hp.keys()),
 }
 rows = 3
-mapplot(gdf=sim_points_gdf_simplified, ds=sim_points_gdf_simplified, indicator_plot=list(shape_hp.keys()), path_result=f"{path_global_figures}HM_by_sim.pdf",
+mapplot(gdf=hydro_sim_points_gdf_simplified, ds=None, indicator_plot=list(shape_hp.keys()), path_result=f"{path_global_figures}HM_by_sim.pdf",
         cols=cols_map, rows=3,
         cbar_title=f"Simulations présentes", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
         discretize=2, cbar_ticks='mid', palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k',
@@ -263,7 +294,7 @@ mapplot(gdf=sim_points_gdf_simplified, ds=sim_points_gdf_simplified, indicator_p
         cbar_values=['Absente', 'Présente'])
 
 print(f"> Plot Number of HM by station...")
-mapplot(gdf, indicator_plot='n', path_result=path_global_figures+'count_HM.pdf', ds=None,
+mapplot(gdf=hydro_sim_points_gdf_simplified, indicator_plot='n', path_result=path_global_figures+'count_HM.pdf', ds=None,
         cols=None, rows=None,
         cbar_title=f"Nombre de HM", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
         discretize=6, cbar_ticks='mid', palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k',

@@ -6,6 +6,9 @@ def plot_linear_pk(ds, name, simulations, path_result, name_y_axis='', percent=F
     x_axis = {'PK': {},
               'name_axis': 'PK (km)'
               }
+    x_axis = {'time': {},
+              'name_axis': 'Date'
+              }
 
     y_axis = {i: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation'}
               for i in simulations}

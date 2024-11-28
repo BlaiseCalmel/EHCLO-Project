@@ -60,8 +60,7 @@ def lineplot(ds, x_axis, y_axis, path_result, cols, rows, vlines=None, xmin=None
                 for y_var, y_values in y_axis.items():
                     print(y_var)
                     ds_selection = ds_selection.sortby(x_var)
-                    valid = np.logical_not(np.isnan(ds_selection[x_var].values) |
-                                           np.isnan(ds_selection[y_var].values))
+                    valid = np.logical_not(np.isnan(ds_selection[y_var].values))
                     if plot_type == 'line':
                         ax.plot(ds_selection[x_var].values[valid], ds_selection[y_var].values[valid], **x_values, **y_values)
                     else:
