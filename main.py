@@ -16,7 +16,7 @@ import json
 print(f'> Local imports...', end='\n')
 from global_functions.load_data import *
 from plot_functions.run_plot import *
-
+from global_functions.format_data import *
 from global_functions.shp_geometry import *
 from global_functions.path_functions import  *
 
@@ -120,17 +120,23 @@ rcp='rcp85'
 subdict2=subdict[rcp]
 indicator = "QA_mon"
 paths = subdict2[indicator]
+
+hydro_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
+hydro_sim_points_gdf_simplified = hydro_sim_points_gdf[hydro_sim_points_gdf['n'] >= 4]
+hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified.reset_index(drop=True).set_index('Suggestion')
+hydro_sim_points_gdf_simplified.index.names = ['name']
+climate_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['climate'])
+climate_sim_points_gdf_simplified = climate_sim_points_gdf.loc[
+    climate_sim_points_gdf.groupby('name')['gid'].idxmin()].reset_index(drop=True)
+
 for data_type, subdict in path_files.items():
     # Load simulation points for current data type
-    sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim'][data_type])
+    # sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim'][data_type])
 
     if data_type == "hydro":
-        # sim_points_gdf = sim_points_gdf[sim_points_gdf['REFERENCE'] == 1]
-        sim_points_gdf_simplified = sim_points_gdf[sim_points_gdf['n'] >= 4]
-        sim_points_gdf_simplified = sim_points_gdf_simplified.reset_index(drop=True).set_index('Suggestion')
-        sim_points_gdf_simplified.index.names = ['name']
+        sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
     else:
-        sim_points_gdf_simplified = sim_points_gdf.loc[sim_points_gdf.groupby('name')['gid'].idxmin()].reset_index(drop=True)
+        sim_points_gdf_simplified = climate_sim_points_gdf_simplified
         # sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
 
     for rcp, subdict2 in subdict.items():
@@ -158,155 +164,24 @@ for data_type, subdict in path_files.items():
             else:
                 print(f'> {path_ncdf} already exists', end='\n')
 
-            continue
-
             print(f'################################ FORMAT DATA ################################', end='\n')
             print(f'> Load from {indicator} export...', end='\n')
             # path_ncdf = f"{dict_paths['folder_study_data']}QA_seas-JJA_ME_rcp85.nc"
             # indicator='QA_seas-JJA'
-            indicator = indicator.split('_')[0]
+
             ds = xr.open_dataset(path_ncdf)
-            # TODO ITERATE OVER QA INDICATORS
-            simulation_cols = [i for i in list(ds.data_vars)]
+            ds_formated = format_dataset(ds, data_type, files_setup)
 
-            # Define geometry for each data (Points hydro, Polygon climate)
-            print(f'> Match geometry and data...', end='\n')
-            other_dimension = None
-            if data_type == 'climate':
-                # sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
-                # sim_points_gdf_simplified = sim_points_gdf
-                ds = ds.assign_coords(geometry=(
-                    'gid', sim_all_points_info.set_index('name').loc[ds['gid'].values, 'geometry']))
+            # Compute PK
+            loire = sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7]
+            value = compute_river_distance(rivers_shp, loire, river_name='loire',
+                                           start_from='last')
 
-                # Find matching area
-                # geometry_dict = {row['gid']: row['geometry'] for _, row in study_hydro_shp.iterrows()}
-                # region_da = xr.DataArray(sim_points_gdf_simplified['gid'].values, dims=['gid'],
-                #                          coords={'gid': sim_points_gdf_simplified['name']})
-                # ds = ds.assign_coords(region=region_da)
-                # ds = ds.assign_coords(geometry=('region', [geometry_dict[code] for code in ds['region'].values]))
-                # ds = ds.rename({'region': 'id_geometry'})
-            else:
-                # sim_points_gdf_simplified = sim_points_gdf.copy()
-                # sim_points_gdf_simplified = sim_points_gdf_simplified.simplify(tolerance=1000, preserve_topology=True)
-                # geometry_dict = sim_points_gdf_simplified['geometry'].to_dict()
-                # TODO Rename 'code' with id_geometry
-                # ds['geometry'] = ('code', [
-                #     geometry_dict[code] if code in geometry_dict.keys() else None for code in ds['code'].values
-                # ])
-                # ds = ds.rename({'code': 'id_geometry'})
-
-                # Compute PK
-                loire = sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7]
-                value = compute_river_distance(rivers_shp, loire, river_name='loire',
-                                               start_from='last')
-
-                sim_points_gdf_simplified['PK'] = np.nan
-                sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7, 'PK'] = value
-
-                if indicator == 'QA':
-                    # other_dimension = {'time': 'time.month'}
-                    ds = ds.assign_coords(month=ds['time.month'])
-                    other_dimension = 'month'
-                elif indicator == 'seas':
-                    def get_season(month):
-                        if month in [12, 1, 2]:
-                            return 'DJF'
-                        elif month in [3, 4, 5]:
-                            return 'MAM'
-                        elif month in [6, 7, 8]:
-                            return 'JJA'
-                        else:
-                            return 'SON'
-
-                    seasons = xr.DataArray(
-                        [get_season(i) for i in ds['time.month'].values],
-                        coords={'time': ds['time']},
-                        dims='time'
-                    )
-                    ds = ds.assign_coords(season=seasons)
-                    other_dimension = 'season'
-
-            print(f'> Define horizons...', end='\n')
-            # Define horizons
-            ds = define_horizon(ds, files_setup)
-
-            # Return period
-            # ds = compute_return_period(ds, indicator_cols, files_setup, return_period=5, other_dimension=other_dimension)
-
-            # Compute mean value for each horizon for each sim
-            ds = compute_mean_by_horizon(ds=ds, indicator_cols=simulation_cols,
-                                         files_setup=files_setup, other_dimension=other_dimension)
-
-            simulation_horizon = [i for i in list(ds.variables) if '_by_horizon' in i]
-
-            # Compute deviation/difference to reference
-            ds = compute_deviation_to_ref(ds, cols=simulation_horizon)
-            simulation_horizon_deviation_by_sims = [i for i in list(ds.variables) if '_by_horizon_deviation' in i]
-            simulation_horizon_difference_by_sims = [i for i in list(ds.variables) if '_by_horizon_difference' in i]
-
-            # Compute statistic among all sims
-            ds_deviation_stats = apply_statistic(ds=ds[simulation_horizon_deviation_by_sims].to_array(dim='new'),
-                                                 function=files_setup['function'],
-                                                 q=files_setup['quantile']
-                                                 )
-            ds_difference_stats = apply_statistic(ds=ds[simulation_horizon_difference_by_sims].to_array(dim='new'),
-                                                  function=files_setup['function'],
-                                                  q=files_setup['quantile']
-                                                  )
-            simulation_horizon_deviation = [f"deviation_{i}" for i in
-                                           list(ds_deviation_stats.data_vars)]
-            simulation_horizon_difference = [f"difference_{i}" for i in
-                                            list(ds_difference_stats.data_vars)]
-            ds[simulation_horizon_deviation] = ds_deviation_stats
-            ds[simulation_horizon_difference] = ds_difference_stats
-
-            # TODO Compute indicator stats by areas
-
-            # ds['geometry'] = ('id_geometry', sim_points_gdf_simplified.geometry)
-
-            # Merge sim points information to dataset
-            # for col in sim_points_gdf:
-            #     ds[col] = ("code", sim_points_gdf[col])
-
-            print(f'################################ PLOT DATA ################################', end='\n')
-            print(f"> Initialize plot...")
-            # col_name='horizon'
-            # col_headers = {'horizon1': 'Horizon 1 (2021-2050)',
-            #                'horizon2': 'Horizon 2 (2041-2070)',
-            #                'horizon3': 'Horizon 3 (2070-2099)'}
-            #
-            row_name = None
-
-            subplots = {'': None}
-            discretize = 7
-            vmax = None
-            percent = True
-            if indicator == 'QA':
-                vmax = 100
-                row_name = 'month'
-                discretize = 11
-                subplots = {
-                    'DJF' : {12: 'Décembre',
-                             1: 'Janvier',
-                             2: 'Février'},
-                    'MAM': {3: 'Mars',
-                            4: 'Avril',
-                            5: 'Mai'},
-                    'JJA': {6: 'Juin',
-                            7: 'Juillet',
-                            8: 'Août'},
-                    'SON': {9: 'Septembre',
-                            10: 'Octobre',
-                            11: 'Novembre'},
-                }
+            sim_points_gdf_simplified['PK'] = np.nan
+            sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7, 'PK'] = value
 
 
-
-            # gdf = gpd.GeoDataFrame({
-            #     'geometry': ds['geometry'].values,
-            #     'id_geometry': ds['id_geometry'].values
-            # })
-
+            print(f'################################ PLOT INDICATOR ################################', end='\n')
             dict_shapefiles = {'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'paleturquoise',
                                               'linewidth': 1, 'zorder': 2, 'alpha': 0.8},
                                'background_shp': {'shp': regions_shp_simplified, 'color': 'gainsboro',
@@ -324,275 +199,260 @@ for data_type, subdict in path_files.items():
             if not os.path.isdir(path_indicator_figures):
                 os.makedirs(path_indicator_figures)
 
-            for key, value in subplots.items():
-                if key is None:
-                    path_results = f"{path_indicator_figures}{timestep}_{rcp}_"
-                else:
-                    path_results = f"{path_indicator_figures}{timestep}_{rcp}_{key}_"
+            # Plot map
+            # Relative
+            print(f"> Map plot...")
+            print(f">> Deviation map plot {indicator}")
+            plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=simulation_horizon_deviation[0],
+                          path_result=path_indicator_figures+'map_deviation.pdf',
+                          cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
+                          percent=True, bounds=bounds,
+                          discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
+
+            print(f">> Difference map plot {indicator}_{timestep}")
+            plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=simulation_horizon_difference[0],
+                          path_result=path_indicator_figures+'map_difference.pdf',
+                          cbar_title=f"{indicator} difference", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
+                          percent=False, bounds=bounds, palette='RdBu_r', cmap_zero=True, fontsize=14,
+                          font='sans-serif', discretize=8)
+
+            # Sim by PK + quantile
+            if 'PK' in sim_points_gdf_simplified.columns:
+                print(f"> Linear plot...")
+                ds['PK'] = ('gid', sim_points_gdf_simplified['PK'])
+                print(f"> Linear deviation by PK")
+                plot_linear_pk(ds, indicator, name='deviation',
+                               simulations=simulation_horizon_deviation_by_sims,
+                               name_y_axis=f'{indicator} variation (%)',
+                               path_result=path_indicator_figures+'sim_dev_by_pk.pdf')
+                print(f"> Linear difference by PK")
+                plot_linear_pk(ds, name='difference', percent=False,
+                               simulations=simulation_horizon_difference_by_sims,
+                               name_y_axis=f'{indicator} difference',
+                               references=sim_points_gdf_simplified[sim_points_gdf_simplified['REFERENCE'] == 1],
+                               path_result=path_indicator_figures+'sim_diff_by_pk.pdf')
 
 
-                # Plot map
-                # Relative
-                print(f"> Map plot...")
-                print(f">> Deviation map plot {indicator}...")
-                plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=simulation_horizon_deviation[0],
-                              path_result=path_indicator_figures+'map_deviation.pdf',
-                              cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
-                              percent=True, bounds=bounds,
-                              discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
+print(f'################################ PLOT GLOBAL ################################', end='\n')
+path_global_figures = dict_paths['folder_study_figures'] + 'global' + os.sep
+if not os.path.isdir(path_global_figures):
+    os.makedirs(path_global_figures)
 
-                print(f">> Difference map plot {indicator}_{timestep}...")
-                plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=simulation_horizon_difference[0],
-                              path_result=path_indicator_figures+'map_difference.pdf',
-                              cbar_title=f"{indicator} difference", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
-                              percent=False, bounds=bounds, palette='RdBu_r', cmap_zero=True, fontsize=14,
-                              font='sans-serif', discretize=8)
+shape_hp = {
+    'CTRIP': 'D',
+    'EROS': 'H',
+    'GRSD': '*',
+    'J2000': 's',
+    'MORDOR-TS': '^',
+    'MORDOR-SD': 'v',
+    'SIM2': '>',
+    'SMASH': '<',
+    'ORCHIDEE': 'o',
+}
 
-                # Sim by PK + quantile
-                if 'PK' in sim_points_gdf_simplified.columns:
-                    print(f"> Linear plot...")
-                    ds['PK'] = ('gid', sim_points_gdf_simplified['PK'])
-                    print(f"> Linear deviation by PK")
-                    plot_linear_pk(ds, indicator, name='deviation',
-                                   simulations=simulation_horizon_deviation_by_sims,
-                                   name_y_axis=f'{indicator} variation (%)',
-                                   path_result=path_indicator_figures+'sim_dev_by_pk.pdf')
-                    print(f"> Linear difference by PK")
-                    plot_linear_pk(ds, name='difference', percent=False,
-                                   simulations=simulation_horizon_difference_by_sims,
-                                   name_y_axis=f'{indicator} difference',
-                                   references=sim_points_gdf_simplified[sim_points_gdf_simplified['REFERENCE'] == 1],
-                                   path_result=path_indicator_figures+'sim_diff_by_pk.pdf')
+print(f"> Plot HM by station...")
+cols_map = {
+    'values_var': list(shape_hp.keys()),
+}
+rows = 3
+mapplot(gdf=sim_points_gdf_simplified, ds=sim_points_gdf_simplified, indicator_plot=list(shape_hp.keys()), path_result=f"{path_global_figures}HM_by_sim.pdf",
+        cols=cols_map, rows=3,
+        cbar_title=f"Simulations présentes", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
+        discretize=2, cbar_ticks='mid', palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k',
+        vmin=-0.5, vmax=1.5,
+        cbar_values=['Absente', 'Présente'])
 
-                # Abs diff
-
-
-
-                # Plot number of HM by station
-                # indicator = 'n'
-                # ds = sim_points_gdf
-                # gdf = sim_points_gdf
-                # cols_map = None
-                # rows = None
-
-                mapplot(gdf, ds, indicator_plot='J2000', path_result=path_indicator_figures+'HM.pdf',
-                        cols=cols_map, rows=rows,
-                        cbar_title=f"Nombre de HM", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
-                        discretize=6, cbar_ticks='mid', palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k', vmin=3.5, vmax=9.5)
+print(f"> Plot Number of HM by station...")
+mapplot(gdf, indicator_plot='n', path_result=path_global_figures+'count_HM.pdf', ds=None,
+        cols=None, rows=None,
+        cbar_title=f"Nombre de HM", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
+        discretize=6, cbar_ticks='mid', palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k',
+        vmin=3.5, vmax=9.5)
 
 
 
 
 
-                # Plot sim by station
 
-                shape_hp = {
-                    'CTRIP': 'o',
-                    'EROS': 'H',
-                    'GRSD': '*',
-                    'J2000': 's',
-                    'MORDOR-TS': '^',
-                    'MORDOR-SD': 'v',
-                    'SIM2': '>',
-                    'SMASH': '<',
-                    'ORCHIDEE': 'D',
-                }
+# Cols  and rows of subplots
+cols = {'names_var': 'id_geometry', 'values_var': ['K001872200', 'M850301010'], 'names_plot': ['Station 1', 'Station 2']}
+rows = {
+    'names_var': row_name,
+    'values_var': list(value.keys()),
+    'names_plot': list(value.values())
+}
 
-                # 3 cols * 3 rows
-                hm = list(shape_hp.keys())
-                # gdf = gpd.GeoDataFrame({i: ds[i] for i in hm + ['id_geometry', 'geometry']})
-                # gdf = gpd.GeoDataFrame({i: ds[i] for i in ['id_geometry', 'geometry']})
-                cols_map = {
-                    'values_var': hm,
-                }
-                rows = 3
+y_axis = {
+    'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
+                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
+                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
+    'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']
+}
+x_axis = {
+    'names_var': 'horizon',
+    'values_var': ['horizon1', 'horizon2', 'horizon3'],
+    'names_plot': ['H1', 'H2', 'H3']
+}
 
-                mapplot(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=hm, path_result=f"{path_indicator_figures}HM_by_sim.pdf",
-                        cols=cols_map, rows=3,
-                        cbar_title=f"Simulations présentes", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
-                        discretize=2, cbar_ticks='mid', palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k', vmin=-0.5, vmax=1.5,
-                        cbar_values=['Absente', 'Présente'])
+# TEST 1
+cols = {
+    'names_var': 'id_geometry',
+    'values_var': ['K001872200', 'M850301010'],
+    'names_plot': ['K001872200', 'M850301010'],
+}
+rows = {
+    'names_var': row_name,
+    'values_var': list(value.keys()),
+    'names_plot': list(value.values())
+}
+x_axis = {
+    'names_var': 'horizon',
+    'values_var': ['horizon1', 'horizon2', 'horizon3'],
+    'names_plot': ['H1', 'H2', 'H3']
+}
+y_axis = {
+    'names_var': 'indicator',
+    'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
+                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
+                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
+    'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']
+}
 
+# TEST 2
+cols = {'names_var': 'horizon',
+        'values_var': ['horizon1', 'horizon2', 'horizon3'],
+        'names_plot': ['H1', 'H2', 'H3']}
+rows = {
+    'names_var': 'indicator',
+    'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
+                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
+                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
+    'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']
+}
+x_axis = {
+    'names_var': row_name,
+    'values_var': list(value.keys()),
+    'names_plot': list(value.values())
+}
+y_axis = {
+    'names_var': 'id_geometry',
+    'values_var': ['K001872200', 'M850301010'],
+    'names_plot': ['K001872200', 'M850301010'],
+}
 
-                # Cols  and rows of subplots
-                cols = {'names_var': 'id_geometry', 'values_var': ['K001872200', 'M850301010'], 'names_plot': ['Station 1', 'Station 2']}
-                rows = {
-                    'names_var': row_name,
-                    'values_var': list(value.keys()),
-                    'names_plot': list(value.values())
-                }
+# TEST 3
+cols = {'names_var': 'indicator',
+        'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
+                       'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
+                       'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
+        'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']}
+rows = {
+    'names_var': 'horizon',
+    'values_var': ['horizon1', 'horizon2', 'horizon3'],
+    'names_plot': ['H1', 'H2', 'H3']
+}
+x_axis = {
+    'names_var': 'id_geometry',
+    'values_var': ['K001872200', 'M850301010'],
+    'names_plot': ['K001872200', 'M850301010'],
+    'name_axis': 'Stations'
 
-                y_axis = {
-                    'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
-                                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
-                                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
-                    'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']
-                }
-                x_axis = {
-                    'names_var': 'horizon',
-                    'values_var': ['horizon1', 'horizon2', 'horizon3'],
-                    'names_plot': ['H1', 'H2', 'H3']
-                }
+}
+y_axis = {
+    'names_var': row_name,
+    'values_var': list(value.keys()),
+    'names_plot': list(value.values()),
+    'name_axis': indicator + ' (m3/s)'
+}
 
-                # TEST 1
-                cols = {
-                    'names_var': 'id_geometry',
-                    'values_var': ['K001872200', 'M850301010'],
-                    'names_plot': ['K001872200', 'M850301010'],
-                }
-                rows = {
-                    'names_var': row_name,
-                    'values_var': list(value.keys()),
-                    'names_plot': list(value.values())
-                }
-                x_axis = {
-                    'names_var': 'horizon',
-                    'values_var': ['horizon1', 'horizon2', 'horizon3'],
-                    'names_plot': ['H1', 'H2', 'H3']
-                }
-                y_axis = {
-                    'names_var': 'indicator',
-                    'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
-                                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
-                                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
-                    'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']
-                }
+boxplot(ds, x_axis, y_axis, path_result=path_indicator_figures+'boxplot.pdf', cols=cols, rows=rows,
+        title=None, percent=False, palette='BrBG', fontsize=14, font='sans-serif', ymax=None)
 
-                # TEST 2
-                cols = {'names_var': 'horizon',
-                        'values_var': ['horizon1', 'horizon2', 'horizon3'],
-                        'names_plot': ['H1', 'H2', 'H3']}
-                rows = {
-                    'names_var': 'indicator',
-                    'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
-                                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
-                                   'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
-                    'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']
-                }
-                x_axis = {
-                    'names_var': row_name,
-                    'values_var': list(value.keys()),
-                    'names_plot': list(value.values())
-                }
-                y_axis = {
-                    'names_var': 'id_geometry',
-                    'values_var': ['K001872200', 'M850301010'],
-                    'names_plot': ['K001872200', 'M850301010'],
-                }
+import matplotlib.lines as mlines
+from sklearn.cluster import KMeans
+from scipy.spatial import Voronoi, voronoi_plot_2d
 
-                # TEST 3
-                cols = {'names_var': 'indicator',
-                        'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
-                                       'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
-                                       'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
-                        'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']}
-                rows = {
-                    'names_var': 'horizon',
-                    'values_var': ['horizon1', 'horizon2', 'horizon3'],
-                    'names_plot': ['H1', 'H2', 'H3']
-                }
-                x_axis = {
-                    'names_var': 'id_geometry',
-                    'values_var': ['K001872200', 'M850301010'],
-                    'names_plot': ['K001872200', 'M850301010'],
-                    'name_axis': 'Stations'
+stations = list(sim_points_gdf[sim_points_gdf['INDEX'].isin([1774,1895,2294,1633,1786,2337])].index)
+stations = ['M842001000']
 
-                }
-                y_axis = {
-                    'names_var': row_name,
-                    'values_var': list(value.keys()),
-                    'names_plot': list(value.values()),
-                    'name_axis': indicator + ' (m3/s)'
-                }
+x = ds[indicator_horizon_deviation_sims].sel(season='DJF', horizon='horizon3', id_geometry=stations)
+y = ds[indicator_horizon_deviation_sims].sel(season = 'JJA', horizon='horizon3', id_geometry=stations)
+x_list = []
+y_list = []
+for var in x.data_vars:
+    if any(np.isnan(x[var].values)) and any(~np.isnan(y[var].values)):
+        x_list.append(np.nanmedian(x[var].values))
+        y_list.append(np.nanmedian(y[var].values))
 
-                boxplot(ds, x_axis, y_axis, path_result=path_indicator_figures+'boxplot.pdf', cols=cols, rows=rows,
-                        title=None, percent=False, palette='BrBG', fontsize=14, font='sans-serif', ymax=None)
+# Narratifs by clustering (K-means)
+kmeans = KMeans(n_clusters=4, random_state=0)
+df = pd.DataFrame({'x': x_list, 'y': y_list})
+df['cluster'] = kmeans.fit_predict(df[['x','y']])
+# Sélectionner un point représentatif par cluster (par exemple, le plus proche du centroïde)
+representative_points = df.loc[
+    df.groupby('cluster').apply(
+        lambda group: group[['x', 'y']].sub(kmeans.cluster_centers_[group.name]).pow(2).sum(axis=1).idxmin()
+    )
+]
+couples = list(zip(representative_points['x'], representative_points['y']))
+# Obtenir les centroïdes
+centroids = kmeans.cluster_centers_
+# Créer un Voronoi pour délimiter les aires
+vor = Voronoi(centroids)
 
-                import matplotlib.lines as mlines
-                from sklearn.cluster import KMeans
-                from scipy.spatial import Voronoi, voronoi_plot_2d
+fig, ax = plt.subplots(1, 1, figsize=(6,4), constrained_layout=True)
+ax.grid()
+dict_hm = {key: [] for key in shape_hp.keys()}
 
-                stations = list(sim_points_gdf[sim_points_gdf['INDEX'].isin([1774,1895,2294,1633,1786,2337])].index)
-                stations = ['M842001000']
+for var in x.data_vars:
+    print(var)
+    # Identifier la clé du dictionnaire présente dans le nom de la variable
+    hm = next((key for key in shape_hp if key in var), 'NONE')
+    marker = shape_hp[hm]
+    dict_hm[hm].append(var)
 
-                x = ds[indicator_horizon_deviation_sims].sel(season='DJF', horizon='horizon3', id_geometry=stations)
-                y = ds[indicator_horizon_deviation_sims].sel(season = 'JJA', horizon='horizon3', id_geometry=stations)
-                x_list = []
-                y_list = []
-                for var in x.data_vars:
-                    if any(np.isnan(x[var].values)) and any(~np.isnan(y[var].values)):
-                        x_list.append(np.nanmedian(x[var].values))
-                        y_list.append(np.nanmedian(y[var].values))
+    # Tracer la variable
+    x_value = np.nanmedian(x[var].values)
+    y_value = np.nanmedian(y[var].values)
 
-                # Narratifs by clustering (K-means)
-                kmeans = KMeans(n_clusters=4, random_state=0)
-                df = pd.DataFrame({'x': x_list, 'y': y_list})
-                df['cluster'] = kmeans.fit_predict(df[['x','y']])
-                # Sélectionner un point représentatif par cluster (par exemple, le plus proche du centroïde)
-                representative_points = df.loc[
-                    df.groupby('cluster').apply(
-                        lambda group: group[['x', 'y']].sub(kmeans.cluster_centers_[group.name]).pow(2).sum(axis=1).idxmin()
-                    )
-                ]
-                couples = list(zip(representative_points['x'], representative_points['y']))
-                # Obtenir les centroïdes
-                centroids = kmeans.cluster_centers_
-                # Créer un Voronoi pour délimiter les aires
-                vor = Voronoi(centroids)
-
-                fig, ax = plt.subplots(1, 1, figsize=(6,4), constrained_layout=True)
-                ax.grid()
-                dict_hm = {key: [] for key in shape_hp.keys()}
-
-                for var in x.data_vars:
-                    print(var)
-                    # Identifier la clé du dictionnaire présente dans le nom de la variable
-                    hm = next((key for key in shape_hp if key in var), 'NONE')
-                    marker = shape_hp[hm]
-                    dict_hm[hm].append(var)
-
-                    # Tracer la variable
-                    x_value = np.nanmedian(x[var].values)
-                    y_value = np.nanmedian(y[var].values)
-
-                    if (x_value, y_value) in couples:
-                        plt.scatter(x_value, y_value, marker=marker, alpha=1,
-                                    color='green', zorder=2)
-                    else:
-                        plt.scatter(x_value, y_value, marker=marker, alpha=0.8,
-                                    color='k', zorder=0)
+    if (x_value, y_value) in couples:
+        plt.scatter(x_value, y_value, marker=marker, alpha=1,
+                    color='green', zorder=2)
+    else:
+        plt.scatter(x_value, y_value, marker=marker, alpha=0.8,
+                    color='k', zorder=0)
 
 
-                for key, shape in shape_hp.items():
-                    plt.scatter(np.nanmedian(x[dict_hm[key]].to_array()), np.nanmedian(y[dict_hm[key]].to_array()),
-                                marker=shape, alpha=0.8,
-                                color='firebrick', zorder=1)
+for key, shape in shape_hp.items():
+    plt.scatter(np.nanmedian(x[dict_hm[key]].to_array()), np.nanmedian(y[dict_hm[key]].to_array()),
+                marker=shape, alpha=0.8,
+                color='firebrick', zorder=1)
 
-                # Tracer les aires des clusters avec Voronoi
-                voronoi_plot_2d(vor, ax=plt.gca(), show_vertices=False, line_colors='green',
-                                line_width=0.4, line_alpha=0.6, point_size=0, linestyle='--')
+# Tracer les aires des clusters avec Voronoi
+voronoi_plot_2d(vor, ax=plt.gca(), show_vertices=False, line_colors='green',
+                line_width=0.4, line_alpha=0.6, point_size=0, linestyle='--')
 
 
-                ax.spines[['right', 'top']].set_visible(False)
-                ax.set_xlim(-70, 70)
-                ax.set_ylim(-70, 70)
-                ax.yaxis.set_major_formatter(mtick.PercentFormatter())
-                ax.xaxis.set_major_formatter(mtick.PercentFormatter())
-                ax.set_ylabel('Qm estival')
-                ax.set_xlabel('Qm hivernal')
-                legend_handles = [
-                    mlines.Line2D([], [], color='black', marker=shape, linestyle='None', markersize=8,
-                                  label=f'{key}')
-                    for key, shape in shape_hp.items()
-                ]
-                plt.legend(
-                    handles=legend_handles,
-                    loc="center left",  # Position relative
-                    bbox_to_anchor=(1, 0.5)  # Placer la légende à droite du graphique
-                )
+ax.spines[['right', 'top']].set_visible(False)
+ax.set_xlim(-70, 70)
+ax.set_ylim(-70, 70)
+ax.yaxis.set_major_formatter(mtick.PercentFormatter())
+ax.xaxis.set_major_formatter(mtick.PercentFormatter())
+ax.set_ylabel('Qm estival')
+ax.set_xlabel('Qm hivernal')
+legend_handles = [
+    mlines.Line2D([], [], color='black', marker=shape, linestyle='None', markersize=8,
+                  label=f'{key}')
+    for key, shape in shape_hp.items()
+]
+plt.legend(
+    handles=legend_handles,
+    loc="center left",  # Position relative
+    bbox_to_anchor=(1, 0.5)  # Placer la légende à droite du graphique
+)
 
-                plt.savefig(f"/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/figures/global/narratifs.pdf",
-                                            bbox_inches='tight')
+plt.savefig(f"/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/figures/global/narratifs.pdf",
+                            bbox_inches='tight')
 
 
 print(f'################################ END ################################', end='\n')

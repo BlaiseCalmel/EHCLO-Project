@@ -6,7 +6,7 @@ import numpy as np
 from plot_functions.plot_common import *
 import matplotlib.cm as cm
 
-def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
+def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             cbar_title=None, title=None, dict_shapefiles=None, percent=True, bounds=None, discretize=7,
             cbar_ticks=None, vmin=None, vmax=None, palette='BrBG', cmap_zero=False, fontsize=14, edgecolor='k',
             font='sans-serif', cbar_values=None):
@@ -78,7 +78,6 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
     #     ax.set_position(initial_position)
 
     # Iterate over subplots
-    row_count = -1
     for col_idx, col in enumerate(cols_plot['values_var']):
         for row_idx, row in enumerate(rows_plot['values_var']):
             idx = len_cols * row_idx + col_idx
@@ -90,7 +89,7 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
                 current_indicator = indicator_plot
 
             gdf_plot = copy.deepcopy(gdf)
-            # If not in gfp_plot, add a col from selection
+            # If not in gdf_plot, add a col from selection
             if current_indicator not in gdf.columns:
                 temp_dict = {}
                 if cols_plot['names_coord'] is not None and col is not None:

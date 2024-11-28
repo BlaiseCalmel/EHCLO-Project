@@ -1,7 +1,107 @@
 import xarray as xr
 import numpy as np
-from scipy.stats import norm
 
+def format_dataset(ds, data_type, files_setup):
+    simulation_cols = [i for i in list(ds.data_vars)]
+
+    # Define geometry for each data (Points hydro, Polygon climate)
+    # print(f'> Match geometry and data...', end='\n')
+    other_dimension = None
+    # if data_type == 'climate':
+    #     # sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
+    #     # sim_points_gdf_simplified = sim_points_gdf
+    #     ds = ds.assign_coords(geometry=(
+    #         'gid', sim_all_points_info.set_index('name').loc[ds['gid'].values, 'geometry']))
+    #
+    #     # Find matching area
+    #     # geometry_dict = {row['gid']: row['geometry'] for _, row in study_hydro_shp.iterrows()}
+    #     # region_da = xr.DataArray(sim_points_gdf_simplified['gid'].values, dims=['gid'],
+    #     #                          coords={'gid': sim_points_gdf_simplified['name']})
+    #     # ds = ds.assign_coords(region=region_da)
+    #     # ds = ds.assign_coords(geometry=('region', [geometry_dict[code] for code in ds['region'].values]))
+    #     # ds = ds.rename({'region': 'id_geometry'})
+    # else:
+    #     # sim_points_gdf_simplified = sim_points_gdf.copy()
+    #     # sim_points_gdf_simplified = sim_points_gdf_simplified.simplify(tolerance=1000, preserve_topology=True)
+    #     # geometry_dict = sim_points_gdf_simplified['geometry'].to_dict()
+    #     # TODO Rename 'code' with id_geometry
+    #     # ds['geometry'] = ('code', [
+    #     #     geometry_dict[code] if code in geometry_dict.keys() else None for code in ds['code'].values
+    #     # ])
+    #     # ds = ds.rename({'code': 'id_geometry'})
+    #
+    #     # Compute PK
+    #
+    #
+    #     if indicator == 'QA':
+    #         # other_dimension = {'time': 'time.month'}
+    #         ds = ds.assign_coords(month=ds['time.month'])
+    #         other_dimension = 'month'
+    #     elif indicator == 'seas':
+    #         def get_season(month):
+    #             if month in [12, 1, 2]:
+    #                 return 'DJF'
+    #             elif month in [3, 4, 5]:
+    #                 return 'MAM'
+    #             elif month in [6, 7, 8]:
+    #                 return 'JJA'
+    #             else:
+    #                 return 'SON'
+    #
+    #         seasons = xr.DataArray(
+    #             [get_season(i) for i in ds['time.month'].values],
+    #             coords={'time': ds['time']},
+    #             dims='time'
+    #         )
+    #         ds = ds.assign_coords(season=seasons)
+    #         other_dimension = 'season'
+
+    print(f'> Define horizons...', end='\n')
+    # Define horizons
+    ds = define_horizon(ds, files_setup)
+
+    # Return period
+    # ds = compute_return_period(ds, indicator_cols, files_setup, return_period=5, other_dimension=other_dimension)
+
+    # Compute mean value for each horizon for each sim
+    print(f'> Compute mean by horizon...', end='\n')
+    ds = compute_mean_by_horizon(ds=ds, indicator_cols=simulation_cols,
+                                 files_setup=files_setup, other_dimension=other_dimension)
+
+    simulation_horizon = [i for i in list(ds.variables) if '_by_horizon' in i]
+
+    # Compute deviation/difference to reference
+    print(f'> Compute deviation & difference by horizon for each simulation...', end='\n')
+    ds = compute_deviation_to_ref(ds, cols=simulation_horizon)
+    simulation_horizon_deviation_by_sims = [i for i in list(ds.variables) if '_by_horizon_deviation' in i]
+    simulation_horizon_difference_by_sims = [i for i in list(ds.variables) if '_by_horizon_difference' in i]
+
+    # Compute statistic among all sims
+    print(f'> Compute stats by horizon among simulations...', end='\n')
+    ds_deviation_stats = apply_statistic(ds=ds[simulation_horizon_deviation_by_sims].to_array(dim='new'),
+                                         function=files_setup['function'],
+                                         q=files_setup['quantile']
+                                         )
+    ds_difference_stats = apply_statistic(ds=ds[simulation_horizon_difference_by_sims].to_array(dim='new'),
+                                          function=files_setup['function'],
+                                          q=files_setup['quantile']
+                                          )
+    simulation_horizon_deviation = [f"deviation_{i}" for i in
+                                    list(ds_deviation_stats.data_vars)]
+    simulation_horizon_difference = [f"difference_{i}" for i in
+                                     list(ds_difference_stats.data_vars)]
+    ds[simulation_horizon_deviation] = ds_deviation_stats
+    ds[simulation_horizon_difference] = ds_difference_stats
+
+    columns = {'simulation_cols': simulation_cols,
+     'simulation_horizon': simulation_horizon,
+     'simulation_horizon_deviation_by_sims': simulation_horizon_deviation_by_sims,
+     'simulation_horizon_difference_by_sims': simulation_horizon_difference_by_sims,
+     'simulation_horizon_deviation': simulation_horizon_deviation,
+     'simulation_horizon_difference': simulation_horizon_difference
+     }
+
+    return ds, columns
 
 def weighted_mean_per_region(ds, var, sim_points_gdf, region_col='gid'):
     # Spatial selection
