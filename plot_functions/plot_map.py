@@ -1,5 +1,8 @@
 import math
 import copy
+
+import numpy as np
+
 from plot_functions.plot_common import *
 import matplotlib.cm as cm
 
@@ -16,16 +19,28 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
 
     if percent:
         if vmax is None:
-            vmax = math.ceil(abs(gdf[indicator_plot]).max() / 5) * 5
+            if indicator_plot in gdf.columns:
+                vmax = math.ceil(abs(gdf[indicator_plot]).max() / 5) * 5
+            else:
+                vmax = math.ceil(abs(ds[indicator_plot]).max() / 5) * 5
         if vmin is None:
             vmin = -vmax
     else:
         if vmax is None:
-            vmax = int((gdf[indicator_plot].max()))
+            if indicator_plot in gdf.columns:
+                vmax = gdf[indicator_plot].max().values
+            else:
+                vmax = ds[indicator_plot].max().values
         if vmin is None:
-            vmin = int(gdf[indicator_plot].min()) - 1
+            if indicator_plot in gdf.columns:
+                vmin = gdf[indicator_plot].min().values
+            else:
+                vmin = ds[indicator_plot].min().values
 
-    bounds_cmap = np.linspace(vmin, vmax, discretize+1)
+    if vmax - vmin > 5:
+        bounds_cmap = np.linspace(vmin, vmax, discretize+1, dtype=int)
+    else:
+        bounds_cmap = np.linspace(vmin, vmax, discretize+1)
     if cmap_zero:
         cmap_temp = plt.get_cmap(palette, 256)
         cmap = mpl.colors.LinearSegmentedColormap.from_list(palette, cmap_temp(np.linspace(0.5, 1, 128)),
@@ -58,11 +73,12 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
         axes_flatten = [axes]
 
     # Save axes position
-    for ax in axes_flatten:
-        initial_position = ax.get_position()
-        ax.set_position(initial_position)
+    # for ax in axes_flatten:
+    #     initial_position = ax.get_position()
+    #     ax.set_position(initial_position)
 
     # Iterate over subplots
+    row_count = -1
     for col_idx, col in enumerate(cols_plot['values_var']):
         for row_idx, row in enumerate(rows_plot['values_var']):
             idx = len_cols * row_idx + col_idx
@@ -98,15 +114,13 @@ def mapplot(gdf, ds, indicator_plot, path_result, cols, rows,
             if isinstance(indicator_plot, list):
                 ax.set_title(indicator_plot[idx])
 
+            # Headers and axes label
+            add_header(ax, rows_plot, cols_plot, ylabel='', xlabel='')
+
             if bounds is not None:
                 ax.set_xlim(bounds[0], bounds[2])
                 ax.set_ylim(bounds[1], bounds[3])
             ax.set_axis_off()
-
-    # Headers
-    if any(cols_plot['names_plot']) or any(rows_plot['names_plot']):
-        add_headers(fig, col_headers=cols_plot['names_plot'], row_headers=rows_plot['names_plot'],
-                    row_pad=5, col_pad=5, **text_kwargs)
 
     # Colorbar
     cbar = define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=cbar_title, percent=percent, **text_kwargs)

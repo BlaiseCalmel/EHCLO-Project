@@ -31,8 +31,8 @@ def resample_ds(ds, var, timestep, operation='mean', q=None):
     else:
         raise ValueError(f"Operation '{operation}' is not supported.")
 
-def rename_variables(dataset, suffix, var_name, indicator):
-    return dataset.rename({var: indicator + '_' + suffix for var in dataset.data_vars if var == var_name})
+def rename_variables(dataset, suffix, var_name):
+    return dataset.rename({var: suffix for var in dataset.data_vars if var == var_name})
 
 def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, timestep=None,
                            start=None, path_result=None):
@@ -81,7 +81,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             for file in files:
                 ds = xr.open_dataset(file)
                 # Add sim suffix
-                ds = rename_variables(ds, file_name, var_name, indicator)
+                ds = rename_variables(ds, file_name, var_name)
                 # Load only selected period
                 if start is not None:
                     ds = ds.sel(time=slice(dt.datetime(
@@ -94,11 +94,11 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                 if param_type == "climate":
                     # TODO Look for seasonal indicator (climate) DJF/JJA
                     if timestep is not None:
-                        resampled_var = resample_ds(ds, var, timestep)
+                        resampled_var = resample_ds(ds, file_name, timestep)
                         coordinates = {i: ds[i] for i in ds._coord_names if i != 'time'}
                         coordinates['time'] = resampled_var['time']
                         ds = xr.Dataset({
-                            var: (('time', 'y', 'x'), resampled_var.values)
+                            file_name: (('time', 'y', 'x'), resampled_var.values)
                         }, coords=coordinates
                         )
 
@@ -130,7 +130,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
                         # Clean dataset
                         ds = xr.Dataset({
-                            var: (('time', 'gid'), ds[var].values),
+                            file_name: (('time', 'gid'), ds[file_name].values),
                             'x': (('gid'), ds['L93_X'].values),
                             'y': (('gid'), ds['L93_Y'].values),
                         }, coords={i: ds[i] for i in ds._coord_names}

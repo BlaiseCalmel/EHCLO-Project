@@ -64,47 +64,42 @@ def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=F
     return cbar
 
 
-def add_headers(fig, *, row_headers=None, col_headers=None, row_pad=1, col_pad=5, rotate_row_headers=True,
-                **text_kwargs):
-    axes = fig.get_axes()
-    for ax in axes:
-        sbs = ax.get_subplotspec()
+def add_header(ax, rows_plot, cols_plot, ylabel='', xlabel=''):
+    sbs = ax.get_subplotspec()
+    if sbs.is_first_col():
+        if sbs.rowspan.start < len(rows_plot['names_plot']):
+            name_row = rows_plot['names_plot'][sbs.rowspan.start]
+            if name_row is not None:
+                name_row = name_row.replace(' ', '~')
+                if ylabel is None or len(ylabel) == 0:
+                    ax.set_ylabel(f"$\\bf{{{name_row}}}$")
+                else:
+                    ax.set_ylabel(f"$\\bf{{{name_row}}}$ \n\n{ylabel}")
 
-        # Putting headers on cols
-        if (col_headers is not None) and sbs.is_first_row():
+    if sbs.is_first_row():
+        if sbs.colspan.start < len(cols_plot['names_plot']):
+            name_col = cols_plot['names_plot'][sbs.colspan.start]
+            if name_col is not None:
+                ax.annotate(
+                            name_col,
+                            xy=(0.5, 1),
+                            xytext=(0, 5),
+                            xycoords="axes fraction",
+                            textcoords="offset points",
+                            ha="center",
+                            va="baseline",
+                            **{'weight': 'bold'},
+                        )
 
-            ax.annotate(
-                col_headers[sbs.colspan.start],
-                xy=(0.5, 1),
-                xytext=(0, col_pad),
-                xycoords="axes fraction",
-                textcoords="offset points",
-                ha="center",
-                va="baseline",
-                **text_kwargs,
-            )
+    if sbs.is_last_row():
+        if xlabel and len(xlabel) > 0:
+            ax.set_xlabel(f"{xlabel}")
 
-        # Putting headers on rows
-        if (row_headers is not None) and sbs.is_first_col():
-            ax.text(50, 0.5, row_headers[sbs.rowspan.start], rotation=90, ha='left', va='center', **text_kwargs)
-            # ax.annotate(
-            #     row_headers[sbs.rowspan.start],
-            #     xy=(-1, 0.5),
-            #     # xytext=(-ax.yaxis.labelpad - row_pad, 0),
-            #     # xytext=(-ax.yaxis.labelpad - row_pad, 0),
-            #     # xycoords=ax.yaxis.label,
-            #     xycoords="axes fraction",
-            #     textcoords="offset points",
-            #     ha="right",
-            #     va="center",
-            #     rotation=rotate_row_headers * 90,
-            #     **text_kwargs,
-            # )
 
 def find_extrema(ds_plot, x_axis, y_axis, xmin, xmax, ymin, ymax):
     if xmin is None:
         try:
-            x_min_temp = [ds_plot.variables[i].min() for i in x_axis['values_var']]
+            x_min_temp = [ds_plot.variables[i].min().values for i in x_axis.keys()]
             xmin = np.nanmin(x_min_temp)
         except ValueError:
             xmin = min(x_min_temp)
@@ -112,7 +107,7 @@ def find_extrema(ds_plot, x_axis, y_axis, xmin, xmax, ymin, ymax):
             xmin = None
     if xmax is None:
         try:
-            x_max_temp = max([ds_plot.variables[i].max() for i in x_axis['values_var']])
+            x_max_temp = max([ds_plot.variables[i].max().values for i in x_axis.keys()])
             xmax = np.nanmin(x_max_temp)
         except ValueError:
             xmax = max(x_max_temp)
@@ -121,7 +116,7 @@ def find_extrema(ds_plot, x_axis, y_axis, xmin, xmax, ymin, ymax):
 
     if ymin is None:
         try:
-            y_min_temp = [ds_plot.variables[i].min() for i in y_axis['values_var']]
+            y_min_temp = [ds_plot.variables[i].min().values for i in y_axis.keys()]
             ymin = np.nanmin(y_min_temp)
         except ValueError:
             ymin = min(y_min_temp)
@@ -130,7 +125,7 @@ def find_extrema(ds_plot, x_axis, y_axis, xmin, xmax, ymin, ymax):
 
     if ymax is None:
         try:
-            y_max_temp = np.nanmax([ds_plot.variables[i].max() for i in y_axis['values_var']])
+            y_max_temp = np.nanmax([ds_plot.variables[i].max().values for i in y_axis.keys()])
             ymax = np.nanmax(y_max_temp)
         except ValueError:
             ymax = max(y_max_temp)

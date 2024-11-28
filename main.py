@@ -15,10 +15,8 @@ import json
 
 print(f'> Local imports...', end='\n')
 from global_functions.load_data import *
-from global_functions.format_data import *
-from plot_functions.plot_map import *
-from plot_functions.plot_lineplot import *
-from plot_functions.plot_boxplot import *
+from plot_functions.run_plot import *
+
 from global_functions.shp_geometry import *
 from global_functions.path_functions import  *
 
@@ -164,12 +162,12 @@ for data_type, subdict in path_files.items():
 
             print(f'################################ FORMAT DATA ################################', end='\n')
             print(f'> Load from {indicator} export...', end='\n')
-            # path_ncdf = f"{dict_paths['folder_study_data']}QA_mon_ME_rcp85.nc"
-            # indicator='QA'
+            # path_ncdf = f"{dict_paths['folder_study_data']}QA_seas-JJA_ME_rcp85.nc"
+            # indicator='QA_seas-JJA'
             indicator = indicator.split('_')[0]
             ds = xr.open_dataset(path_ncdf)
             # TODO ITERATE OVER QA INDICATORS
-            indicator_cols = [i for i in list(ds.variables) if indicator in i]
+            simulation_cols = [i for i in list(ds.data_vars)]
 
             # Define geometry for each data (Points hydro, Polygon climate)
             print(f'> Match geometry and data...', end='\n')
@@ -198,6 +196,7 @@ for data_type, subdict in path_files.items():
                 # ds = ds.rename({'code': 'id_geometry'})
 
                 # Compute PK
+                loire = sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7]
                 value = compute_river_distance(rivers_shp, loire, river_name='loire',
                                                start_from='last')
 
@@ -235,31 +234,33 @@ for data_type, subdict in path_files.items():
             # ds = compute_return_period(ds, indicator_cols, files_setup, return_period=5, other_dimension=other_dimension)
 
             # Compute mean value for each horizon for each sim
-            ds = compute_mean_by_horizon(ds=ds, indicator_cols=indicator_cols,
+            ds = compute_mean_by_horizon(ds=ds, indicator_cols=simulation_cols,
                                          files_setup=files_setup, other_dimension=other_dimension)
 
-            indicator_horizon = [i for i in list(ds.variables) if '_by_horizon' in i]
+            simulation_horizon = [i for i in list(ds.variables) if '_by_horizon' in i]
 
             # Compute deviation/difference to reference
-            ds = compute_deviation_to_ref(ds, cols=indicator_horizon)
-            indicator_horizon_deviation_sims = [i for i in list(ds.variables) if '_by_horizon_deviation' in i]
-            indicator_horizon_difference_sims = [i for i in list(ds.variables) if '_by_horizon_difference' in i]
+            ds = compute_deviation_to_ref(ds, cols=simulation_horizon)
+            simulation_horizon_deviation_by_sims = [i for i in list(ds.variables) if '_by_horizon_deviation' in i]
+            simulation_horizon_difference_by_sims = [i for i in list(ds.variables) if '_by_horizon_difference' in i]
 
             # Compute statistic among all sims
-            ds_deviation_stats = apply_statistic(ds=ds[indicator_horizon_deviation_sims].to_array(dim='new'),
+            ds_deviation_stats = apply_statistic(ds=ds[simulation_horizon_deviation_by_sims].to_array(dim='new'),
                                                  function=files_setup['function'],
                                                  q=files_setup['quantile']
                                                  )
-            ds_difference_stats = apply_statistic(ds=ds[indicator_horizon_difference_sims].to_array(dim='new'),
+            ds_difference_stats = apply_statistic(ds=ds[simulation_horizon_difference_by_sims].to_array(dim='new'),
                                                   function=files_setup['function'],
                                                   q=files_setup['quantile']
                                                   )
-            indicator_horizon_deviation = [f"{indicator}_deviation_{i}" for i in
+            simulation_horizon_deviation = [f"deviation_{i}" for i in
                                            list(ds_deviation_stats.data_vars)]
-            indicator_horizon_difference = [f"{indicator}_difference_{i}" for i in
+            simulation_horizon_difference = [f"difference_{i}" for i in
                                             list(ds_difference_stats.data_vars)]
-            ds[indicator_horizon_deviation] = ds_deviation_stats
-            ds[indicator_horizon_difference] = ds_difference_stats
+            ds[simulation_horizon_deviation] = ds_deviation_stats
+            ds[simulation_horizon_difference] = ds_difference_stats
+
+            # TODO Compute indicator stats by areas
 
             # ds['geometry'] = ('id_geometry', sim_points_gdf_simplified.geometry)
 
@@ -272,7 +273,7 @@ for data_type, subdict in path_files.items():
             # col_name='horizon'
             # col_headers = {'horizon1': 'Horizon 1 (2021-2050)',
             #                'horizon2': 'Horizon 2 (2041-2070)',
-            #                'horizon3': 'Horizon 3 (2070-2100)'}
+            #                'horizon3': 'Horizon 3 (2070-2099)'}
             #
             row_name = None
 
@@ -299,17 +300,7 @@ for data_type, subdict in path_files.items():
                             11: 'Novembre'},
                 }
 
-            shape_hp = {
-                'CTRIP': 'o',
-                'EROS': 'H',
-                'GRSD': '*',
-                'J2000': 's',
-                'MORDOR-TS': '^',
-                'MORDOR-SD': 'v',
-                'SIM2': '>',
-                'SMASH': '<',
-                'ORCHIDEE': 'D',
-            }
+
 
             # gdf = gpd.GeoDataFrame({
             #     'geometry': ds['geometry'].values,
@@ -338,34 +329,44 @@ for data_type, subdict in path_files.items():
                     path_results = f"{path_indicator_figures}{timestep}_{rcp}_"
                 else:
                     path_results = f"{path_indicator_figures}{timestep}_{rcp}_{key}_"
-                cols_map = {
-                    'names_coord': 'horizon',
-                    'values_var': ['horizon1', 'horizon2', 'horizon3'],
-                    'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2100)']
-                }
 
-                rows = {
-                    'names_coord': row_name,
-                    'values_var': list(value.keys()),
-                    'names_plot': list(value.values())
-                }
 
                 # Plot map
                 # Relative
-                print(f"> Relative map plot {indicator}_{timestep}_{rcp}_{key}...")
-                mapplot(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=indicator_horizon_deviation[0], path_result=path_indicator_figures+'map_deviation.pdf',
-                        cols=cols_map, rows=rows,
-                        cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds,
-                        discretize=8, palette='BrBG', fontsize=14, font='sans-serif', vmax=100)
+                print(f"> Map plot...")
+                print(f">> Deviation map plot {indicator}...")
+                plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=simulation_horizon_deviation[0],
+                              path_result=path_indicator_figures+'map_deviation.pdf',
+                              cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
+                              percent=True, bounds=bounds,
+                              discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
+
+                print(f">> Difference map plot {indicator}_{timestep}...")
+                plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=simulation_horizon_difference[0],
+                              path_result=path_indicator_figures+'map_difference.pdf',
+                              cbar_title=f"{indicator} difference", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
+                              percent=False, bounds=bounds, palette='RdBu_r', cmap_zero=True, fontsize=14,
+                              font='sans-serif', discretize=8)
+
+                # Sim by PK + quantile
+                if 'PK' in sim_points_gdf_simplified.columns:
+                    print(f"> Linear plot...")
+                    ds['PK'] = ('gid', sim_points_gdf_simplified['PK'])
+                    print(f"> Linear deviation by PK")
+                    plot_linear_pk(ds, indicator, name='deviation',
+                                   simulations=simulation_horizon_deviation_by_sims,
+                                   name_y_axis=f'{indicator} variation (%)',
+                                   path_result=path_indicator_figures+'sim_dev_by_pk.pdf')
+                    print(f"> Linear difference by PK")
+                    plot_linear_pk(ds, name='difference', percent=False,
+                                   simulations=simulation_horizon_difference_by_sims,
+                                   name_y_axis=f'{indicator} difference',
+                                   references=sim_points_gdf_simplified[sim_points_gdf_simplified['REFERENCE'] == 1],
+                                   path_result=path_indicator_figures+'sim_diff_by_pk.pdf')
 
                 # Abs diff
-                print(f"> Difference map plot {indicator}_{timestep}_{rcp}_{key}...")
 
 
-                mapplot(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=indicator_horizon_difference[0], path_result=path_indicator_figures+'map_difference.pdf',
-                        cols=cols_map, rows=rows,
-                        cbar_title=f"{indicator} difference", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
-                        discretize=4, palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor=None, vmin=0, vmax=4)
 
                 # Plot number of HM by station
                 # indicator = 'n'
@@ -380,7 +381,23 @@ for data_type, subdict in path_files.items():
                         discretize=6, cbar_ticks='mid', palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k', vmin=3.5, vmax=9.5)
 
 
+
+
+
                 # Plot sim by station
+
+                shape_hp = {
+                    'CTRIP': 'o',
+                    'EROS': 'H',
+                    'GRSD': '*',
+                    'J2000': 's',
+                    'MORDOR-TS': '^',
+                    'MORDOR-SD': 'v',
+                    'SIM2': '>',
+                    'SMASH': '<',
+                    'ORCHIDEE': 'D',
+                }
+
                 # 3 cols * 3 rows
                 hm = list(shape_hp.keys())
                 # gdf = gpd.GeoDataFrame({i: ds[i] for i in hm + ['id_geometry', 'geometry']})
@@ -390,69 +407,12 @@ for data_type, subdict in path_files.items():
                 }
                 rows = 3
 
-                mapplot(gdf=sim_points_gdf, ds=ds, indicator_plot=hm, path_result=f"{path_indicator_figures}HM_by_sim.pdf",
+                mapplot(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=hm, path_result=f"{path_indicator_figures}HM_by_sim.pdf",
                         cols=cols_map, rows=3,
                         cbar_title=f"Simulations présentes", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
                         discretize=2, cbar_ticks='mid', palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k', vmin=-0.5, vmax=1.5,
                         cbar_values=['Absente', 'Présente'])
 
-                print(f"> Relative line plot {indicator}_{timestep}_{rcp}_{key}...")
-
-
-                x_axis = {
-                    'names_var': 'time',
-                    'values_var': 'time',
-                    'name_axis': 'Date'
-                }
-                y_axis = {
-                    'names_var': 'indicator',
-                    'values_var': indicator_cols,
-                    'name_axis': 'QA'
-                }
-
-                rows = {'names_var': 'id_geometry',
-                        'values_var': ds['id_geometry'].where(ds['geometry'].notnull(), drop=True).values,
-                        'names_plot': ds['id_geometry'].where(ds['geometry'].notnull(), drop=True).values}
-                cols = {
-                    'names_var': row_name,
-                    'values_var': list(value.keys()),
-                    'names_plot': list(value.values())
-                }
-
-                lineplot(ds, x_axis, y_axis, path_result=path_indicator_figures+'lineplot.pdf', cols=cols, rows=rows,
-                         title=None, percent=False, fontsize=14, font='sans-serif', ymax=None, plot_type='line')
-
-
-                # Sim by PK + quantile
-                ds['PK'] = ('gid', sim_points_gdf_simplified['PK'])
-                plot_linear_pk(ds, indicator, name=indicator+'_deviation',
-                               simulations=indicator_horizon_deviation_sims,
-                               path_result=path_indicator_figures+'sim_dev_by_pk.pdf')
-                plot_linear_pk(ds, indicator, indicator+'_difference', indicator_horizon_difference_sims,
-                               path_result=path_indicator_figures+'sim_diff_by_pk.pdf')
-                def plot_linear_pk(ds, indicator, name, simulations, path_result):
-                    x_axis = {'PK': {},
-                              'name_axis': 'PK (km)'
-                              }
-
-                    y_axis = {i: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation'}
-                               for i in simulations}
-                    y_axis |= {
-                        f'{name}_quantile5': {'color': 'blue', 'linestyle': '--', 'label': 'Q05', 'zorder': 2},
-                        f'{name}_median': {'color': 'r', 'linestyle': '--', 'label': 'Q50', 'zorder': 2},
-                        f'{name}_quantile95': {'color': 'k', 'linestyle': '--', 'label': 'Q95', 'zorder': 2},
-                        'name_axis': f'Variation {indicator} (%)'
-                    }
-
-                    cols = None
-                    rows = {
-                        'names_coord': 'horizon',
-                        'values_var': ['horizon1', 'horizon2', 'horizon3'],
-                        'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2100)']
-                    }
-
-                    lineplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows,
-                             title=None, percent=True, fontsize=14, font='sans-serif', ymax=None, plot_type='line')
 
                 # Cols  and rows of subplots
                 cols = {'names_var': 'id_geometry', 'values_var': ['K001872200', 'M850301010'], 'names_plot': ['Station 1', 'Station 2']}
