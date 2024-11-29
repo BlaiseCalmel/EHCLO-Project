@@ -65,7 +65,8 @@ def overlay_shapefile(shapefile, data, path_result=None, col='gid', force_contai
     matched_points = matched_points.drop('index_right', axis=1)
     if force_contains:
         for key, value in force_contains.items():
-            matched_points = matched_points[matched_points[key].str.contains(value, case=False, na=False)]
+            matched_points = matched_points[(matched_points[key].str.contains(value, case=False, na=False)) |
+                                            (matched_points['gid'] > 6)]
 
     if 'PointsSupp' in matched_points.columns:
         valid_stations = pd.isna(matched_points['PointsSupp'])

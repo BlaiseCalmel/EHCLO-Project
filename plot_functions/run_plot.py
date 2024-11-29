@@ -6,9 +6,6 @@ def plot_linear_pk(ds, name, simulations, path_result, name_y_axis='', percent=F
     x_axis = {'PK': {},
               'name_axis': 'PK (km)'
               }
-    x_axis = {'time': {},
-              'name_axis': 'Date'
-              }
 
     y_axis = {i: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation'}
               for i in simulations}
@@ -31,6 +28,30 @@ def plot_linear_pk(ds, name, simulations, path_result, name_y_axis='', percent=F
             references.loc[:, 'tag'] = cities
         else:
             references = None
+
+    lineplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=references,
+             title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None, plot_type='line')
+
+def plot_linear_time(ds, name, simulations, path_result, name_y_axis='', percent=False, references=None):
+    x_axis = {'time': {},
+              'name_axis': 'Date'
+              }
+
+    y_axis = {i: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation'}
+              for i in simulations}
+    y_axis |= {
+        f'{name}_quantile5': {'color': '#fdb863', 'linestyle': '--', 'label': 'q05', 'zorder': 2},
+        f'{name}_median': {'color': '#5e3c99', 'linestyle': '--', 'label': 'q50', 'zorder': 2},
+        f'{name}_quantile95': {'color': '#e66101', 'linestyle': '--', 'label': 'q95', 'zorder': 2},
+        'name_axis': f'{name_y_axis}'
+    }
+
+    cols = None
+    rows = {
+        'names_coord': 'gid',
+        'values_var': ['K091001011','M624001000'],
+        'names_plot': ['K091001011 amont','M624001000 aval']
+    }
 
     lineplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=references,
              title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None, plot_type='line')

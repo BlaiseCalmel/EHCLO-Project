@@ -125,6 +125,7 @@ hydro_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['hy
 hydro_sim_points_gdf_simplified = hydro_sim_points_gdf[hydro_sim_points_gdf['n'] >= 4]
 hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified.reset_index(drop=True).set_index('Suggestion')
 hydro_sim_points_gdf_simplified.index.names = ['name']
+
 climate_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['climate'])
 climate_sim_points_gdf_simplified = climate_sim_points_gdf.loc[
     climate_sim_points_gdf.groupby('name')['gid'].idxmin()].reset_index(drop=True)
@@ -203,14 +204,14 @@ for data_type, subdict in path_files.items():
             # Relative
             print(f"> Map plot...")
             print(f">> Deviation map plot {indicator}")
-            plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='deviation_median',
-                          path_result=path_indicator_figures+'map_deviation.pdf',
+            plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_median',
+                          path_result=path_indicator_figures+'map_variation.pdf',
                           cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
                           percent=True, bounds=bounds,
                           discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
 
             print(f">> Difference map plot {indicator}_{timestep}")
-            plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='difference_median',
+            plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_difference_median',
                           path_result=path_indicator_figures+'map_difference.pdf',
                           cbar_title=f"{indicator} difference", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
                           percent=False, bounds=bounds, palette='RdBu_r', cmap_zero=True, fontsize=14,
@@ -218,50 +219,43 @@ for data_type, subdict in path_files.items():
 
             # Sim by PK + quantile
             print(f"> Linear plot...")
+            print(f">> Linear deviation by time")
+            plot_linear_time(ds, name='timeline_deviation',
+                             simulations=variables['simulation_deviation'],
+                             name_y_axis=f'{indicator} variation (%)',
+                             percent=True,
+                             references=sim_points_gdf_simplified[sim_points_gdf_simplified['REFERENCE'] == 1],
+                             path_result=path_indicator_figures+'lineplot_variation_timeline.pdf')
+
+            print(f">> Linear difference by time")
+            plot_linear_time(ds, name='timeline_difference',
+                             simulations=variables['simulation_difference'],
+                             name_y_axis=f'{indicator} variation (%)',
+                             percent=True,
+                             references=sim_points_gdf_simplified[sim_points_gdf_simplified['REFERENCE'] == 1],
+                             path_result=path_indicator_figures+'lineplot_difference_timeline.pdf')
+
             if 'PK' in sim_points_gdf_simplified.columns:
                 ds['PK'] = ('gid', sim_points_gdf_simplified['PK'])
                 print(f">> Linear deviation by PK")
-                plot_linear_pk(ds, name='deviation',
+                villes = ['Villerest', 'Nevers', 'Orleans', 'Blois', 'Tours', 'Saumur', 'Nantes']
+                regex = "|".join(villes)
+                filtered_df = sim_points_gdf_simplified[sim_points_gdf_simplified['Suggesti_2'].str.contains(regex, case=False, na=False)]
+                plot_linear_pk(ds, name='horizon_deviation',
                                simulations=variables['simulation_horizon_deviation_by_sims'],
                                name_y_axis=f'{indicator} variation (%)',
-                               path_result=path_indicator_figures+'sim_dev_by_pk.pdf')
+                               percent=True,
+                               references=filtered_df,
+                               path_result=path_indicator_figures+'lineplot_variation_PK.pdf')
                 print(f">> Linear difference by PK")
                 plot_linear_pk(ds, name='difference', percent=False,
                                simulations=variables['simulation_horizon_difference_by_sims'],
                                name_y_axis=f'{indicator} difference',
                                references=sim_points_gdf_simplified[sim_points_gdf_simplified['REFERENCE'] == 1],
-                               path_result=path_indicator_figures+'sim_diff_by_pk.pdf')
+                               path_result=path_indicator_figures+'lineplot_difference_PK.pdf')
 
-            print(f">> Linear deviation by time")
-            path_result=path_indicator_figures+'sim_diff_by_time.pdf'
-            x_axis = {'time': {},
-                      'name_axis': 'Date'
-                      }
 
-            y_axis = {i: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation'}
-                      for i in deviation_timeline}
-            y_axis |= {
-                f'{deviation_timeline}_quantile5': {'color': '#fdb863', 'linestyle': '--', 'label': 'q05', 'zorder': 2},
-                f'{deviation_timeline}_median': {'color': '#5e3c99', 'linestyle': '--', 'label': 'q50', 'zorder': 2},
-                f'{deviation_timeline}_quantile95': {'color': '#e66101', 'linestyle': '--', 'label': 'q95', 'zorder': 2},
-                'name_axis': f'{name_y_axis}'
-            }
 
-            cols = None
-            rows = {
-                'names_coord': 'gid',
-                'values_var': ['K091001011','M624001000'],
-                'names_plot': ['K091001011 amont','M624001000 aval']
-            }
-            # if references is not None:
-            #     if 'Suggesti_2' in references.columns:
-            #         cities = [i.split(' A ')[-1].split(' [')[0] for i in references['Suggesti_2']]
-            #         references.loc[:, 'tag'] = cities
-            #     else:
-            #         references = None
-
-            lineplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=references,
-                     title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None, plot_type='line')
 
 
 print(f'################################ PLOT GLOBAL ################################', end='\n')

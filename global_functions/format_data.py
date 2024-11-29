@@ -87,8 +87,8 @@ def format_dataset(ds, data_type, files_setup):
     ds, horizon_difference = run_stats(ds, simulation_horizon_difference_by_sims, files_setup,
                                                   name="horizon_difference")
 
-    ds, deviation_timeline = run_stats(ds, simulation_deviation, files_setup, name="deviation_timeline")
-    ds, difference_timeline = run_stats(ds, simulation_difference, files_setup, name="difference_timeline")
+    ds, timeline_deviation = run_stats(ds, simulation_deviation, files_setup, name="timeline_deviation")
+    ds, timeline_difference = run_stats(ds, simulation_difference, files_setup, name="timeline_difference")
 
     columns = {'simulation_cols': simulation_cols,
                'simulation_deviation': simulation_deviation,
@@ -98,8 +98,8 @@ def format_dataset(ds, data_type, files_setup):
                'simulation_horizon_difference_by_sims': simulation_horizon_difference_by_sims,
                'horizon_deviation': horizon_deviation,
                'horizon_difference': horizon_difference,
-               'deviation_timeline': deviation_timeline,
-               'difference_timeline': difference_timeline
+               'timeline_deviation': timeline_deviation,
+               'timeline_difference': timeline_difference
      }
 
     return ds, columns

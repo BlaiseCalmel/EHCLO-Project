@@ -58,7 +58,6 @@ def lineplot(ds, x_axis, y_axis, path_result, cols, rows, vlines=None, xmin=None
 
             for x_var, x_values in x_axis.items():
                 for y_var, y_values in y_axis.items():
-                    print(y_var)
                     ds_selection = ds_selection.sortby(x_var)
                     valid = np.logical_not(np.isnan(ds_selection[y_var].values))
                     if plot_type == 'line':
@@ -70,6 +69,8 @@ def lineplot(ds, x_axis, y_axis, path_result, cols, rows, vlines=None, xmin=None
                         legend_items.append(y_values)
 
                 if vlines is not None:
+                    valid = np.logical_not(np.isnan(vlines[x_var]))
+                    vlines = vlines[valid]
                     ax.vlines(x=vlines[x_var], ymin=ymin, ymax=ymax - 0.1*(ymax-ymin), color="k", linewidth=1)
 
                     for i in range(len(vlines)):

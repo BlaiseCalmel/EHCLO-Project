@@ -6,7 +6,6 @@ import geopandas
 from tqdm import tqdm
 import xarray as xr
 import os
-import itertools
 
 
 def resample_ds(ds, var, timestep, operation='mean', q=None):
