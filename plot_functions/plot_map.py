@@ -2,7 +2,7 @@ import math
 import copy
 
 import numpy as np
-
+from matplotlib.colors import from_levels_and_colors
 from plot_functions.plot_common import *
 import matplotlib.cm as cm
 
@@ -41,13 +41,22 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         bounds_cmap = np.linspace(vmin, vmax, discretize+1, dtype=int)
     else:
         bounds_cmap = np.linspace(vmin, vmax, discretize+1)
+
     if cmap_zero:
-        cmap_temp = plt.get_cmap(palette, 256)
-        cmap = mpl.colors.LinearSegmentedColormap.from_list(palette, cmap_temp(np.linspace(0.5, 1, 128)),
-                                                            N=discretize)
+        midpoint = vmin
+        levels = np.linspace(vmin, vmax, discretize+1)
+        midp = np.mean(np.c_[levels[:-1], levels[1:]], axis=1)
+        vals = np.interp(midp, [vmin, midpoint, vmax], [0, 0.5, 1])
+        colormap = getattr(plt.cm, palette)
+        colors = colormap(vals)
+        cmap, norm = from_levels_and_colors(levels, colors)
+
+        # cmap_temp = plt.get_cmap(palette, 256)
+        # cmap = mpl.colors.LinearSegmentedColormap.from_list(palette, cmap_temp(np.linspace(0.5, 1, 128)),
+        #                                                     N=discretize)
     else:
         cmap = plt.get_cmap(palette, discretize)
-    norm = mpl.colors.BoundaryNorm(boundaries=bounds_cmap, ncolors=discretize)
+        norm = mpl.colors.BoundaryNorm(boundaries=bounds_cmap, ncolors=discretize)
 
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
@@ -73,9 +82,9 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         axes_flatten = [axes]
 
     # Save axes position
-    # for ax in axes_flatten:
-    #     initial_position = ax.get_position()
-    #     ax.set_position(initial_position)
+    for ax in axes_flatten:
+        initial_position = ax.get_position()
+        ax.set_position(initial_position)
 
     # Iterate over subplots
     for col_idx, col in enumerate(cols_plot['values_var']):
@@ -127,7 +136,7 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         cbar.set_ticks((bounds_cmap[1:] + bounds_cmap[:-1])/2)
         cbar.ax.tick_params(size=0)
         if cbar_values is None:
-            cbar.set_ticklabels((bounds_cmap[1:] + bounds_cmap[:-1])/2)
+            cbar.set_ticklabels(bounds_cmap[1:])
         else:
             cbar.set_ticklabels(cbar_values)
 

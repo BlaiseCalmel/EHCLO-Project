@@ -10,7 +10,7 @@ def define_bounds(shapefile, zoom=5000):
     raw_bounds = shapefile.geometry.total_bounds
     return [raw_bounds[0] - zoom, raw_bounds[1] - zoom, raw_bounds[2] + zoom, raw_bounds[3] + zoom]
 
-def overlay_shapefile(shapefile, data, path_result=None, col='gid', force_contains=None):
+def overlay_shapefile(shapefile, data, path_result=None, force_contains=None):
 
     # lat = data['lat']
     # lon = data['lon']
@@ -64,9 +64,11 @@ def overlay_shapefile(shapefile, data, path_result=None, col='gid', force_contai
         # matched_points = matched_points.loc[~matched_points.index.duplicated(keep='first')]
     matched_points = matched_points.drop('index_right', axis=1)
     if force_contains:
+        keeping = []
         for key, value in force_contains.items():
-            matched_points = matched_points[(matched_points[key].str.contains(value, case=False, na=False)) |
-                                            (matched_points['gid'] > 6)]
+            for item in value:
+                keeping.append(matched_points[(matched_points[key].str.contains(item, case=False, na=False))])
+            matched_points = pd.concat(keeping).reset_index()
 
     if 'PointsSupp' in matched_points.columns:
         valid_stations = pd.isna(matched_points['PointsSupp'])
@@ -167,7 +169,6 @@ def open_shp(path_shp: str):
 def load_shp(dict_paths, files_setup):
     regions_shp = open_shp(path_shp=dict_paths['file_regions_shp'])
     study_hydro_shp = open_shp(path_shp=dict_paths['file_hydro_shp'])
-
     study_climate_shp = open_shp(path_shp=dict_paths['file_climate_shp'])
     if isinstance(files_setup['gid'], dict):
         study_hydro_shp = study_hydro_shp[

@@ -144,9 +144,7 @@ def flatten_to_strings(input_list):
     return result
 
 def plot_selection(ds_selection, names_var, value):
-    if names_var == 'horizon':
-        ds_selection = ds_selection.sel(time = ds_selection[value])
-    elif names_var == 'month':
+    if names_var == 'month':
         ds_selection = ds_selection.sel(time = ds_selection.time.dt.month == value)
     elif names_var == 'indicator':
         ds_selection = ds_selection[value]

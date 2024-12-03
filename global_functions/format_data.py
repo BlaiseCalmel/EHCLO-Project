@@ -82,6 +82,7 @@ def format_dataset(ds, data_type, files_setup):
 
     # Compute statistic among all sims
     print(f'>> Compute stats by horizon among simulations...', end='\n')
+    # TODO not compute for each station but for each selected points (UG, station)
     ds, horizon_deviation = run_stats(ds, simulation_horizon_deviation_by_sims, files_setup,
                                                  name="horizon_deviation")
     ds, horizon_difference = run_stats(ds, simulation_horizon_difference_by_sims, files_setup,

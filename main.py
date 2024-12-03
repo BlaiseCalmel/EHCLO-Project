@@ -67,7 +67,7 @@ for data_type, path in dict_paths['dict_study_points_sim'].items():
         sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
         if data_type == 'hydro':
             overlay_shapefile(shapefile=study_hydro_shp, data=sim_all_points_info,
-                              path_result=path, force_contains={'Suggesti_2': 'LA LOIRE'})
+                              path_result=path, force_contains={'Suggesti_2': ['LA LOIRE', 'L\'ALLIER']})
         else:
             overlay_shapefile(shapefile=study_climate_shp, data=sim_all_points_info,
                               path_result=path)
@@ -142,6 +142,7 @@ for data_type, subdict in path_files.items():
 
     for rcp, subdict2 in subdict.items():
         for indicator, paths in subdict2.items():
+            print(f'################################ RUN {data_type} {rcp} {indicator} ################################', end='\n')
             # split_indicator = indicator_raw.split('-')
             # indicator = split_indicator[0]
             timestep = 'ME'
@@ -170,10 +171,19 @@ for data_type, subdict in path_files.items():
             # path_ncdf = f"{dict_paths['folder_study_data']}QA_seas-JJA_ME_rcp85.nc"
             # indicator='QA_seas-JJA'
 
-            ds = xr.open_dataset(path_ncdf)
-            ds, variables = format_dataset(ds, data_type, files_setup)
+for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator']:
+    print(indicator)
+    path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_ME_rcp85.nc"
+    path_indicator_figures = dict_paths['folder_study_figures'] + indicator + os.sep
 
-            # Compute PK
+    if not os.path.isdir(path_indicator_figures):
+        os.makedirs(path_indicator_figures)
+
+        ds = xr.open_dataset(path_ncdf)
+        ds, variables = format_dataset(ds, data_type, files_setup)
+
+        # Compute PK
+        if indicator in files_setup['hydro_indicator']:
             loire = sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7]
             value = compute_river_distance(rivers_shp, loire, river_name='loire',
                                            start_from='last')
@@ -181,42 +191,63 @@ for data_type, subdict in path_files.items():
             sim_points_gdf_simplified['PK'] = np.nan
             sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7, 'PK'] = value
 
+            edgecolor = 'k'
 
-            print(f'################################ PLOT INDICATOR ################################', end='\n')
-            dict_shapefiles = {'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'paleturquoise',
-                                              'linewidth': 1, 'zorder': 2, 'alpha': 0.8},
-                               'background_shp': {'shp': regions_shp_simplified, 'color': 'gainsboro',
-                                                  'edgecolor': 'black', 'zorder': 0},
-                               }
-            if data_type == 'hydro':
-                dict_shapefiles |= {'study_shp': {'shp': study_climate_shp_simplified, 'color': 'white',
-                                                  'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
-            else:
-                dict_shapefiles |= {'study_shp': {'shp': study_climate_shp_simplified, 'color': 'white',
-                                                  'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
+        else:
+            edgecolor = None
 
-            print(f"> Map plot...")
-            path_indicator_figures = dict_paths['folder_study_figures'] + indicator + os.sep
-            if not os.path.isdir(path_indicator_figures):
-                os.makedirs(path_indicator_figures)
+        print(f'################################ PLOT INDICATOR ################################', end='\n')
+        dict_shapefiles = {'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'paleturquoise',
+                                          'linewidth': 1, 'zorder': 2, 'alpha': 0.8},
+                           'background_shp': {'shp': regions_shp_simplified, 'color': 'gainsboro',
+                                              'edgecolor': 'black', 'zorder': 0},
+                           }
+        if data_type == 'hydro':
+            dict_shapefiles |= {'study_shp': {'shp': study_climate_shp_simplified, 'color': 'white',
+                                              'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
+        else:
+            dict_shapefiles |= {'study_shp': {'shp': study_climate_shp_simplified, 'color': 'white',
+                                              'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
 
-            # Plot map
-            # Relative
-            print(f"> Map plot...")
-            print(f">> Deviation map plot {indicator}")
-            plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_median',
-                          path_result=path_indicator_figures+'map_variation.pdf',
-                          cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
-                          percent=True, bounds=bounds,
-                          discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
+        # Plot map
+        # Relative
+        print(f"> Map plot...")
+        print(f">> Deviation map plot {indicator}")
+        plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_median',
+                      path_result=path_indicator_figures+'map_variation.pdf',
+                      cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
+                      percent=True, bounds=bounds, edgecolor=edgecolor,
+                      discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
 
-            print(f">> Difference map plot {indicator}_{timestep}")
-            plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_difference_median',
-                          path_result=path_indicator_figures+'map_difference.pdf',
-                          cbar_title=f"{indicator} difference", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
-                          percent=False, bounds=bounds, palette='RdBu_r', cmap_zero=True, fontsize=14,
-                          font='sans-serif', discretize=8)
+        ##################################################"
+        hm_names = [name.split('_')[-1] for name in ds.data_vars]
+        hm_dict = {i: [] for i in np.unique(hm_names)}
+        variables['simulation_deviation']
+        for name in ds.data_vars:
+            key = name.split('_')[-1]
+            hm_dict[key].append(name)
 
+        rows = {
+            'names_coord': 'indicator',
+            'values_var': [value for value in hm_dict.values()],
+            'names_plot': [value for value in hm_dict.keys()]
+        }
+        plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, rows=rows, indicator_plot='horizon_deviation_median',
+                           path_result=path_indicator_figures+'map_variation.pdf',
+                           cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
+                           percent=True, bounds=bounds, edgecolor=edgecolor,
+                           discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
+        ##################################################"
+
+
+        print(f">> Difference map plot {indicator}")
+        plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_difference_median',
+                      path_result=path_indicator_figures+'map_difference.pdf',
+                      cbar_title=f"{indicator} difference", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
+                      percent=False, bounds=bounds, palette='RdBu_r', cmap_zero=True, fontsize=14,
+                      font='sans-serif', discretize=8, edgecolor=edgecolor)
+
+        if indicator in files_setup['hydro_indicator']:
             # Sim by PK + quantile
             print(f"> Linear plot...")
             print(f">> Linear deviation by time")
@@ -224,7 +255,7 @@ for data_type, subdict in path_files.items():
                              simulations=variables['simulation_deviation'],
                              name_y_axis=f'{indicator} variation (%)',
                              percent=True,
-                             references=sim_points_gdf_simplified[sim_points_gdf_simplified['REFERENCE'] == 1],
+                             references=None,
                              path_result=path_indicator_figures+'lineplot_variation_timeline.pdf')
 
             print(f">> Linear difference by time")
@@ -232,7 +263,7 @@ for data_type, subdict in path_files.items():
                              simulations=variables['simulation_difference'],
                              name_y_axis=f'{indicator} variation (%)',
                              percent=True,
-                             references=sim_points_gdf_simplified[sim_points_gdf_simplified['REFERENCE'] == 1],
+                             references=None,
                              path_result=path_indicator_figures+'lineplot_difference_timeline.pdf')
 
             if 'PK' in sim_points_gdf_simplified.columns:
@@ -245,15 +276,20 @@ for data_type, subdict in path_files.items():
                                simulations=variables['simulation_horizon_deviation_by_sims'],
                                name_y_axis=f'{indicator} variation (%)',
                                percent=True,
-                               references=filtered_df,
+                               vlines=filtered_df,
                                path_result=path_indicator_figures+'lineplot_variation_PK.pdf')
                 print(f">> Linear difference by PK")
-                plot_linear_pk(ds, name='difference', percent=False,
+                plot_linear_pk(ds, name='horizon_difference', percent=False,
                                simulations=variables['simulation_horizon_difference_by_sims'],
                                name_y_axis=f'{indicator} difference',
-                               references=sim_points_gdf_simplified[sim_points_gdf_simplified['REFERENCE'] == 1],
+                               vlines=filtered_df,
                                path_result=path_indicator_figures+'lineplot_difference_PK.pdf')
 
+            print(f"> Box plot...")
+            print(f">> Boxplot deviation by horizon and selected stations")
+            plot_boxplot_station(ds=ds, simulations=variables['simulation_horizon_deviation_by_sims'],
+                                 name_y_axis=f'{indicator} variation (%)', percent=True,
+                                 path_result=path_indicator_figures+'boxplot_deviation.pdf')
 
 
 
@@ -282,7 +318,7 @@ cols_map = {
 rows = 3
 mapplot(gdf=hydro_sim_points_gdf_simplified, ds=None, indicator_plot=list(shape_hp.keys()), path_result=f"{path_global_figures}HM_by_sim.pdf",
         cols=cols_map, rows=3,
-        cbar_title=f"Simulations présentes", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
+        cbar_title=f"Simulation", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
         discretize=2, cbar_ticks='mid', palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k',
         vmin=-0.5, vmax=1.5,
         cbar_values=['Absente', 'Présente'])
