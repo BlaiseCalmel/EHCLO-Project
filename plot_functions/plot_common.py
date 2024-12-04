@@ -27,7 +27,7 @@ def init_grid(grid_dict, ds_plot):
 
     return length_dict, grid_dict_temp, ds_plot
 
-def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=False, **text_kwargs):
+def define_cbar(fig, axes_flatten, len_rows, cmap, bounds_cmap, cbar_title=None, percent=False, **text_kwargs):
     # fig.subplots_adjust(right=0.95)
     # cbar_ax = fig.add_axes([1, 0.15, 0.04, 0.7])
     sm = mpl.cm.ScalarMappable(cmap=cmap, norm=mpl.colors.BoundaryNorm(bounds_cmap, cmap.N))
@@ -46,11 +46,15 @@ def define_cbar(fig, axes_flatten, cmap, bounds_cmap, cbar_title=None, percent=F
     #     y_diff = (axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0) / 25
     # else:
     #     y_diff = 0
+    y_diff = 0.08 / len_rows
+
+    # 1 ligne = 0.08
+    # 4 ligne = 0.02
 
     cbar_ax = fig.add_subplot([axes_flatten[-1].get_position().x1 + x_diff + 0.02,
-                            axes_flatten[-1].get_position().y0,
+                            axes_flatten[-1].get_position().y0 - y_diff, # -0.02
                             0.02,
-                            axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0])
+                            axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0 + y_diff])
 
     sm._A = []
     if percent:
@@ -68,6 +72,7 @@ def add_header(ax, rows_plot, cols_plot, ylabel='', xlabel=''):
     sbs = ax.get_subplotspec()
     if sbs.is_first_col():
         if sbs.rowspan.start < len(rows_plot['names_plot']):
+            print('row')
             name_row = rows_plot['names_plot'][sbs.rowspan.start]
             if name_row is not None:
                 name_row = name_row.replace(' ', '~')

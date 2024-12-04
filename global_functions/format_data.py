@@ -2,7 +2,7 @@ import xarray as xr
 import numpy as np
 
 def format_dataset(ds, data_type, files_setup):
-    simulation_cols = [i for i in list(ds.data_vars)]
+
 
     # Define geometry for each data (Points hydro, Polygon climate)
     # print(f'> Match geometry and data...', end='\n')
@@ -56,19 +56,25 @@ def format_dataset(ds, data_type, files_setup):
     #         ds = ds.assign_coords(season=seasons)
     #         other_dimension = 'season'
 
+    # if indicator == 'QA':
+    #         # other_dimension = {'time': 'time.month'}
+    #         ds = ds.assign_coords(month=ds['time.month'])
+    #         other_dimension = 'month'
+    columns = {}
     print(f'>> Define horizons...', end='\n')
     # Define horizons
     ds = define_horizon(ds, files_setup)
+    simulation_cols = [i for i in list(ds.data_vars)]
 
     # Return period
     # ds = compute_return_period(ds, indicator_cols, files_setup, return_period=5, other_dimension=other_dimension)
 
     # Compute mean value for each horizon for each sim
     print(f'>> Compute mean by horizon...', end='\n')
-    ds = compute_mean_by_horizon(ds=ds, indicator_cols=simulation_cols,
+    ds, simulation_horizon = compute_mean_by_horizon(ds=ds, indicator_cols=simulation_cols,
                                  files_setup=files_setup, other_dimension=other_dimension)
 
-    simulation_horizon = [i for i in list(ds.variables) if '_by_horizon' in i]
+    # simulation_horizon = [i for i in list(ds.variables) if '_by_horizon' in i]
 
     # Compute deviation/difference to reference
     print(f'>> Compute deviation & difference by horizon for each simulation...', end='\n')
@@ -82,24 +88,39 @@ def format_dataset(ds, data_type, files_setup):
 
     # Compute statistic among all sims
     print(f'>> Compute stats by horizon among simulations...', end='\n')
-    # TODO not compute for each station but for each selected points (UG, station)
     ds, horizon_deviation = run_stats(ds, simulation_horizon_deviation_by_sims, files_setup,
                                                  name="horizon_deviation")
     ds, horizon_difference = run_stats(ds, simulation_horizon_difference_by_sims, files_setup,
                                                   name="horizon_difference")
 
+    # Find every HM
+    if data_type == 'hydro':
+        hm_names = [name.split('_')[-1] for name in simulation_cols]
+        hm_dict_deviation = {i: [] for i in np.unique(hm_names)}
+        for idx, name_sim in enumerate(simulation_horizon_deviation_by_sims):
+            hm_dict_deviation[hm_names[idx]].append(name_sim)
+
+        hydro_model_deviation = {i: [] for i in np.unique(hm_names)}
+
+        for hm, var_list in hm_dict_deviation.items():
+            ds, deviation_name = run_stats(ds, hm_dict_deviation[hm], files_setup,
+                                 name=f"horizon_{hm}_deviation")
+            hydro_model_deviation[hm] = deviation_name
+
+        columns |= {'hydro_model_deviation': hydro_model_deviation}
+
     ds, timeline_deviation = run_stats(ds, simulation_deviation, files_setup, name="timeline_deviation")
     ds, timeline_difference = run_stats(ds, simulation_difference, files_setup, name="timeline_difference")
 
-    columns = {'simulation_cols': simulation_cols,
-               'simulation_deviation': simulation_deviation,
-               'simulation_difference': simulation_difference,
-               'simulation_horizon': simulation_horizon,
-               'simulation_horizon_deviation_by_sims': simulation_horizon_deviation_by_sims,
-               'simulation_horizon_difference_by_sims': simulation_horizon_difference_by_sims,
-               'horizon_deviation': horizon_deviation,
+    columns |= {'simulation_cols': simulation_cols, # raw value
+               'simulation_deviation': simulation_deviation, # deviation from averaged historical reference
+               'simulation_difference': simulation_difference, # difference from AHR
+               'simulation_horizon': simulation_horizon, # mean value per horizon
+               'simulation_horizon_deviation_by_sims': simulation_horizon_deviation_by_sims, # Horz deviation from AHR
+               'simulation_horizon_difference_by_sims': simulation_horizon_difference_by_sims, # Horz difference from AHR
+               'horizon_deviation': horizon_deviation, # mean horizon deviation among sims
                'horizon_difference': horizon_difference,
-               'timeline_deviation': timeline_deviation,
+               'timeline_deviation': timeline_deviation, # mean timeline deviation among sims
                'timeline_difference': timeline_difference
      }
 
@@ -171,7 +192,9 @@ def compute_mean_by_horizon(ds, indicator_cols, files_setup, other_dimension=Non
 
     combined_means = xr.merge([ds, combined_means])
 
-    return combined_means
+    simulation_horizon = [i for i in list(combined_means.variables) if '_by_horizon' in i]
+
+    return combined_means, simulation_horizon
 
 def apply_statistic(ds, function='mean', q=None):
     if isinstance(function, list):

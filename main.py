@@ -184,16 +184,15 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
 
         # Compute PK
         if indicator in files_setup['hydro_indicator']:
+            sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
             loire = sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7]
             value = compute_river_distance(rivers_shp, loire, river_name='loire',
                                            start_from='last')
-
             sim_points_gdf_simplified['PK'] = np.nan
             sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7, 'PK'] = value
-
             edgecolor = 'k'
-
         else:
+            sim_points_gdf_simplified = climate_sim_points_gdf_simplified
             edgecolor = None
 
         print(f'################################ PLOT INDICATOR ################################', end='\n')
@@ -220,25 +219,23 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                       discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
 
         ##################################################"
-        hm_names = [name.split('_')[-1] for name in ds.data_vars]
-        hm_dict = {i: [] for i in np.unique(hm_names)}
-        variables['simulation_deviation']
-        for name in ds.data_vars:
-            key = name.split('_')[-1]
-            hm_dict[key].append(name)
 
+        mean_by_hm = [s for sublist in variables['hydro_model_deviation'].values() for s in sublist if "mean" in s]
         rows = {
             'names_coord': 'indicator',
-            'values_var': [value for value in hm_dict.values()],
-            'names_plot': [value for value in hm_dict.keys()]
+            'values_var': mean_by_hm,
+            'names_plot': list(variables['hydro_model_deviation'].keys())
         }
-        plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, rows=rows, indicator_plot='horizon_deviation_median',
-                           path_result=path_indicator_figures+'map_variation.pdf',
+
+        # mean_by_hm = [[s for s in sublist if "mean" in s] for sublist in variables['hydro_model_deviation'].values()]
+
+
+        plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, rows=rows, indicator_plot=None,
+                           path_result=path_indicator_figures+'map_variation_hm.pdf',
                            cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
                            percent=True, bounds=bounds, edgecolor=edgecolor,
                            discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
         ##################################################"
-
 
         print(f">> Difference map plot {indicator}")
         plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_difference_median',
