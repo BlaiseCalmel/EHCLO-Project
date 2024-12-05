@@ -1,5 +1,5 @@
 import copy
-
+import math
 import matplotlib.pyplot as plt
 import geopandas.geodataframe as gpd
 import matplotlib as mpl
@@ -101,19 +101,30 @@ def add_header(ax, rows_plot, cols_plot, ylabel='', xlabel=''):
             ax.set_xlabel(f"{xlabel}")
 
 
-def find_extrema(ds_plot, x_axis, y_axis, xmin, xmax, ymin, ymax):
+def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax):
+
     if xmin is None:
         try:
-            x_min_temp = [ds_plot.variables[i].min().values for i in x_axis.keys()]
-            xmin = np.nanmin(x_min_temp)
+            x_min_temp = 0
+            if x_axis['names_coord'] != 'indicator':
+                x_min_temp = ds_plot.variables[x_axis['names_coord']].min().values
+                xmin = np.nanmin(x_min_temp)
+            else:
+                var_names = [i for subdict in indicator_plot for i in subdict]
+                xmin = math.ceil((ds_plot[indicator_plot].to_array()).min())
         except ValueError:
             xmin = min(x_min_temp)
         except KeyError:
             xmin = None
     if xmax is None:
         try:
-            x_max_temp = max([ds_plot.variables[i].max().values for i in x_axis.keys()])
-            xmax = np.nanmin(x_max_temp)
+            x_max_temp = 0
+            if x_axis['names_coord'] != 'indicator':
+                x_max_temp = ds_plot.variables[x_axis['names_coord']].max().values
+                xmax = np.nanmin(x_max_temp)
+            else:
+                var_names = [i for subdict in indicator_plot for i in subdict]
+                xmax = math.ceil((ds_plot[indicator_plot].to_array()).max())
         except ValueError:
             xmax = max(x_max_temp)
         except KeyError:
@@ -121,8 +132,13 @@ def find_extrema(ds_plot, x_axis, y_axis, xmin, xmax, ymin, ymax):
 
     if ymin is None:
         try:
-            y_min_temp = [ds_plot.variables[i].min().values for i in y_axis.keys()]
-            ymin = np.nanmin(y_min_temp)
+            y_min_temp = 0
+            if y_axis['names_coord'] != 'indicator':
+                y_min_temp = ds_plot.variables[y_axis['names_coord']].min().values
+                ymin = np.nanmin(y_min_temp)
+            else:
+                var_names = [i for subdict in indicator_plot for i in subdict]
+                ymin = math.ceil((ds_plot[indicator_plot].to_array()).min())
         except ValueError:
             ymin = min(y_min_temp)
         except KeyError:
@@ -130,8 +146,13 @@ def find_extrema(ds_plot, x_axis, y_axis, xmin, xmax, ymin, ymax):
 
     if ymax is None:
         try:
-            y_max_temp = np.nanmax([ds_plot.variables[i].max().values for i in y_axis.keys()])
-            ymax = np.nanmax(y_max_temp)
+            y_max_temp = 0
+            if y_axis['names_coord'] != 'indicator':
+                y_max_temp = ds_plot.variables[y_axis['names_coord']].max().values
+                ymax = np.nanmax(y_max_temp)
+            else:
+                var_names = [i for subdict in indicator_plot for i in subdict]
+                ymax = math.ceil((ds_plot[indicator_plot].to_array()).max())
         except ValueError:
             ymax = max(y_max_temp)
         except KeyError:

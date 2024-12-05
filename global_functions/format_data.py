@@ -95,15 +95,23 @@ def format_dataset(ds, data_type, files_setup):
 
     # Find every HM
     if data_type == 'hydro':
+        print(f'>> Compute stats by HM by horizon among simulations...', end='\n')
         hm_names = [name.split('_')[-1] for name in simulation_cols]
-        hm_dict_deviation = {i: [] for i in np.unique(hm_names)}
+        hm_dict_deviation_horizon = {i: [] for i in np.unique(hm_names)}
         for idx, name_sim in enumerate(simulation_horizon_deviation_by_sims):
-            hm_dict_deviation[hm_names[idx]].append(name_sim)
+            hm_dict_deviation_horizon[hm_names[idx]].append(name_sim)
+        columns |= {'hydro_model_deviation_sim_horizon': hm_dict_deviation_horizon}
 
+        # Load timeline by HM
+        hm_dict_deviation_timeline = {i: [] for i in np.unique(hm_names)}
+        for idx, name_sim in enumerate(simulation_deviation):
+            hm_dict_deviation_timeline[hm_names[idx]].append(name_sim)
+        columns |= {'hydro_model_deviation_sim_timeline': hm_dict_deviation_timeline}
+
+        # Compute stats for Horizons
         hydro_model_deviation = {i: [] for i in np.unique(hm_names)}
-
-        for hm, var_list in hm_dict_deviation.items():
-            ds, deviation_name = run_stats(ds, hm_dict_deviation[hm], files_setup,
+        for hm, var_list in hm_dict_deviation_horizon.items():
+            ds, deviation_name = run_stats(ds, hm_dict_deviation_horizon[hm], files_setup,
                                  name=f"horizon_{hm}_deviation")
             hydro_model_deviation[hm] = deviation_name
 

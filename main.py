@@ -211,31 +211,12 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
         # Plot map
         # Relative
         print(f"> Map plot...")
-        print(f">> Deviation map plot {indicator}")
-        plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_median',
-                      path_result=path_indicator_figures+'map_variation.pdf',
-                      cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
-                      percent=True, bounds=bounds, edgecolor=edgecolor,
-                      discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
-
-        ##################################################"
-
-        mean_by_hm = [s for sublist in variables['hydro_model_deviation'].values() for s in sublist if "mean" in s]
-        rows = {
-            'names_coord': 'indicator',
-            'values_var': mean_by_hm,
-            'names_plot': list(variables['hydro_model_deviation'].keys())
-        }
-
-        # mean_by_hm = [[s for s in sublist if "mean" in s] for sublist in variables['hydro_model_deviation'].values()]
-
-
-        plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, rows=rows, indicator_plot=None,
-                           path_result=path_indicator_figures+'map_variation_hm.pdf',
-                           cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
-                           percent=True, bounds=bounds, edgecolor=edgecolor,
-                           discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
-        ##################################################"
+        # print(f">> Deviation map plot {indicator}")
+        # plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_median',
+        #               path_result=path_indicator_figures+'map_variation.pdf',
+        #               cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
+        #               percent=True, bounds=bounds, edgecolor=edgecolor,
+        #               discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
 
         print(f">> Difference map plot {indicator}")
         plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_difference_median',
@@ -245,6 +226,26 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                       font='sans-serif', discretize=8, edgecolor=edgecolor)
 
         if indicator in files_setup['hydro_indicator']:
+            print(f">> Deviation map plot by HM")
+            mean_by_hm = [s for sublist in variables['hydro_model_deviation'].values() for s in sublist if "mean" in s]
+            rows = {
+                'names_coord': 'indicator',
+                'values_var': mean_by_hm,
+                'names_plot': list(variables['hydro_model_deviation'].keys())
+            }
+
+            # Dictionnary sim by HM
+            hm_names = [name.split('_')[-1] for name in variables['simulation_cols']]
+            hm_dict_deviation = {i: [] for i in np.unique(hm_names)}
+            for idx, name_sim in enumerate(variables['simulation_deviation']):
+                hm_dict_deviation[hm_names[idx]].append(name_sim)
+
+            plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, rows=rows, indicator_plot=mean_by_hm,
+                               path_result=path_indicator_figures+'HM_map_variation.pdf',
+                               cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
+                               percent=True, bounds=bounds, edgecolor=edgecolor,
+                               discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
+
             # Sim by PK + quantile
             print(f"> Linear plot...")
             print(f">> Linear deviation by time")
@@ -265,21 +266,45 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
 
             if 'PK' in sim_points_gdf_simplified.columns:
                 ds['PK'] = ('gid', sim_points_gdf_simplified['PK'])
-                print(f">> Linear deviation by PK")
                 villes = ['Villerest', 'Nevers', 'Orleans', 'Blois', 'Tours', 'Saumur', 'Nantes']
                 regex = "|".join(villes)
-                filtered_df = sim_points_gdf_simplified[sim_points_gdf_simplified['Suggesti_2'].str.contains(regex, case=False, na=False)]
+                vlines = sim_points_gdf_simplified[sim_points_gdf_simplified['Suggesti_2'].str.contains(regex, case=False, na=False)]
+
+                narratives = {
+                    "HadGEM2-ES_ALADIN63_ADAMONT": {'color': 'green', 'zorder': 10, 'label': 'HadGEM2-ES_ALADIN63_ADAMONT',
+                                                    'linewidth': 1},
+                    "CNRM-CM5_ALADIN63_ADAMONT": {'color': 'yellow', 'zorder': 10, 'label': 'CNRM-CM5_ALADIN63_ADAMONT',
+                                                  'linewidth': 1},
+                    "EC-EARTH_HadREM3-GA7_ADAMONT": {'color': 'orange', 'zorder': 10, 'label': 'EC-EARTH_HadREM3-GA7_ADAMONT',
+                                                     'linewidth': 1},
+                    "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'color': 'purple', 'zorder': 10, 'label': 'HadGEM2-ES_CCLM4-8-17_ADAMONT',
+                                                      'linewidth': 1},
+                }
+
+                plot_linear_pk(ds,
+                               simulations=variables['hydro_model_deviation_sim_horizon'],
+                               narratives=narratives,
+                               name_x_axis=f'PK (km)',
+                               name_y_axis=f'{indicator} variation (%)',
+                               percent=True,
+                               vlines=vlines,
+                               path_result=path_indicator_figures+'HM_lineplot_variation_PK.pdf')
+
+
+
+
+                print(f">> Linear deviation by PK")
                 plot_linear_pk(ds, name='horizon_deviation',
                                simulations=variables['simulation_horizon_deviation_by_sims'],
                                name_y_axis=f'{indicator} variation (%)',
                                percent=True,
-                               vlines=filtered_df,
+                               vlines=vlines,
                                path_result=path_indicator_figures+'lineplot_variation_PK.pdf')
                 print(f">> Linear difference by PK")
                 plot_linear_pk(ds, name='horizon_difference', percent=False,
                                simulations=variables['simulation_horizon_difference_by_sims'],
                                name_y_axis=f'{indicator} difference',
-                               vlines=filtered_df,
+                               vlines=vlines,
                                path_result=path_indicator_figures+'lineplot_difference_PK.pdf')
 
             print(f"> Box plot...")

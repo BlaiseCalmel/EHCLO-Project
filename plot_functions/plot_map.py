@@ -19,20 +19,21 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
 
     if percent:
         if vmax is None:
-            if ~isinstance(indicator_plot, list) or indicator_plot in gdf.columns:
+            if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
                 vmax = math.ceil(abs(gdf[indicator_plot]).max() / 5) * 5
             else:
                 vmax = math.ceil(abs(ds[indicator_plot].to_array()).max() / 5) * 5
+
         if vmin is None:
             vmin = -vmax
     else:
         if vmax is None:
-            if ~isinstance(indicator_plot, list) or indicator_plot in gdf.columns:
+            if np.logical_not(isinstance(indicator_plot, list)) or indicator_plot in gdf.columns:
                 vmax = gdf[indicator_plot].max().values
             else:
                 vmax = ds[indicator_plot].to_array().max().values
         if vmin is None:
-            if ~isinstance(indicator_plot, list) or indicator_plot in gdf.columns:
+            if np.logical_not(isinstance(indicator_plot, list)) or indicator_plot in gdf.columns:
                 vmin = gdf[indicator_plot].min().values
             else:
                 vmin = ds[indicator_plot].to_array().min().values
