@@ -186,11 +186,8 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             plt.setp(ax.spines.values(), color=None)
 
     # Colorbar
-    # cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
-    # sm = mpl.cm.ScalarMappable(cmap=cmap, norm=mpl.colors.BoundaryNorm(bounds_cmap, cmap.N))
-    # fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap, format='%.0f')
-
-    cbar = define_cbar(fig, axes_flatten, len_rows, cmap, levels, cbar_title=cbar_title, percent=percent, **text_kwargs)
+    cbar = define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap=levels,
+                       cbar_title=cbar_title, percent=percent, **text_kwargs)
     if cbar_ticks == 'mid':
         cbar.set_ticks((levels[1:] + levels[:-1])/2)
         cbar.ax.tick_params(size=0)

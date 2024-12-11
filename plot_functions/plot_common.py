@@ -27,36 +27,23 @@ def init_grid(grid_dict, ds_plot):
 
     return length_dict, grid_dict_temp, ds_plot
 
-def define_cbar(fig, axes_flatten, len_rows, cmap, bounds_cmap, cbar_title=None, percent=False, **text_kwargs):
-    # fig.subplots_adjust(right=0.95)
-    # cbar_ax = fig.add_axes([1, 0.15, 0.04, 0.7])
+def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
+                cbar_title=None, percent=False, **text_kwargs):
+    # Scalar mappable
     sm = mpl.cm.ScalarMappable(cmap=cmap, norm=mpl.colors.BoundaryNorm(bounds_cmap, cmap.N))
-    # divider = make_axes_locatable(axes)
-    # cbar_ax = divider.append_axes("right", size="5%", pad=0.05)
 
-    if len(axes_flatten) > 1:
-        if axes_flatten[1].get_position().x0 != axes_flatten[0].get_position().x1:
-            x_diff = (axes_flatten[1].get_position().x0 - axes_flatten[0].get_position().x1) * 0.5
-        else:
-            x_diff = axes_flatten[-1].get_position().x1 * 0.01
+    if len_rows == 1:
+        bottom = axes_flatten[-1].get_position().y0
+        height = axes_flatten[-1].get_position().y1 - axes_flatten[-1].get_position().y0
+    elif len_rows < 4:
+        bottom = 0.2
+        height = 0.8
     else:
-        x_diff = axes_flatten[-1].get_position().x1 * 0.02
+        middle = int(len_rows / 2)
+        bottom = axes_flatten[middle].get_position().y0 - 0.2
+        height = axes_flatten[middle].get_position().y1 + 0.2
 
-    # if len(axes_flatten) > 1:
-    #     y_diff = (axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0) / 25
-    # else:
-    #     y_diff = 0
-    y_diff = 0.08 / len_rows
-
-    # 1 ligne = 0.08
-    # 4 ligne = 0.02
-
-    # cbar_ax = fig.add_subplot([axes_flatten[-1].get_position().x1 + x_diff + 0.02,
-    #                         axes_flatten[-1].get_position().y0 - y_diff, # -0.02
-    #                         0.02,
-    #                         axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0 + y_diff])
-    cbar_ax = fig.add_axes([axes_flatten[-1].get_position().x1 + x_diff + 0.02, 0.1,
-                            0.02, 0.8])
+    cbar_ax = fig.add_axes([axes_flatten[len_cols - 1].get_position().x1 + 0.05, bottom, 0.02, height])
 
     sm._A = []
     if percent:
@@ -65,10 +52,9 @@ def define_cbar(fig, axes_flatten, len_rows, cmap, bounds_cmap, cbar_title=None,
         cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap)
 
     if cbar_title:
-        cbar.set_label(cbar_title, rotation=0, wrap=True, labelpad=35, **text_kwargs)
+        cbar.set_label(cbar_title, rotation=0, wrap=True, labelpad=25, **text_kwargs)
 
     return cbar
-
 
 def add_header(ax, rows_plot, cols_plot, ylabel='', xlabel=''):
     sbs = ax.get_subplotspec()
