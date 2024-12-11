@@ -209,7 +209,7 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
     print(f"> Map plot...")
     if indicator in files_setup['climate_indicator']:
         print(f">> Difference map plot {indicator}")
-        plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_mean',
+        plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_mean',
                       path_result=path_indicator_figures+'map_difference.pdf', cols='horizon',
                       cbar_title=f"{indicator} mean difference", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
                       percent=False, bounds=bounds, palette='RdBu_r', cbar_midpoint='zero', fontsize=14,
@@ -223,11 +223,12 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                     }
 
         for key, value in horizons.items():
-            plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), variables=variables,
+            plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), indicator_plot=variables,
                                   path_result=path_indicator_figures+f'maps_variation_mean_{value}.pdf',
-                                  cbar_title=f"Variation moyenne {indicator} (%)", title=value,
+                                  cbar_title=f"Variation moyenne {indicator} (%)", title=value, cbar_midpoint='zero',
                                   dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds, edgecolor=edgecolor,
-                                  markersize=75, discretize=10, palette='BrBG', fontsize=14, font='sans-serif')
+                                  markersize=75, discretize=10, palette='BrBG', fontsize=14, font='sans-serif',
+                                  vmin=None, vmax=None)
 
         # Sim by PK + quantile
         # print(f"> Linear plot...")
@@ -317,41 +318,65 @@ mapplot(gdf=hydro_sim_points_gdf_simplified, ds=None, indicator_plot=list(shape_
         cbar_values=['Absente', 'Présente'])
 
 station_references = {
-    'M842001000': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth':2,
-                   'facecolors':'none', 'text': {'label': ' St Nazaire', 'verticalalignment':'top'}
-    },
-    'M530001010': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth':2,
-                   'facecolors':'none', 'text': {'label': ' Mont Jean'}
-                   },
-    'K683002001': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth':2,
-                   'facecolors':'none', 'text': {'label': ' Langeais', 'verticalalignment':'top'}
-                   },
-    'K480001001': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth':2,
-                   'facecolors':'none', 'text': {'label': ' Onzain'}
-                   },
-    'K418001201': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth':2,
-                   'facecolors':'none', 'text': {'label': ' Gien'}
-                   },
-    'K193001010': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth':2,
-                   'facecolors':'none', 'text': {'label': ' Nevers'}
-                   },
-    'K365081001': {'s':90, 'edgecolors':'k','zorder':10, 'linewidth':2,
+    'M842001000': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth': 1.5,
                    'facecolors':'none',
-                   'text': {'label': 'Cuffy  ', 'horizontalalignment':'right', 'verticalalignment':'top'}
+                   'text': {'text': 'La Loire à\nSt Nazaire', 'arrowprops':dict(arrowstyle='-'),
+                            'xytext':(0.1, 0.8), 'textcoords':'axes fraction', 'ha':'center'}
+    },
+    'M530001010': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth': 1.5,
+                   'facecolors':'none',
+                   'text': {'text': 'La Loire à \nMont Jean', 'ha':'center', 'arrowprops':dict(arrowstyle='-'),
+                            'xytext':(0.2, 0.55), 'textcoords':'axes fraction'}
                    },
-    'K091001011': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth':2,
-                   'facecolors':'none', 'text': {'label': ' Villerest', 'color':'white', 'edgecolor':'k'}
+    'K683002001': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth': 1.5,
+                   'facecolors':'none',
+                   'text': {'text': ' La Loire à \nLangeais', 'ha':'center', 'arrowprops':dict(arrowstyle='-'),
+                            'xytext':(0.35, 0.75), 'textcoords':'axes fraction'}
+                   },
+    'K480001001': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth': 1.5,
+                   'facecolors':'none',
+                   'text': {'text': ' La Loire à \nOnzain', 'ha':'center', 'arrowprops':dict(arrowstyle='-'),
+                            'xytext':(0.5, 0.55), 'textcoords':'axes fraction'}
+                   },
+    'K418001201': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth': 1.5,
+                   'facecolors':'none',
+                   'text': {'text': ' La Loire à \nGien', 'ha':'center', 'arrowprops':dict(arrowstyle='-'),
+                            'xytext':(0.75, 0.8), 'textcoords':'axes fraction'}
+                   },
+    'K193001010': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth': 1.5,
+                   'facecolors':'none',
+                   'text': {'text': ' La Loire à \nNevers', 'ha':'center', 'arrowprops':dict(arrowstyle='-'),
+                            'xytext':(0.9, 0.65), 'textcoords':'axes fraction'}
+                   },
+    'K365081001': {'s':90, 'edgecolors':'k','zorder':10, 'linewidth': 1.5,
+                   'facecolors':'none',
+                   'text': {'text': 'L\'Allier à \nCuffy ', 'ha':'center', 'arrowprops':dict(arrowstyle='-'),
+                   'xytext':(0.72, 0.42), 'textcoords':'axes fraction'}
+                   },
+    'K091001011': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth': 1.5,
+                   'facecolors':'none',
+                   'text': {'text': ' La Loire à \nVillerest', 'ha':'center', 'arrowprops':dict(arrowstyle='-'),
+                            'xytext':(0.9, 0.2), 'textcoords':'axes fraction'}
                    }
 }
 
 for key in station_references.keys():
-    station_references[key] |= {'geometry': hydro_sim_points_gdf_simplified.loc[key].geometry}
+    station_references[key] |= {'x': hydro_sim_points_gdf_simplified.loc[key].geometry.x,
+                                'y': hydro_sim_points_gdf_simplified.loc[key].geometry.y}
+    station_references[key]['text'] |= {'xy': (hydro_sim_points_gdf_simplified.loc[key].geometry.x,
+                                       hydro_sim_points_gdf_simplified.loc[key].geometry.y)}
 
 print(f"> Plot Number of HM by station...")
+j = -1
+for key in dict_shapefiles.keys():
+    j += 1
+    dict_shapefiles[key]['alpha'] = 0.2
+    dict_shapefiles[key]['zorder'] = -j
+
 mapplot(gdf=hydro_sim_points_gdf_simplified, indicator_plot='n', path_result=path_global_figures+'count_HM.pdf', ds=None,
-        cols=None, rows=None, references=station_references,
+        cols=None, rows=None, references=station_references, cbar_ticks='mid',  cbar_values=1,
         cbar_title=f"Nombre de HM", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
-        discretize=6, cbar_ticks='mid', palette='RdBu_r', fontsize=10, font='sans-serif', edgecolor='k',
+        discretize=6, palette='RdBu_r', fontsize=9, font='sans-serif', edgecolor='k',
         cbar_midpoint='min', vmin=3.5, vmax=9.5)
 
 

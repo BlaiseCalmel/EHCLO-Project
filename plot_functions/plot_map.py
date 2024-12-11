@@ -6,10 +6,15 @@ from matplotlib.colors import from_levels_and_colors
 from plot_functions.plot_common import *
 import matplotlib.cm as cm
 
+def format_significant(lst, n):
+    formatted_list = [f"{x:.{n}g}" for x in lst]
+    return formatted_list
+
 def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             cbar_title=None, title=None, dict_shapefiles=None, percent=True, bounds=None, discretize=7,
-            cbar_ticks=None, vmin=None, vmax=None, palette='BrBG', cbar_midpoint=None, fontsize=14, edgecolor='k',
-            font='sans-serif', cbar_values=None, references=None, markersize=50):
+            vmin=None, vmax=None, palette='BrBG', cbar_midpoint=None, cbar_ticks='border',
+            fontsize=14, edgecolor='k', cbar_values=None,
+            font='sans-serif', references=None, markersize=50):
 
     ds_plot = copy.deepcopy(ds)
     len_cols, cols_plot, ds_plot = init_grid(cols, ds_plot)
@@ -18,9 +23,12 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     if isinstance(rows, int):
         len_cols = int(len_cols / len_rows)
         subplot_titles = cols['names_plot']
+        cols_plot['names_plot'] = [None]
     if isinstance(cols, int):
         len_rows = int(len_rows / len_cols)
         subplot_titles = rows['names_plot']
+        rows_plot['names_plot'] = [None]
+
 
     if percent:
         if vmax is None:
@@ -155,21 +163,13 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
 
             if references is not None:
                 for key, values in references.items():
-                    geom = values.get("geometry")
-                    del values['geometry']
-                    text = None
+                    scatter_kwarg = {i: j for i, j in values.items() if i != 'text'}
+                    ax.scatter(**scatter_kwarg)
                     if 'text' in values.keys():
-                        text = values.get("text")
-                        del values['text']
-
-                    if geom.geom_type == "Point":
-                        ax.scatter(geom.x, geom.y, **values)
-
-                    if text:
-                        label = text.get("label")
-                        del text['label']
-                        ax.annotate(label, xy=(geom.x, geom.y), xytext=(3, 3), textcoords="offset points", weight='bold',
-                                    fontsize=plt.rcParams['font.size'] - 2, zorder=100, **text)
+                        text_kwarg = values['text']
+                        ax.annotate(xycoords='data',
+                                    weight='bold',
+                                    fontsize=plt.rcParams['font.size'] - 2, **text_kwarg)
 
             if subplot_title:
                 ax.set_title(subplot_title)
@@ -190,15 +190,17 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     # sm = mpl.cm.ScalarMappable(cmap=cmap, norm=mpl.colors.BoundaryNorm(bounds_cmap, cmap.N))
     # fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap, format='%.0f')
 
-
     cbar = define_cbar(fig, axes_flatten, len_rows, cmap, levels, cbar_title=cbar_title, percent=percent, **text_kwargs)
     if cbar_ticks == 'mid':
         cbar.set_ticks((levels[1:] + levels[:-1])/2)
         cbar.ax.tick_params(size=0)
         if cbar_values is None:
-            cbar.set_ticklabels(levels[1:])
+            cbar.set_ticklabels((levels[1:] + levels[:-1])/2)
         else:
-            cbar.set_ticklabels(cbar_values)
+            if isinstance(cbar_values, int):
+                cbar.set_ticklabels(format_significant((levels[1:] + levels[:-1])/2, cbar_values))
+            else:
+                cbar.set_ticklabels(cbar_values)
 
     plt.savefig(path_result, bbox_inches='tight')
 
