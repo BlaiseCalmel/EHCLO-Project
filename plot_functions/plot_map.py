@@ -8,43 +8,63 @@ import matplotlib.cm as cm
 
 def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             cbar_title=None, title=None, dict_shapefiles=None, percent=True, bounds=None, discretize=7,
-            cbar_ticks=None, vmin=None, vmax=None, palette='BrBG', cmap_zero=False, fontsize=14, edgecolor='k',
-            font='sans-serif', cbar_values=None):
+            cbar_ticks=None, vmin=None, vmax=None, palette='BrBG', cbar_midpoint=None, fontsize=14, edgecolor='k',
+            font='sans-serif', cbar_values=None, references=None, markersize=50):
 
     ds_plot = copy.deepcopy(ds)
     len_cols, cols_plot, ds_plot = init_grid(cols, ds_plot)
     len_rows, rows_plot, ds_plot = init_grid(rows, ds_plot)
+    subplot_titles = None
     if isinstance(rows, int):
         len_cols = int(len_cols / len_rows)
+        subplot_titles = cols['names_plot']
+    if isinstance(cols, int):
+        len_rows = int(len_rows / len_cols)
+        subplot_titles = rows['names_plot']
 
     if percent:
         if vmax is None:
             if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
                 vmax = math.ceil(abs(gdf[indicator_plot]).max() / 5) * 5
             else:
-                vmax = math.ceil(abs(ds[indicator_plot].to_array()).max() / 5) * 5
+                if np.logical_not(isinstance(indicator_plot, list)):
+                    vmax = math.ceil(abs(ds[indicator_plot]).max() / 5) * 5
+                else:
+                    vmax = math.ceil(abs(ds[indicator_plot].to_array()).max() / 5) * 5
 
         if vmin is None:
             vmin = -vmax
     else:
         if vmax is None:
-            if np.logical_not(isinstance(indicator_plot, list)) or indicator_plot in gdf.columns:
+            if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
                 vmax = gdf[indicator_plot].max().values
             else:
-                vmax = ds[indicator_plot].to_array().max().values
+                if np.logical_not(isinstance(indicator_plot, list)):
+                    vmax = ds[indicator_plot].max().values
+                else:
+                    vmax = ds[indicator_plot].to_array().max().values
         if vmin is None:
-            if np.logical_not(isinstance(indicator_plot, list)) or indicator_plot in gdf.columns:
+            if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
                 vmin = gdf[indicator_plot].min().values
             else:
-                vmin = ds[indicator_plot].to_array().min().values
+                if np.logical_not(isinstance(indicator_plot, list)):
+                    vmin = ds[indicator_plot].min().values
+                else:
+                    vmin = ds[indicator_plot].to_array().min().values
 
-    if vmax - vmin > 5:
-        bounds_cmap = np.linspace(vmin, vmax, discretize+1, dtype=int)
-    else:
-        bounds_cmap = np.linspace(vmin, vmax, discretize+1)
+    # if vmax - vmin > 5:
+    #     bounds_cmap = np.linspace(vmin, vmax, discretize+1, dtype=int)
+    # else:
+    #     bounds_cmap = np.linspace(vmin, vmax, discretize+1)
 
-    if cmap_zero:
+    if cbar_midpoint == 'min':
         midpoint = vmin
+    elif cbar_midpoint == 'zero':
+        midpoint = 0
+    else:
+        midpoint = None
+
+    if midpoint is not None:
         levels = np.linspace(vmin, vmax, discretize+1)
         midp = np.mean(np.c_[levels[:-1], levels[1:]], axis=1)
         vals = np.interp(midp, [vmin, midpoint, vmax], [0, 0.5, 1])
@@ -56,26 +76,29 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         # cmap = mpl.colors.LinearSegmentedColormap.from_list(palette, cmap_temp(np.linspace(0.5, 1, 128)),
         #                                                     N=discretize)
     else:
+        levels = np.linspace(vmin, vmax, discretize+1)
         cmap = plt.get_cmap(palette, discretize)
-        norm = mpl.colors.BoundaryNorm(boundaries=bounds_cmap, ncolors=discretize)
+        norm = mpl.colors.BoundaryNorm(boundaries=levels, ncolors=discretize)
 
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
     text_kwargs ={'weight': 'bold'}
 
+    fig_dim = 4
+    # fig_dim = 8
     if bounds is not None:
         x_y_ratio = abs((bounds[2] - bounds[0]) / (bounds[3] - bounds[1]))
         if x_y_ratio > 1:
-            figsize = (4 * len_cols , len_rows * 4 / x_y_ratio)
+            figsize = (fig_dim * len_cols , len_rows * fig_dim / x_y_ratio)
         else:
-            figsize = (4 * len_cols * x_y_ratio , len_rows * 4)
+            figsize = (fig_dim * len_cols * x_y_ratio , len_rows * fig_dim)
     else:
-        figsize = (4 * len_cols, len_rows * 4)
+        figsize = (fig_dim * len_cols, len_rows * fig_dim)
 
     fig, axes = plt.subplots(len_rows, len_cols, figsize=figsize, constrained_layout=True)
     # Main title
     if title is not None:
-        fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2)
+        fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2, weight='bold')
 
     if len_rows > 1 or len_cols > 1:
         axes_flatten = axes.flatten()
@@ -88,20 +111,24 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     #     ax.set_position(initial_position)
 
     # Iterate over subplots
+    idx = -1
     for col_idx, col in enumerate(cols_plot['values_var']):
         for row_idx, row in enumerate(rows_plot['values_var']):
-            idx = len_cols * row_idx + col_idx
-            ax = axes_flatten[idx]
+            idx += 1
+            # idx = len_cols * row_idx + col_idx
             subplot_title = None
+            ax = axes_flatten[idx]
             if cols_plot['names_coord'] == 'indicator':
                 current_indicator = col
             elif rows_plot['names_coord'] == 'indicator':
                 current_indicator = row
             elif isinstance(indicator_plot, list):
                 current_indicator = indicator_plot[idx]
-                subplot_title = indicator_plot[idx]
             else:
                 current_indicator = indicator_plot
+
+            if subplot_titles:
+                subplot_title = subplot_titles[idx]
 
             gdf_plot = copy.deepcopy(gdf)
             # If not in gdf_plot, add a col from selection
@@ -122,8 +149,27 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
                     subdict['shp'].plot(ax=ax, figsize=(18, 18), **shp_kwargs)
 
             # Plot
-            gdf_plot.plot(column=current_indicator, cmap=cmap, norm=norm, ax=ax, legend=False, markersize=70,
+            gdf_plot.plot(column=current_indicator, cmap=cmap, norm=norm, ax=ax, legend=False, markersize=markersize,
                           edgecolor=edgecolor, alpha=0.9, zorder=10, )
+
+
+            if references is not None:
+                for key, values in references.items():
+                    geom = values.get("geometry")
+                    del values['geometry']
+                    text = None
+                    if 'text' in values.keys():
+                        text = values.get("text")
+                        del values['text']
+
+                    if geom.geom_type == "Point":
+                        ax.scatter(geom.x, geom.y, **values)
+
+                    if text:
+                        label = text.get("label")
+                        del text['label']
+                        ax.annotate(label, xy=(geom.x, geom.y), xytext=(3, 3), textcoords="offset points", weight='bold',
+                                    fontsize=plt.rcParams['font.size'] - 2, zorder=100, **text)
 
             if subplot_title:
                 ax.set_title(subplot_title)
@@ -140,12 +186,17 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             plt.setp(ax.spines.values(), color=None)
 
     # Colorbar
-    cbar = define_cbar(fig, axes_flatten, len_rows, cmap, bounds_cmap, cbar_title=cbar_title, percent=percent, **text_kwargs)
+    # cbar_ax = fig.add_axes([0.85, 0.15, 0.05, 0.7])
+    # sm = mpl.cm.ScalarMappable(cmap=cmap, norm=mpl.colors.BoundaryNorm(bounds_cmap, cmap.N))
+    # fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap, format='%.0f')
+
+
+    cbar = define_cbar(fig, axes_flatten, len_rows, cmap, levels, cbar_title=cbar_title, percent=percent, **text_kwargs)
     if cbar_ticks == 'mid':
-        cbar.set_ticks((bounds_cmap[1:] + bounds_cmap[:-1])/2)
+        cbar.set_ticks((levels[1:] + levels[:-1])/2)
         cbar.ax.tick_params(size=0)
         if cbar_values is None:
-            cbar.set_ticklabels(bounds_cmap[1:])
+            cbar.set_ticklabels(levels[1:])
         else:
             cbar.set_ticklabels(cbar_values)
 

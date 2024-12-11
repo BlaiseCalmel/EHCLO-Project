@@ -76,7 +76,7 @@ for data_type, path in dict_paths['dict_study_points_sim'].items():
 
 print(f'> Simplify shapefiles...', end='\n')
 study_hydro_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified, regions_shp_simplified, bounds = (
-    simplify_shapefiles(study_hydro_shp, study_climate_shp, rivers_shp, regions_shp, tolerance=1000, zoom=50000))
+    simplify_shapefiles(study_hydro_shp, study_climate_shp, rivers_shp, regions_shp, tolerance=1000, zoom=1000))
 
 # path_sh = f"/home/bcalmel/Documents/2_data/climat/SH/Liste_SH_TX_metro.csv"
 #
@@ -118,7 +118,7 @@ data_type='hydro'
 subdict=path_files[data_type]
 rcp='rcp85'
 subdict2=subdict[rcp]
-indicator = "QA_mon"
+indicator = "QA_yr"
 paths = subdict2[indicator]
 
 hydro_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
@@ -179,139 +179,108 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
     if not os.path.isdir(path_indicator_figures):
         os.makedirs(path_indicator_figures)
 
-        ds = xr.open_dataset(path_ncdf)
-        ds, variables = format_dataset(ds, data_type, files_setup)
+    # Compute PK
+    if indicator in files_setup['hydro_indicator']:
+        data_type = 'hydro'
+        sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
+        loire = sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7]
+        value = compute_river_distance(rivers_shp, loire, river_name='loire',
+                                       start_from='last')
+        sim_points_gdf_simplified['PK'] = np.nan
+        sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7, 'PK'] = value
+        edgecolor = 'k'
+    else:
+        data_type = 'climate'
+        sim_points_gdf_simplified = climate_sim_points_gdf_simplified
+        sim_points_gdf_simplified = sim_points_gdf_simplified.set_index('name')
+        edgecolor = None
 
-        # Compute PK
-        if indicator in files_setup['hydro_indicator']:
-            sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
-            loire = sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7]
-            value = compute_river_distance(rivers_shp, loire, river_name='loire',
-                                           start_from='last')
-            sim_points_gdf_simplified['PK'] = np.nan
-            sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7, 'PK'] = value
-            edgecolor = 'k'
-        else:
-            sim_points_gdf_simplified = climate_sim_points_gdf_simplified
-            edgecolor = None
+    ds = xr.open_dataset(path_ncdf)
+    ds, variables = format_dataset(ds, data_type, files_setup)
 
-        print(f'################################ PLOT INDICATOR ################################', end='\n')
-        dict_shapefiles = {'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'paleturquoise',
-                                          'linewidth': 1, 'zorder': 2, 'alpha': 0.8},
-                           'background_shp': {'shp': regions_shp_simplified, 'color': 'gainsboro',
-                                              'edgecolor': 'black', 'zorder': 0},
-                           }
-        if data_type == 'hydro':
-            dict_shapefiles |= {'study_shp': {'shp': study_climate_shp_simplified, 'color': 'white',
-                                              'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
-        else:
-            dict_shapefiles |= {'study_shp': {'shp': study_climate_shp_simplified, 'color': 'white',
-                                              'edgecolor': 'k', 'zorder': 1, 'linewidth': 1.2},}
+    sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds.gid]
 
-        # Plot map
-        # Relative
-        print(f"> Map plot...")
-        # print(f">> Deviation map plot {indicator}")
-        # plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_median',
-        #               path_result=path_indicator_figures+'map_variation.pdf',
-        #               cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
-        #               percent=True, bounds=bounds, edgecolor=edgecolor,
-        #               discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
+    print(f'################################ PLOT INDICATOR ################################', end='\n')
+    dict_shapefiles = define_plot_shapefiles(regions_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified,
+                           indicator, files_setup)
 
+    # Plot map
+    # Relative
+    print(f"> Map plot...")
+    if indicator in files_setup['climate_indicator']:
         print(f">> Difference map plot {indicator}")
-        plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_difference_median',
-                      path_result=path_indicator_figures+'map_difference.pdf',
-                      cbar_title=f"{indicator} difference", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
-                      percent=False, bounds=bounds, palette='RdBu_r', cmap_zero=True, fontsize=14,
-                      font='sans-serif', discretize=8, edgecolor=edgecolor)
+        plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_mean',
+                      path_result=path_indicator_figures+'map_difference.pdf', cols='horizon',
+                      cbar_title=f"{indicator} mean difference", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
+                      percent=False, bounds=bounds, palette='RdBu_r', cbar_midpoint='zero', fontsize=14,
+                      font='sans-serif', discretize=7, edgecolor=edgecolor, markersize=75, vmin=0)
 
-        if indicator in files_setup['hydro_indicator']:
-            print(f">> Deviation map plot by HM")
-            mean_by_hm = [s for sublist in variables['hydro_model_deviation'].values() for s in sublist if "mean" in s]
-            rows = {
-                'names_coord': 'indicator',
-                'values_var': mean_by_hm,
-                'names_plot': list(variables['hydro_model_deviation'].keys())
+    if indicator in files_setup['hydro_indicator']:
+        print(f">> Deviation map plot by HM")
+        horizons = {'horizon1': 'Horizon 1 (2021-2050)',
+                    'horizon2': 'Horizon 2 (2041-2070)',
+                    'horizon3': 'Horizon 3 (2070-2099)',
+                    }
+
+        for key, value in horizons.items():
+            plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), variables=variables,
+                                  path_result=path_indicator_figures+f'maps_variation_mean_{value}.pdf',
+                                  cbar_title=f"Variation moyenne {indicator} (%)", title=value,
+                                  dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds, edgecolor=edgecolor,
+                                  markersize=75, discretize=10, palette='BrBG', fontsize=14, font='sans-serif')
+
+        # Sim by PK + quantile
+        # print(f"> Linear plot...")
+        # print(f">> Linear deviation by time")
+        # plot_linear_time(ds,
+        #                  name='',
+        #                  simulations=variables['hydro_model_deviation_sim_timeline'],
+        #                  # narratives=narratives,
+        #                  name_x_axis=f'Année',
+        #                  name_y_axis=f'{indicator} variation (%)',
+        #                  percent=True,
+        #                  # vlines=vlines,
+        #                  path_result=path_indicator_figures+'lineplot_variation_timeline.pdf')
+
+        if 'PK' in sim_points_gdf_simplified.columns:
+            ds['PK'] = ('gid', sim_points_gdf_simplified['PK'])
+            villes = ['Villerest', 'Nevers', 'Orleans', 'Tours', 'Saumur', 'Nantes'] #'Blois',
+            regex = "|".join(villes)
+            vlines = sim_points_gdf_simplified[sim_points_gdf_simplified['Suggesti_2'].str.contains(regex, case=False, na=False)]
+            vlines.loc[: ,'color'] = 'none'
+
+            narratives = {
+                "HadGEM2-ES_ALADIN63_ADAMONT": {'color': '#569A71', 'zorder': 10, 'label': 'HadGEM2-ES_ALADIN63_ADAMONT',
+                                                'linewidth': 1},
+                "CNRM-CM5_ALADIN63_ADAMONT": {'color': '#EECC66', 'zorder': 10, 'label': 'CNRM-CM5_ALADIN63_ADAMONT',
+                                              'linewidth': 1},
+                "EC-EARTH_HadREM3-GA7_ADAMONT": {'color': '#E09B2F', 'zorder': 10, 'label': 'EC-EARTH_HadREM3-GA7_ADAMONT',
+                                                 'linewidth': 1},
+                "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'color': '#791F5D', 'zorder': 10, 'label': 'HadGEM2-ES_CCLM4-8-17_ADAMONT',
+                                                  'linewidth': 1},
+
+                "EC-EARTH_RACMO22E_ADAMONT": {'color': 'blue', 'zorder': 10, 'label': 'EC-EARTH_RACMO22E_ADAMONT',
+                                                 'linewidth': 1},
+                "EC-EARTH_RCA4_ADAMONT": {'color': 'red', 'zorder': 10, 'label': 'EC-EARTH_RCA4_ADAMONT',
+                                              'linewidth': 1},
             }
 
-            # Dictionnary sim by HM
-            hm_names = [name.split('_')[-1] for name in variables['simulation_cols']]
-            hm_dict_deviation = {i: [] for i in np.unique(hm_names)}
-            for idx, name_sim in enumerate(variables['simulation_deviation']):
-                hm_dict_deviation[hm_names[idx]].append(name_sim)
-
-            plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, rows=rows, indicator_plot=mean_by_hm,
-                               path_result=path_indicator_figures+'HM_map_variation.pdf',
-                               cbar_title=f"{indicator} relatif (%)", title=None, dict_shapefiles=dict_shapefiles,
-                               percent=True, bounds=bounds, edgecolor=edgecolor,
-                               discretize=8, palette='BrBG', fontsize=14, font='sans-serif')
-
-            # Sim by PK + quantile
-            print(f"> Linear plot...")
-            print(f">> Linear deviation by time")
-            plot_linear_time(ds, name='timeline_deviation',
-                             simulations=variables['simulation_deviation'],
-                             name_y_axis=f'{indicator} variation (%)',
-                             percent=True,
-                             references=None,
-                             path_result=path_indicator_figures+'lineplot_variation_timeline.pdf')
-
-            print(f">> Linear difference by time")
-            plot_linear_time(ds, name='timeline_difference',
-                             simulations=variables['simulation_difference'],
-                             name_y_axis=f'{indicator} variation (%)',
-                             percent=True,
-                             references=None,
-                             path_result=path_indicator_figures+'lineplot_difference_timeline.pdf')
-
-            if 'PK' in sim_points_gdf_simplified.columns:
-                ds['PK'] = ('gid', sim_points_gdf_simplified['PK'])
-                villes = ['Villerest', 'Nevers', 'Orleans', 'Blois', 'Tours', 'Saumur', 'Nantes']
-                regex = "|".join(villes)
-                vlines = sim_points_gdf_simplified[sim_points_gdf_simplified['Suggesti_2'].str.contains(regex, case=False, na=False)]
-
-                narratives = {
-                    "HadGEM2-ES_ALADIN63_ADAMONT": {'color': 'green', 'zorder': 10, 'label': 'HadGEM2-ES_ALADIN63_ADAMONT',
-                                                    'linewidth': 1},
-                    "CNRM-CM5_ALADIN63_ADAMONT": {'color': 'yellow', 'zorder': 10, 'label': 'CNRM-CM5_ALADIN63_ADAMONT',
-                                                  'linewidth': 1},
-                    "EC-EARTH_HadREM3-GA7_ADAMONT": {'color': 'orange', 'zorder': 10, 'label': 'EC-EARTH_HadREM3-GA7_ADAMONT',
-                                                     'linewidth': 1},
-                    "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'color': 'purple', 'zorder': 10, 'label': 'HadGEM2-ES_CCLM4-8-17_ADAMONT',
-                                                      'linewidth': 1},
-                }
-
-                plot_linear_pk(ds,
-                               simulations=variables['hydro_model_deviation_sim_horizon'],
-                               narratives=narratives,
-                               name_x_axis=f'PK (km)',
-                               name_y_axis=f'{indicator} variation (%)',
-                               percent=True,
-                               vlines=vlines,
-                               path_result=path_indicator_figures+'HM_lineplot_variation_PK.pdf')
+            print(f">> Linear deviation by PK")
+            plot_linear_pk(ds,
+                           simulations=variables['hydro_model_deviation_sim_horizon'],
+                           narratives=narratives,
+                           name_x_axis=f'PK (km)',
+                           name_y_axis=f'{indicator} variation (%)',
+                           percent=True,
+                           vlines=vlines,
+                           path_result=path_indicator_figures+'HM_lineplot_variation_PK.pdf')
 
 
-
-
-                print(f">> Linear deviation by PK")
-                plot_linear_pk(ds, name='horizon_deviation',
-                               simulations=variables['simulation_horizon_deviation_by_sims'],
-                               name_y_axis=f'{indicator} variation (%)',
-                               percent=True,
-                               vlines=vlines,
-                               path_result=path_indicator_figures+'lineplot_variation_PK.pdf')
-                print(f">> Linear difference by PK")
-                plot_linear_pk(ds, name='horizon_difference', percent=False,
-                               simulations=variables['simulation_horizon_difference_by_sims'],
-                               name_y_axis=f'{indicator} difference',
-                               vlines=vlines,
-                               path_result=path_indicator_figures+'lineplot_difference_PK.pdf')
-
-            print(f"> Box plot...")
-            print(f">> Boxplot deviation by horizon and selected stations")
-            plot_boxplot_station(ds=ds, simulations=variables['simulation_horizon_deviation_by_sims'],
-                                 name_y_axis=f'{indicator} variation (%)', percent=True,
-                                 path_result=path_indicator_figures+'boxplot_deviation.pdf')
+        print(f"> Box plot...")
+        print(f">> Boxplot deviation by horizon and selected stations")
+        plot_boxplot_station(ds=ds, simulations=variables['simulation_horizon_deviation_by_sims'],
+                             name_y_axis=f'{indicator} variation (%)', percent=True,
+                             path_result=path_indicator_figures+'boxplot_deviation.pdf')
 
 
 
@@ -336,24 +305,54 @@ shape_hp = {
 print(f"> Plot HM by station...")
 cols_map = {
     'values_var': list(shape_hp.keys()),
+    'names_plot': list(shape_hp.keys())
 }
+
 rows = 3
 mapplot(gdf=hydro_sim_points_gdf_simplified, ds=None, indicator_plot=list(shape_hp.keys()), path_result=f"{path_global_figures}HM_by_sim.pdf",
         cols=cols_map, rows=3,
         cbar_title=f"Simulation", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
-        discretize=2, cbar_ticks='mid', palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k',
-        vmin=-0.5, vmax=1.5,
+        discretize=2, cbar_ticks='mid', palette='RdBu_r', cbar_midpoint='min', fontsize=14, font='sans-serif', edgecolor='k',
+        vmin=-0.5, vmax=1.5, markersize=75,
         cbar_values=['Absente', 'Présente'])
+
+station_references = {
+    'M842001000': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth':2,
+                   'facecolors':'none', 'text': {'label': ' St Nazaire', 'verticalalignment':'top'}
+    },
+    'M530001010': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth':2,
+                   'facecolors':'none', 'text': {'label': ' Mont Jean'}
+                   },
+    'K683002001': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth':2,
+                   'facecolors':'none', 'text': {'label': ' Langeais', 'verticalalignment':'top'}
+                   },
+    'K480001001': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth':2,
+                   'facecolors':'none', 'text': {'label': ' Onzain'}
+                   },
+    'K418001201': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth':2,
+                   'facecolors':'none', 'text': {'label': ' Gien'}
+                   },
+    'K193001010': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth':2,
+                   'facecolors':'none', 'text': {'label': ' Nevers'}
+                   },
+    'K365081001': {'s':90, 'edgecolors':'k','zorder':10, 'linewidth':2,
+                   'facecolors':'none',
+                   'text': {'label': 'Cuffy  ', 'horizontalalignment':'right', 'verticalalignment':'top'}
+                   },
+    'K091001011': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth':2,
+                   'facecolors':'none', 'text': {'label': ' Villerest', 'color':'white', 'edgecolor':'k'}
+                   }
+}
+
+for key in station_references.keys():
+    station_references[key] |= {'geometry': hydro_sim_points_gdf_simplified.loc[key].geometry}
 
 print(f"> Plot Number of HM by station...")
 mapplot(gdf=hydro_sim_points_gdf_simplified, indicator_plot='n', path_result=path_global_figures+'count_HM.pdf', ds=None,
-        cols=None, rows=None,
+        cols=None, rows=None, references=station_references,
         cbar_title=f"Nombre de HM", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
-        discretize=6, cbar_ticks='mid', palette='RdBu_r', cmap_zero=True, fontsize=14, font='sans-serif', edgecolor='k',
-        vmin=3.5, vmax=9.5)
-
-
-
+        discretize=6, cbar_ticks='mid', palette='RdBu_r', fontsize=10, font='sans-serif', edgecolor='k',
+        cbar_midpoint='min', vmin=3.5, vmax=9.5)
 
 
 

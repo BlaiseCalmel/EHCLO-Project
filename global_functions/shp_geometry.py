@@ -241,6 +241,24 @@ def simplify_shapefiles(study_ug_shp, study_ug_bv_shp, rivers_shp, regions_shp, 
     return (study_ug_shp_simplified, study_ug_bv_shp_simplified, study_rivers_shp_simplified,
             regions_shp_simplified, bounds)
 
+def define_plot_shapefiles(regions_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified,
+                           indicator, files_setup):
+    dict_shapefiles = {'background_shp': {'shp': regions_shp_simplified, 'color': 'whitesmoke',
+                                          'edgecolor': 'darkgrey', 'zorder': 0, 'alpha': 0.2},
+                       }
+    if indicator in files_setup['hydro_indicator']:
+        dict_shapefiles |= {'study_shp': {'shp': study_climate_shp_simplified, 'color': 'whitesmoke',
+                                          'edgecolor': 'dimgray', 'zorder': 1, 'linewidth': 1.2},
+                            'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'navy',
+                                           'linewidth': 1, 'zorder': 2, 'alpha': 1},}
+    else:
+        dict_shapefiles |= {'study_shp': {'shp': study_climate_shp_simplified, 'color': 'none',
+                                          'edgecolor': 'dimgray', 'zorder': 1, 'linewidth': 1.2},
+                            'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'navy',
+                                           'linewidth': 1, 'zorder': 20, 'alpha': 0.8},}
+
+    return dict_shapefiles
+
 def test_merge_rivers(study_rivers_shp, study_rivers_shp_simplified):
     from shapely.ops import linemerge, unary_union
     from shapely.geometry import LineString, MultiLineString

@@ -74,9 +74,8 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
             file_name = '_'.join(split_name)
             var = indicator+'_'+file_name
-            # temp_paths.append(f"{temp_dir}{os.sep}{var}.nc")
-            datasets = []
 
+            datasets = []
             for file in files:
                 ds = xr.open_dataset(file)
                 # Add sim suffix
@@ -122,6 +121,8 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                     ds['code'] = ds['code'].astype(str)
                     code_values = np.unique(sim_points_gdf.index.values)
                     codes_to_select = [code for code in code_values if code in ds['code'].values]
+                    missing = [code for code in code_values if code not in ds['code'].values]
+
                     ds = ds.rename({'code': 'gid'})
                     if len(codes_to_select) > 0:
                         # TODO Rename dims to name

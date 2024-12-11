@@ -51,10 +51,12 @@ def define_cbar(fig, axes_flatten, len_rows, cmap, bounds_cmap, cbar_title=None,
     # 1 ligne = 0.08
     # 4 ligne = 0.02
 
-    cbar_ax = fig.add_subplot([axes_flatten[-1].get_position().x1 + x_diff + 0.02,
-                            axes_flatten[-1].get_position().y0 - y_diff, # -0.02
-                            0.02,
-                            axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0 + y_diff])
+    # cbar_ax = fig.add_subplot([axes_flatten[-1].get_position().x1 + x_diff + 0.02,
+    #                         axes_flatten[-1].get_position().y0 - y_diff, # -0.02
+    #                         0.02,
+    #                         axes_flatten[0].get_position().y1-axes_flatten[-1].get_position().y0 + y_diff])
+    cbar_ax = fig.add_axes([axes_flatten[-1].get_position().x1 + x_diff + 0.02, 0.1,
+                            0.02, 0.8])
 
     sm._A = []
     if percent:
@@ -63,7 +65,7 @@ def define_cbar(fig, axes_flatten, len_rows, cmap, bounds_cmap, cbar_title=None,
         cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap)
 
     if cbar_title:
-        cbar.set_label(cbar_title, **text_kwargs)
+        cbar.set_label(cbar_title, rotation=0, wrap=True, labelpad=35, **text_kwargs)
 
     return cbar
 
@@ -72,7 +74,6 @@ def add_header(ax, rows_plot, cols_plot, ylabel='', xlabel=''):
     sbs = ax.get_subplotspec()
     if sbs.is_first_col():
         if sbs.rowspan.start < len(rows_plot['names_plot']):
-            print('row')
             name_row = rows_plot['names_plot'][sbs.rowspan.start]
             if name_row is not None:
                 name_row = name_row.replace(' ', '~')
@@ -111,7 +112,7 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
                 xmin = np.nanmin(x_min_temp)
             else:
                 var_names = [i for subdict in indicator_plot for i in subdict]
-                xmin = math.ceil((ds_plot[indicator_plot].to_array()).min())
+                xmin = math.ceil((ds_plot[var_names].to_array()).min())
         except ValueError:
             xmin = min(x_min_temp)
         except KeyError:
@@ -124,7 +125,7 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
                 xmax = np.nanmin(x_max_temp)
             else:
                 var_names = [i for subdict in indicator_plot for i in subdict]
-                xmax = math.ceil((ds_plot[indicator_plot].to_array()).max())
+                xmax = math.ceil((ds_plot[var_names].to_array()).max())
         except ValueError:
             xmax = max(x_max_temp)
         except KeyError:
@@ -138,7 +139,7 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
                 ymin = np.nanmin(y_min_temp)
             else:
                 var_names = [i for subdict in indicator_plot for i in subdict]
-                ymin = math.ceil((ds_plot[indicator_plot].to_array()).min())
+                ymin = math.ceil((ds_plot[var_names].to_array()).min())
         except ValueError:
             ymin = min(y_min_temp)
         except KeyError:
@@ -152,7 +153,7 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
                 ymax = np.nanmax(y_max_temp)
             else:
                 var_names = [i for subdict in indicator_plot for i in subdict]
-                ymax = math.ceil((ds_plot[indicator_plot].to_array()).max())
+                ymax = math.ceil((ds_plot[var_names].to_array()).max())
         except ValueError:
             ymax = max(y_max_temp)
         except KeyError:

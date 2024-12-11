@@ -1,12 +1,12 @@
 {
   "gid": "",
-  "hydro_indicator": ["QA_seas-JJA", "QA_seas-DJF", "QA_seas-MAM", "QA_seas-SON", "QA_mon", "QA_yr",
+  "hydro_indicator": ["QA_yr", "QA_seas-JJA", "QA_seas-DJF", "QA_seas-MAM", "QA_seas-SON", "QA_mon",
     "VCN10_seas-MJJASON", "Q10A", "Q90A"],
   "climate_indicator": ["tasminAdjust", "tasAdjust", "tasmaxAdjust", "prtotAdjust", "evspsblpotAdjust"],
   "select_rcp": ["rcp85"],
   "select_gcm": [],
   "select_rcm": [],
-  "select_bc": [],
+  "select_bc": ["ADAMONT"],
   "select_hm": [],
 
   "historical": [1991, 2020],

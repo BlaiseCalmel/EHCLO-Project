@@ -96,7 +96,7 @@ def format_dataset(ds, data_type, files_setup):
     # Find every HM
     if data_type == 'hydro':
         print(f'>> Compute stats by HM by horizon among simulations...', end='\n')
-        hm_names = [name.split('_')[-1] for name in simulation_cols]
+        hm_names = [name.split('_')[-4] for name in simulation_horizon_deviation_by_sims]
         hm_dict_deviation_horizon = {i: [] for i in np.unique(hm_names)}
         for idx, name_sim in enumerate(simulation_horizon_deviation_by_sims):
             hm_dict_deviation_horizon[hm_names[idx]].append(name_sim)

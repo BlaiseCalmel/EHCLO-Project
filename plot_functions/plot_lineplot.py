@@ -4,7 +4,7 @@ from matplotlib.lines import Line2D
 from plot_functions.plot_common import *
 
 def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines=None, xmin=None, xmax=None, ymin=None, ymax=None,
-             title=None, percent=True, fontsize=14, font='sans-serif', plot_type='line'):
+             title=None, percent=True, fontsize=14, font='sans-serif'):
 
     ds_plot = copy.deepcopy(ds)
     len_cols, cols_plot, ds_plot = init_grid(cols, ds_plot)
@@ -55,7 +55,8 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
                 current_indicator = row
             elif isinstance(indicator_plot, list):
                 current_indicator = indicator_plot[idx]
-                subplot_title = indicator_plot[idx]
+                if isinstance(indicator_plot[idx], str):
+                    subplot_title = indicator_plot[idx]
             else:
                 current_indicator = indicator_plot
 
@@ -80,35 +81,34 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
             if vlines is not None:
                 valid = np.logical_not(np.isnan(vlines[x_axis['names_coord']]))
                 vlines = vlines[valid]
-                ax.vlines(x=vlines[x_axis['names_coord']], ymin=ymin, ymax=ymax - 0.1*(ymax-ymin), color="k", linewidth=1)
+
+                if 'color' not in vlines.columns:
+                    vlines['color'] = 'k'
+                if 'ymin' not in vlines.columns:
+                    vlines['ymin'] = ymin
+                if 'ymax' not in vlines.columns:
+                    vlines['ymax'] = ymax - 0.1*(ymax-ymin)
+                if 'annotate' not in vlines.columns:
+                    vlines['annotate'] = 0.02
+                if 'alpha' not in vlines.columns:
+                    vlines['alpha'] = 1
+
 
                 for i in range(len(vlines)):
-                    ax.text(vlines.iloc[i][x_axis['names_coord']], ymax - 0.02*(ymax-ymin), vlines.iloc[i]['tag'], rotation=90,
-                            verticalalignment='top')
+                    ax.vlines(x=vlines.iloc[i][x_axis['names_coord']],
+                              ymin=vlines.iloc[i]['ymin'], ymax=vlines.iloc[i]['ymax'],
+                              color=vlines.iloc[i]['color'], linewidth=1)
+
+                    ax.text(vlines.iloc[i][x_axis['names_coord']], ymax - vlines.iloc[i]['annotate']*(ymax-ymin),
+                            vlines.iloc[i]['label'], rotation=90, verticalalignment='top',
+                            alpha=vlines.iloc[i]['alpha'])
+
+
+            ax.plot([xmin, xmax], [0, 0], color='k', linestyle='--', linewidth=0.5, dashes=(10,10))
 
             if subplot_title:
                 ax.set_title(subplot_title)
 
-            # for x_var, x_values in x_axis.items():
-            #     for y_var, y_values in y_axis.items():
-            #         ds_selection = ds_selection.sortby(x_var)
-            #         valid = np.logical_not(np.isnan(ds_selection[y_var].values))
-            #         if plot_type == 'line':
-            #             ax.plot(ds_selection[x_var].values[valid], ds_selection[y_var].values[valid], **x_values, **y_values)
-            #         else:
-            #             ax.scatter(ds_selection[x_var].values[valid], ds_selection[y_var].values[valid], **x_values, **y_values)
-            #
-            #         if y_values not in legend_items:
-            #             legend_items.append(y_values)
-            #
-            #     if vlines is not None:
-            #         valid = np.logical_not(np.isnan(vlines[x_var]))
-            #         vlines = vlines[valid]
-            #         ax.vlines(x=vlines[x_var], ymin=ymin, ymax=ymax - 0.1*(ymax-ymin), color="k", linewidth=1)
-            #
-            #         for i in range(len(vlines)):
-            #             ax.text(vlines.iloc[i][x_var], ymax - 0.02*(ymax-ymin), vlines.iloc[i]['tag'], rotation=90,
-            #                     verticalalignment='top')
 
             ax.spines[['right', 'top']].set_visible(False)
             ax.set_xlim(xmin, xmax)
@@ -117,7 +117,8 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
             if percent:
                 ax.yaxis.set_major_formatter(mtick.PercentFormatter())
 
-            plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.1)
+
+            plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.1, alpha=0.4)
             ax.grid(True)
 
             # Headers and axes label
@@ -137,7 +138,6 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
 
     fig.legend(handles=legend_handles, loc='upper center', bbox_to_anchor=(0.5, 0), fancybox=False, shadow=False,
                ncol=(len(legend_handles)))
-
 
     plt.savefig(path_result, bbox_inches='tight')
 
