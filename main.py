@@ -171,6 +171,7 @@ for data_type, subdict in path_files.items():
             # path_ncdf = f"{dict_paths['folder_study_data']}QA_seas-JJA_ME_rcp85.nc"
             # indicator='QA_seas-JJA'
 
+print(f'################################ PLOT INDICATOR ################################', end='\n')
 for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator']:
     print(indicator)
     path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_ME_rcp85.nc"
@@ -200,7 +201,6 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
 
     sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds.gid]
 
-    print(f'################################ PLOT INDICATOR ################################', end='\n')
     dict_shapefiles = define_plot_shapefiles(regions_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified,
                            indicator, files_setup)
 
@@ -221,14 +221,16 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                     'horizon2': 'Horizon 2 (2041-2070)',
                     'horizon3': 'Horizon 3 (2070-2099)',
                     }
-
+        mean_by_hm = [s for sublist in variables['hydro_model_deviation'].values() for s in sublist if "mean" in s]
+        vmax = math.ceil(abs(ds[mean_by_hm].to_array()).max() / 5) * 5
         for key, value in horizons.items():
-            plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), indicator_plot=variables,
-                                  path_result=path_indicator_figures+f'maps_variation_mean_{value}.pdf',
+            print(f">>> {value}")
+            plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), variables=variables,
+                                  path_result=path_indicator_figures+f'maps_variation_mean_{key}.pdf',
                                   cbar_title=f"Variation moyenne {indicator} (%)", title=value, cbar_midpoint='zero',
                                   dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds, edgecolor=edgecolor,
                                   markersize=75, discretize=10, palette='BrBG', fontsize=14, font='sans-serif',
-                                  vmin=None, vmax=None)
+                                  vmin=None, vmax=vmax)
 
         # Sim by PK + quantile
         # print(f"> Linear plot...")

@@ -106,21 +106,20 @@ def plot_boxplot_station(ds, simulations, path_result, name_y_axis='', percent=F
              title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None)
 
 def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, percent, bounds,
-                          indicator_plot, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,
+                          variables, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,
                           vmin=None, vmax=None, edgecolor='k', cbar_midpoint=None, markersize=50):
 
-    mean_by_hm = [s for sublist in indicator_plot['hydro_model_deviation'].values() for s in sublist if "mean" in s]
-
+    mean_by_hm = [s for sublist in variables['hydro_model_deviation'].values() for s in sublist if "mean" in s]
     # Dictionnary sim by HM
-    hm_names = [name.split('_')[-1] for name in indicator_plot['simulation_cols']]
+    hm_names = [name.split('_')[-1] for name in variables['simulation_cols']]
     hm_dict_deviation = {i: [] for i in np.unique(hm_names)}
-    for idx, name_sim in enumerate(indicator_plot['simulation_deviation']):
+    for idx, name_sim in enumerate(variables['simulation_deviation']):
         hm_dict_deviation[hm_names[idx]].append(name_sim)
 
     rows = {
         'names_coord': 'indicator',
         'values_var': mean_by_hm,
-        'names_plot': list(indicator_plot['hydro_model_deviation'].keys())
+        'names_plot': list(variables['hydro_model_deviation'].keys())
     }
     cols = 3
 

@@ -36,8 +36,8 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
         bottom = axes_flatten[-1].get_position().y0
         height = axes_flatten[-1].get_position().y1 - axes_flatten[-1].get_position().y0
     elif len_rows < 4:
-        bottom = 0.2
-        height = 0.8
+        bottom = 0.15
+        height = 0.7
     else:
         middle = int(len_rows / 2)
         bottom = axes_flatten[middle].get_position().y0 - 0.2
