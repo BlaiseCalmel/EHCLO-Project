@@ -33,8 +33,8 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
     sm = mpl.cm.ScalarMappable(cmap=cmap, norm=mpl.colors.BoundaryNorm(bounds_cmap, cmap.N))
 
     if len_rows == 1:
-        bottom = axes_flatten[-1].get_position().y0
-        height = axes_flatten[-1].get_position().y1 - axes_flatten[-1].get_position().y0
+        bottom = axes_flatten[-1].get_position().y0 - 0.05
+        height = axes_flatten[-1].get_position().y1 - axes_flatten[-1].get_position().y0 + 0.025
     elif len_rows < 4:
         bottom = 0.15
         height = 0.7
@@ -52,7 +52,10 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
         cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap)
 
     if cbar_title:
-        cbar.set_label(cbar_title, rotation=0, wrap=True, labelpad=25, **text_kwargs)
+        label_ax = fig.add_axes([cbar_ax.get_position().x1 + 0.05, cbar_ax.get_position().y0, 0.02, height])
+        label_ax.annotate(cbar_title, xy=(0, 0.45), wrap=True, **text_kwargs)
+        label_ax.axis('off')
+        # cbar.set_label(cbar_title, rotation=0, wrap=True, labelpad=25, **text_kwargs)
 
     return cbar
 

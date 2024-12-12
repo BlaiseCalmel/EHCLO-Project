@@ -10,6 +10,16 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
     len_cols, cols_plot, ds_plot = init_grid(cols, ds_plot)
     len_rows, rows_plot, ds_plot = init_grid(rows, ds_plot)
 
+    subplot_titles = None
+    if isinstance(rows, int):
+        len_cols = int(len_cols / len_rows)
+        subplot_titles = cols['names_plot']
+        cols_plot['names_plot'] = [None]
+    if isinstance(cols, int):
+        len_rows = int(len_rows / len_cols)
+        subplot_titles = rows['names_plot']
+        rows_plot['names_plot'] = [None]
+
     if 'name_axis' in x_axis:
         x_title = x_axis['name_axis']
         del x_axis['name_axis']
@@ -48,17 +58,18 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
             idx = len_cols * row_idx + col_idx
             ax = axes_flatten[idx]
 
-            subplot_title = None
             if cols_plot['names_coord'] == 'indicator':
                 current_indicator = col
             elif rows_plot['names_coord'] == 'indicator':
                 current_indicator = row
             elif isinstance(indicator_plot, list):
                 current_indicator = indicator_plot[idx]
-                if isinstance(indicator_plot[idx], str):
-                    subplot_title = indicator_plot[idx]
             else:
                 current_indicator = indicator_plot
+
+            subplot_title = None
+            if subplot_titles:
+                subplot_title = subplot_titles[idx]
 
             temp_dict = {}
             if cols_plot['names_coord'] is not None and col is not None and cols_plot['names_coord'] != 'indicator':
@@ -104,11 +115,11 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
                             alpha=vlines.iloc[i]['alpha'])
 
 
-            ax.plot([xmin, xmax], [0, 0], color='k', linestyle='--', linewidth=0.5, dashes=(10,10))
+            ax.plot([xmin, xmax], [0, 0], color='k', linestyle='--', linewidth=0.5, dashes=(10,10),
+                    zorder=1000)
 
             if subplot_title:
                 ax.set_title(subplot_title)
-
 
             ax.spines[['right', 'top']].set_visible(False)
             ax.set_xlim(xmin, xmax)
@@ -137,7 +148,7 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
         legend_handles.append(handle)
 
     fig.legend(handles=legend_handles, loc='upper center', bbox_to_anchor=(0.5, 0), fancybox=False, shadow=False,
-               ncol=(len(legend_handles)))
+               ncol=min((len(legend_handles), len_cols)))
 
     plt.savefig(path_result, bbox_inches='tight')
 

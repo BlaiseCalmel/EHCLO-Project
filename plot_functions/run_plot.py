@@ -1,8 +1,10 @@
+import copy
+
 from plot_functions.plot_map import *
 from plot_functions.plot_lineplot import *
 from plot_functions.plot_boxplot import *
 
-def plot_linear_pk(ds, simulations, path_result, narratives=None,
+def plot_linear_pk_hm(ds, simulations, path_result, narratives=None,
                    name_x_axis='', name_y_axis='', percent=False, vlines=None):
     x_axis = {'names_coord': 'PK',
               'name_axis': name_x_axis
@@ -35,52 +37,124 @@ def plot_linear_pk(ds, simulations, path_result, narratives=None,
         'names_plot': list(simulations.keys())
     }
 
-    if vlines is not None:
-        if 'Suggesti_2' in vlines.columns:
-            cities = [i.split(' A ')[-1].split(' [')[0] for i in vlines['Suggesti_2']]
-            vlines.insert(loc=0, column='label', value=cities)
-            vlines['annotate'] = 0.02
-        else:
-            vlines = None
+    lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
+             title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None)
+
+def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
+                      name_x_axis='', name_y_axis='', percent=False, vlines=None):
+    x_axis = {'names_coord': 'PK',
+              'name_axis': name_x_axis
+              }
+    y_axis = {'names_coord': 'indicator',
+              'name_axis': name_y_axis
+              }
+
+    dict_sim = {sim_name: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation', 'linewidth': 0.5}
+                for sim_name in simulations}
+
+    if narratives is not None:
+        indicator_plot = [copy.deepcopy(dict_sim) for i in range(len(narratives))]
+        idx = -1
+        for narr_name, kwargs in narratives.items():
+            idx += 1
+            for sim_name, values in indicator_plot[idx].items():
+                if narr_name in sim_name:
+                    indicator_plot[idx][sim_name] = kwargs
+    else:
+        indicator_plot = [copy.deepcopy(dict_sim)]
+
+    cols = {
+        'names_coord': 'horizon',
+        'values_var': ['horizon1', 'horizon2', 'horizon3'],
+        'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2099)']
+    }
+
+    rows = {
+        'names_coord': 'indicator',
+        'values_var': indicator_plot,
+        'names_plot': list(narratives.keys())
+    }
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
              title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None)
 
-def plot_linear_time(ds, simulations, path_result, name_x_axis='', name_y_axis='', percent=False,
-                     references=None):
+def plot_linear_pk(ds, simulations, path_result, narratives=None,
+                             name_x_axis='', name_y_axis='', percent=False, vlines=None):
+    x_axis = {'names_coord': 'PK',
+              'name_axis': name_x_axis
+              }
+    y_axis = {'names_coord': 'indicator',
+              'name_axis': name_y_axis
+              }
+
+    indicator_plot = {sim_name: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation', 'linewidth': 0.5}
+                for sim_name in simulations}
+
+    for sim_name, subdict in indicator_plot.items():
+        for narr_name, kwargs in narratives.items():
+            if narr_name in sim_name:
+                indicator_plot[sim_name] = kwargs
+
+    if isinstance(indicator_plot, dict):
+        indicator_plot = [indicator_plot]
+    cols = {
+        'names_coord': 'horizon',
+        'values_var': ['horizon1', 'horizon2', 'horizon3'],
+        'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2099)']
+    }
+
+    rows = {
+        'names_coord': 'indicator',
+        'values_var': indicator_plot,
+        'names_plot': ''
+    }
+
+    lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
+             title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None)
+
+
+def plot_linear_time(ds, simulations, path_result, narratives=None,
+                   name_x_axis='', name_y_axis='', percent=False, vlines=None):
 
     x_axis = {'names_coord': 'time',
-              'name_axis': 'Date'
+              'name_axis': name_x_axis
               }
 
     y_axis = {'names_coord': 'indicator',
               'name_axis': name_y_axis
               }
 
-    # y_axis = {i: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation'}
-    #           for i in simulations}
-    # y_axis |= {
-    #     f'{name}_quantile5': {'color': '#fdb863', 'linestyle': '--', 'label': 'q05', 'zorder': 2},
-    #     f'{name}_median': {'color': '#5e3c99', 'linestyle': '--', 'label': 'q50', 'zorder': 2},
-    #     f'{name}_quantile95': {'color': '#e66101', 'linestyle': '--', 'label': 'q95', 'zorder': 2},
-    #     'name_axis': f'{name_y_axis}'
-    # }
+    station_references = {'M842001000': 'La Loire à St Nazaire',
+                          'M530001010': 'La Loire à Mont Jean',
+                          'K683002001': 'La Loire à Langeais',
+                          'K480001001': 'La Loire à Onzain',
+                          'K418001201': 'La Loire à Gien',
+                          'K193001010': 'La Loire à Nevers',
+                          'K091001011': 'La Loire à Villerest',
+                          'K365081001': "L'Allier à Cuffy"}
 
-    value_simulations = [i for i in simulations.values()]
-    indicator_plot = [{val: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation', 'linewidth': 0.5}
-                  for val in sublist} for sublist in value_simulations]
+    dict_sim = {sim_name: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation', 'linewidth': 0.5}
+       for sim_name in simulations}
 
-    cols = None
+    if narratives is not None:
+        for key in dict_sim.keys():
+            for narr_name, kwargs in narratives.items():
+                if narr_name in key:
+                    dict_sim[key] = kwargs
 
-    # TODO chose station/UG mean
-    rows = {
+    indicator_plot = [dict_sim for i in range(len(station_references))]
+
+    cols = {
         'names_coord': 'gid',
-        'values_var': ['K091001011','M624001000'],
-        'names_plot': ['K091001011 amont','M624001000 aval']
+        'values_var': list(station_references.keys()),
+        'names_plot': list(station_references.values())
     }
 
-    lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=references,
+    rows = 4
+
+    lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
              title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None)
+
 
 def plot_boxplot_station(ds, simulations, path_result, name_y_axis='', percent=False):
 

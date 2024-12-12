@@ -30,7 +30,6 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         subplot_titles = rows['names_plot']
         rows_plot['names_plot'] = [None]
 
-
     if percent:
         if vmax is None:
             if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:

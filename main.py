@@ -233,24 +233,18 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                                   vmin=None, vmax=vmax)
 
         # Sim by PK + quantile
-        # print(f"> Linear plot...")
-        # print(f">> Linear deviation by time")
-        # plot_linear_time(ds,
-        #                  name='',
-        #                  simulations=variables['hydro_model_deviation_sim_timeline'],
-        #                  # narratives=narratives,
-        #                  name_x_axis=f'Année',
-        #                  name_y_axis=f'{indicator} variation (%)',
-        #                  percent=True,
-        #                  # vlines=vlines,
-        #                  path_result=path_indicator_figures+'lineplot_variation_timeline.pdf')
+        print(f"> Linear plot...")
 
         if 'PK' in sim_points_gdf_simplified.columns:
-            ds['PK'] = ('gid', sim_points_gdf_simplified['PK'])
+            ds = ds.assign(PK=("gid", sim_points_gdf_simplified.loc[ds.gid.values, "PK"]))
+
             villes = ['Villerest', 'Nevers', 'Orleans', 'Tours', 'Saumur', 'Nantes'] #'Blois',
             regex = "|".join(villes)
             vlines = sim_points_gdf_simplified[sim_points_gdf_simplified['Suggesti_2'].str.contains(regex, case=False, na=False)]
             vlines.loc[: ,'color'] = 'none'
+            cities = [i.split(' A ')[-1].split(' [')[0] for i in vlines['Suggesti_2']]
+            vlines.insert(loc=0, column='label', value=cities)
+            vlines['annotate'] = 0.02
 
             narratives = {
                 "HadGEM2-ES_ALADIN63_ADAMONT": {'color': '#569A71', 'zorder': 10, 'label': 'HadGEM2-ES_ALADIN63_ADAMONT',
@@ -261,22 +255,48 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                                                  'linewidth': 1},
                 "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'color': '#791F5D', 'zorder': 10, 'label': 'HadGEM2-ES_CCLM4-8-17_ADAMONT',
                                                   'linewidth': 1},
-
-                "EC-EARTH_RACMO22E_ADAMONT": {'color': 'blue', 'zorder': 10, 'label': 'EC-EARTH_RACMO22E_ADAMONT',
-                                                 'linewidth': 1},
-                "EC-EARTH_RCA4_ADAMONT": {'color': 'red', 'zorder': 10, 'label': 'EC-EARTH_RCA4_ADAMONT',
-                                              'linewidth': 1},
             }
 
-            print(f">> Linear deviation by PK")
-            plot_linear_pk(ds,
-                           simulations=variables['hydro_model_deviation_sim_horizon'],
+            print(f">> Linear deviation - x: PK, y: {indicator}, row: HM, col: Horizon")
+            plot_linear_pk_hm(ds,
+                              simulations=variables['hydro_model_deviation_sim_horizon'],
+                              narratives=narratives,
+                              name_x_axis=f'PK (km)',
+                              name_y_axis=f'{indicator} variation (%)',
+                              percent=True,
+                              vlines=vlines,
+                              path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{indicator}_row-HM_col-horizon.pdf')
+
+
+            print(f">> Linear deviation - x: PK, y: {indicator}, row: Narratif, col: Horizon")
+            plot_linear_pk_narrative(ds,
+                           simulations=variables['simulation_horizon_deviation_by_sims'],
                            narratives=narratives,
                            name_x_axis=f'PK (km)',
                            name_y_axis=f'{indicator} variation (%)',
                            percent=True,
                            vlines=vlines,
-                           path_result=path_indicator_figures+'HM_lineplot_variation_PK.pdf')
+                           path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{indicator}_row-narrative_col-horizon.pdf')
+
+            print(f">> Linear deviation - x: PK, y: {indicator}, col: Horizon")
+            plot_linear_pk(ds,
+                           simulations=variables['simulation_horizon_deviation_by_sims'],
+                           narratives=narratives,
+                           name_x_axis=f'PK (km)',
+                           name_y_axis=f'{indicator} variation (%)',
+                           percent=True,
+                           vlines=vlines,
+                           path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{indicator}_col-horizon.pdf')
+
+            print(f">> Linear timeline deviation - x: time, y: {indicator}, row/col: Stations ref")
+            plot_linear_time(ds,
+                             simulations=variables['simulation_deviation'],
+                             path_result=path_indicator_figures+f'lineplot_variation_x-time_y-{indicator}_row-col-stations-ref.pdf',
+                             narratives=narratives,
+                             name_x_axis='Date',
+                             name_y_axis=f'{indicator} variation (%)',
+                             percent=True,
+                             vlines=None)
 
 
         print(f"> Box plot...")
