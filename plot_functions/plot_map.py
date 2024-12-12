@@ -7,7 +7,8 @@ from plot_functions.plot_common import *
 import matplotlib.cm as cm
 
 def format_significant(lst, n):
-    formatted_list = [f"{x:.{n}g}" for x in lst]
+    # formatted_list = [f"{x:.{n}g}" for x in lst]
+    formatted_list = [str(np.round(x, n)) for x in lst]
     return formatted_list
 
 def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
@@ -198,6 +199,9 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
                 cbar.set_ticklabels(format_significant((levels[1:] + levels[:-1])/2, cbar_values))
             else:
                 cbar.set_ticklabels(cbar_values)
+    elif cbar_values is not None:
+        tick_values = cbar.get_ticks()
+        cbar.set_ticklabels(format_significant(tick_values, cbar_values))
 
     plt.savefig(path_result, bbox_inches='tight')
 

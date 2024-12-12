@@ -133,7 +133,7 @@ def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, per
 
 def plot_map_indicator_climate(gdf, ds, path_result, cbar_title, dict_shapefiles, percent, bounds,
                                indicator_plot, cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,
-                               vmin=None, vmax=None, edgecolor='k', cbar_midpoint=None, markersize=50):
+                               vmin=None, vmax=None, edgecolor='k', cbar_midpoint=None, markersize=50,cbar_values=None):
 
     cols = {
             'names_coord': 'horizon',
@@ -147,7 +147,7 @@ def plot_map_indicator_climate(gdf, ds, path_result, cbar_title, dict_shapefiles
             path_result=path_result,
             cols=cols, rows=rows, cbar_ticks=cbar_ticks,
             cbar_title=cbar_title, title=title, dict_shapefiles=dict_shapefiles, cbar_midpoint=cbar_midpoint,
-            percent=percent, bounds=bounds,
+            percent=percent, bounds=bounds, cbar_values=cbar_values,
             discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
             font=font, vmax=vmax, vmin=vmin, markersize=markersize)
 

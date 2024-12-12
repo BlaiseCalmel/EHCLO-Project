@@ -210,10 +210,10 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
     if indicator in files_setup['climate_indicator']:
         print(f">> Difference map plot {indicator}")
         plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_mean',
-                      path_result=path_indicator_figures+'map_difference.pdf', cols='horizon',
+                      path_result=path_indicator_figures+'map_difference.pdf',
                       cbar_title=f"{indicator} mean difference", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
                       percent=False, bounds=bounds, palette='RdBu_r', cbar_midpoint='zero', fontsize=14,
-                      font='sans-serif', discretize=7, edgecolor=edgecolor, markersize=75, vmin=0)
+                      font='sans-serif', discretize=7, edgecolor=edgecolor, markersize=75, vmin=0, cbar_values=1)
 
     if indicator in files_setup['hydro_indicator']:
         print(f">> Deviation map plot by HM")
