@@ -306,6 +306,13 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                              path_result=path_indicator_figures+'boxplot_deviation.pdf')
 
 
+path = (f'/media/bcalmel/Ultra Touch/Tonio/Données SWI/Fichiers netcdf/'
+        f'SWI_France_CNRM-CERFACS-CNRM-CM5_rcp85_r1i1p1_CNRM-ALADIN63_v2_MF-ADAMONT-SAFRAN-1980-2011_MF-SIM2_day_20050801-21000731.nc')
+ds = xr.open_dataset(path)
+
+
+ds['GroundwaterBody']
+dir(ds)
 print(f'################################ PLOT GLOBAL ################################', end='\n')
 path_global_figures = dict_paths['folder_study_figures'] + 'global' + os.sep
 if not os.path.isdir(path_global_figures):

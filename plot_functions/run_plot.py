@@ -156,27 +156,51 @@ def plot_linear_time(ds, simulations, path_result, narratives=None,
              title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None)
 
 
-def plot_boxplot_station(ds, simulations, path_result, name_y_axis='', percent=False):
+def plot_boxplot_station(ds, simulations, narratives, path_result, name_y_axis='', percent=False):
 
-    y_axis = {i: {} for i in simulations}
-    y_axis |= {'name_axis': f'{name_y_axis}'}
 
-    x_axis = {
-        'names_coord': 'gid',
-        'values_var': ['K091001011','M624001000'],
-        'names_plot': ['K091001011','M624001000']
+    narratives = {
+        "HadGEM2-ES_ALADIN63_ADAMONT": {'boxprops':dict(facecolor='#569A71', alpha=0.9),
+                                        'medianprops': dict(color="black"), 'widths':0.3, 'patch_artist':True},
+        "CNRM-CM5_ALADIN63_ADAMONT": {'boxprops':dict(facecolor='#EECC66', alpha=0.9),
+                                      'medianprops': dict(color="black"), 'widths':0.3, 'patch_artist':True},
+        "EC-EARTH_HadREM3-GA7_ADAMONT": {'boxprops':dict(facecolor='#E09B2F', alpha=0.9),
+                                         'medianprops': dict(color="black"), 'widths':0.3, 'patch_artist':True},
+        "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'boxprops':dict(facecolor='#791F5D', alpha=0.9),
+                                          'medianprops': dict(color="black"), 'widths':0.3, 'patch_artist':True},
     }
 
-    x2_axis = {
+    references = ['K091001011', 'M624001000']
+
+
+    dict_sims = {}
+    for narr_name, kwargs in narratives.items():
+        dict_sims[narr_name] = {'values': [], 'kwargs': kwargs}
+        for sim_name in simulations:
+            if narr_name in sim_name:
+                dict_sims[narr_name]['values'].append(sim_name)
+
+    indicator_plot = [dict_sims]
+    y_axis = {'names_coord': 'indicator',
+              'values_var': indicator_plot,
+              'names_plot': list(narratives.keys()),
+              'name_axis': name_y_axis
+              }
+
+    x_axis = {
         'names_coord': 'horizon',
         'values_var': ['horizon1', 'horizon2', 'horizon3'],
-        'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2099)']
+        'names_plot': ['H1', 'H2', 'H3']
     }
 
     cols = None
-    rows = None
+    rows = {
+        'names_coord': 'gid',
+        'values_var': references,
+        'names_plot': references
+    }
 
-    boxplot(ds, x_axis, x2_axis, y_axis, path_result=path_result, cols=cols, rows=rows,
+    boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows,
              title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None)
 
 def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, percent, bounds,
