@@ -128,7 +128,6 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
             if percent:
                 ax.yaxis.set_major_formatter(mtick.PercentFormatter())
 
-
             plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.1, alpha=0.4)
             ax.grid(True)
 

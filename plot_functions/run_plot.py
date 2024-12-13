@@ -161,17 +161,16 @@ def plot_boxplot_station(ds, simulations, narratives, path_result, name_y_axis='
 
     narratives = {
         "HadGEM2-ES_ALADIN63_ADAMONT": {'boxprops':dict(facecolor='#569A71', alpha=0.9),
-                                        'medianprops': dict(color="black"), 'widths':0.3, 'patch_artist':True},
+                                        'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True},
         "CNRM-CM5_ALADIN63_ADAMONT": {'boxprops':dict(facecolor='#EECC66', alpha=0.9),
-                                      'medianprops': dict(color="black"), 'widths':0.3, 'patch_artist':True},
+                                      'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True},
         "EC-EARTH_HadREM3-GA7_ADAMONT": {'boxprops':dict(facecolor='#E09B2F', alpha=0.9),
-                                         'medianprops': dict(color="black"), 'widths':0.3, 'patch_artist':True},
+                                         'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True},
         "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'boxprops':dict(facecolor='#791F5D', alpha=0.9),
-                                          'medianprops': dict(color="black"), 'widths':0.3, 'patch_artist':True},
+                                          'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True},
     }
 
     references = ['K091001011', 'M624001000']
-
 
     dict_sims = {}
     for narr_name, kwargs in narratives.items():

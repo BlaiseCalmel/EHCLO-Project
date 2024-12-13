@@ -23,27 +23,25 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
 
     if 'name_axis' in x_axis:
         x_title = x_axis['name_axis']
-        # del x_axis['name_axis']
     else:
         x_title = None
     if 'name_axis' in y_axis:
         y_title = y_axis['name_axis']
-        # del y_axis['name_axis']
     else:
         y_title = None
 
-    # x_flatten = flatten_to_strings(x_axis.keys())
-    # y_flatten = flatten_to_strings(y_axis.keys())
-    # ds_plot = ds_plot[x_flatten + y_flatten]
-
-    # Find extrema
-    # xmin, xmax, ymin, ymax = find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax)
+    list_of_sims = [subdict['values'] for subdict in y_axis['values_var'][0].values()]
+    all_sims = [i for j in list_of_sims for i in j]
+    ymax = ds[all_sims].to_array().max()
+    ymin = ds[all_sims].to_array().min()
+    xmin = -0.5
+    xmax = len(x_axis['names_plot']) * len(y_axis['names_plot']) + len(x_axis['names_plot']) - 1.5
 
     # Font parameters
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
 
-    fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 6 * len_cols, len_rows * 4), constrained_layout=True)
+    fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 10 * len_cols, len_rows * 4), constrained_layout=True)
     if hasattr(axes, 'flatten'):
         axes_flatten = axes.flatten()
     else:
@@ -55,16 +53,13 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
 
     legend_items = []
     centers = [((len(y_axis['names_plot']) + 1) / 2) - 1 + 5 * j for j in range(len(x_axis['names_plot']))]
+
+
     for col_idx, col in enumerate(cols_plot['values_var']):
         for row_idx, row in enumerate(rows_plot['values_var']):
             idx = len_cols * row_idx + col_idx
             ax = axes_flatten[idx]
 
-            # ds_selection = copy.deepcopy(ds_plot)
-            # if col is not None and cols_plot['values_var'] is not None:
-            #     ds_selection = plot_selection(ds_selection, cols_plot['values_var'], col)
-            # if row is not None and rows_plot['values_var'] is not None:
-            #     ds_selection = plot_selection(ds_selection, rows_plot['values_var'], row)
             temp_dict = {}
             if cols_plot['names_coord'] is not None and col is not None and cols_plot['names_coord'] != 'indicator':
                 temp_dict |= {cols_plot['names_coord']: col}
@@ -77,8 +72,6 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
             subplot_title = None
             if subplot_titles:
                 subplot_title = subplot_titles[idx]
-
-            # position_main = np.arange(len(x_axis['values_var'])) * 2
 
             i = -1
             for y_idx, y_values in enumerate(y_axis['values_var']):
@@ -97,7 +90,7 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
                         mask = ~np.isnan(all_values)
                         cell_boxplots.append(all_values[mask])
                     i += 1
-                    current_position = [i + 5 * j for j in range(len(x_axis['names_plot']))]
+                    current_position = [i + (len(y_axis['names_plot']) + 1) * j for j in range(len(x_axis['names_plot']))]
 
                     # Plot by sub box categories
                     bp = ax.boxplot(cell_boxplots, positions=current_position,
@@ -110,6 +103,11 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
             ax.set_xticks(centers)
             ax.set_xticklabels(x_axis['names_plot'])
 
+            ax.plot([xmin, xmax], [0, 0], color='k', linestyle='--', linewidth=0.5, dashes=(10,10),
+                    zorder=1000)
+            plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.1, alpha=0.4)
+            ax.grid(True)
+
             ax.spines[['right', 'top']].set_visible(False)
 
             if percent:
@@ -121,8 +119,9 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
             # Headers and axes label
             add_header(ax, rows_plot, cols_plot, ylabel=y_title, xlabel=x_title)
 
-    # plt.legend(legend_items, y_axis['names_plot'], loc='upper left', bbox_to_anchor=(1, 1), fancybox=False, shadow=False,
-    #            ncol=1)
+            ax.set_xlim(xmin, xmax)
+            ax.set_ylim(ymin, ymax)
+
     fig.legend(legend_items, y_axis['names_plot'], loc='upper center', bbox_to_anchor=(0.5, 0), fancybox=False, shadow=False,
                ncol=2)
 
