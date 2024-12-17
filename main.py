@@ -172,6 +172,8 @@ for data_type, subdict in path_files.items():
             # indicator='QA_seas-JJA'
 
 print(f'################################ PLOT INDICATOR ################################', end='\n')
+fontsize = 16
+
 for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator']:
     print(indicator)
     path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_ME_rcp85.nc"
@@ -212,7 +214,7 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
         plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_mean',
                       path_result=path_indicator_figures+'map_difference.pdf',
                       cbar_title=f"{indicator} mean difference", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
-                      percent=False, bounds=bounds, palette='RdBu_r', cbar_midpoint='zero', fontsize=14,
+                      percent=False, bounds=bounds, palette='RdBu_r', cbar_midpoint='zero', fontsize=fontsize,
                       font='sans-serif', discretize=7, edgecolor=edgecolor, markersize=75, vmin=0, cbar_values=1)
 
     if indicator in files_setup['hydro_indicator']:
@@ -229,7 +231,7 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                                   path_result=path_indicator_figures+f'maps_variation_mean_{key}.pdf',
                                   cbar_title=f"Variation moyenne {indicator} (%)", title=value, cbar_midpoint='zero',
                                   dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds, edgecolor=edgecolor,
-                                  markersize=75, discretize=10, palette='BrBG', fontsize=14, font='sans-serif',
+                                  markersize=75, discretize=10, palette='BrBG', fontsize=fontsize, font='sans-serif',
                                   vmin=None, vmax=vmax)
 
         # Sim by PK + quantile
@@ -265,6 +267,7 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                               name_y_axis=f'{indicator} variation (%)',
                               percent=True,
                               vlines=vlines,
+                              fontsize=fontsize,
                               path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{indicator}_row-HM_col-horizon.pdf')
 
 
@@ -276,6 +279,7 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                            name_y_axis=f'{indicator} variation (%)',
                            percent=True,
                            vlines=vlines,
+                           fontsize=fontsize,
                            path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{indicator}_row-narrative_col-horizon.pdf')
 
             print(f">> Linear deviation - x: PK, y: {indicator}, col: Horizon")
@@ -286,43 +290,45 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                            name_y_axis=f'{indicator} variation (%)',
                            percent=True,
                            vlines=vlines,
+                           fontsize=fontsize,
                            path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{indicator}_col-horizon.pdf')
 
             print(f">> Linear timeline deviation - x: time, y: {indicator}, row/col: Stations ref")
             plot_linear_time(ds,
                              simulations=variables['simulation_deviation'],
-                             path_result=path_indicator_figures+f'lineplot_variation_x-time_y-{indicator}_row-col-stations-ref.pdf',
                              narratives=narratives,
                              name_x_axis='Date',
                              name_y_axis=f'{indicator} variation (%)',
                              percent=True,
-                             vlines=None)
+                             vlines=None,
+                             fontsize=fontsize,
+                             path_result=path_indicator_figures+f'lineplot_variation_x-time_y-{indicator}_row-col-stations-ref.pdf',)
 
 
-        print(f"> Box plot...")
-        print(f">> Boxplot deviation by horizon and selected stations")
-        plot_boxplot_station(ds=ds, simulations=variables['simulation_horizon_deviation_by_sims'],
-                             name_y_axis=f'{indicator} variation (%)', percent=True,
-                             path_result=path_indicator_figures+'boxplot_deviation.pdf')
+            print(f"> Box plot...")
+            print(f">> Boxplot deviation by horizon and selected stations")
+            plot_boxplot_station_narrative(ds,
+                                 simulations=variables['simulation_horizon_deviation_by_sims'],
+                                 narratives=None,
+                                 references=None,
+                                 path_result=path_indicator_figures+'boxplot_deviation_narratives.pdf',
+                                 name_y_axis=f'{indicator} variation (%)',
+                                 percent=True)
 
 
-path = (f'/media/bcalmel/Ultra Touch/Tonio/Données SWI/Fichiers netcdf/'
-        f'SWI_France_CNRM-CERFACS-CNRM-CM5_rcp85_r1i1p1_CNRM-ALADIN63_v2_MF-ADAMONT-SAFRAN-1980-2011_MF-SIM2_day_20050801-21000731.nc')
-ds = xr.open_dataset(path)
 
-
-ds['GroundwaterBody']
-dir(ds)
 print(f'################################ PLOT GLOBAL ################################', end='\n')
 path_global_figures = dict_paths['folder_study_figures'] + 'global' + os.sep
 if not os.path.isdir(path_global_figures):
     os.makedirs(path_global_figures)
 
 print(f"> Plot HM by station...")
-plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bounds, path_global_figures)
+plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bounds, path_global_figures
+                       fontsize=fontsize)
 
 print(f"> Plot #HM by station and Ref station...")
-plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles, path_global_figures, bounds)
+plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles, path_global_figures, bounds,
+                          fontsize=fontsize)
 
 
 ########################################################################################################################

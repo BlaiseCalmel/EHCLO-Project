@@ -62,14 +62,19 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
 def add_header(ax, rows_plot, cols_plot, ylabel='', xlabel=''):
     sbs = ax.get_subplotspec()
     if sbs.is_first_col():
+        name_row = None
         if sbs.rowspan.start < len(rows_plot['names_plot']):
             name_row = rows_plot['names_plot'][sbs.rowspan.start]
             if name_row is not None:
                 name_row = name_row.replace(' ', '~')
-                if ylabel is None or len(ylabel) == 0:
-                    ax.set_ylabel(f"$\\bf{{{name_row}}}$")
-                else:
-                    ax.set_ylabel(f"$\\bf{{{name_row}}}$ \n\n{ylabel}")
+
+
+        if name_row is None:
+            ax.set_ylabel(f"{ylabel}")
+        elif ylabel is None or len(ylabel) == 0:
+            ax.set_ylabel(f"$\\bf{{{name_row}}}$")
+        else:
+            ax.set_ylabel(f"$\\bf{{{name_row}}}$ \n\n{ylabel}")
 
     if sbs.is_first_row():
         if sbs.colspan.start < len(cols_plot['names_plot']):

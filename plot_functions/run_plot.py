@@ -5,7 +5,8 @@ from plot_functions.plot_lineplot import *
 from plot_functions.plot_boxplot import *
 
 def plot_linear_pk_hm(ds, simulations, path_result, narratives=None,
-                   name_x_axis='', name_y_axis='', percent=False, vlines=None):
+                   name_x_axis='', name_y_axis='', percent=False, vlines=None,
+                      fontsize=14, font='sans-serif'):
     x_axis = {'names_coord': 'PK',
               'name_axis': name_x_axis
               }
@@ -38,10 +39,11 @@ def plot_linear_pk_hm(ds, simulations, path_result, narratives=None,
     }
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
-             title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None)
+             title=None, percent=percent, fontsize=fontsize, font=font, ymax=None)
 
 def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
-                      name_x_axis='', name_y_axis='', percent=False, vlines=None):
+                      name_x_axis='', name_y_axis='', percent=False, vlines=None,
+                             fontsize=14, font='sans-serif'):
     x_axis = {'names_coord': 'PK',
               'name_axis': name_x_axis
               }
@@ -76,10 +78,11 @@ def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
     }
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
-             title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None)
+             title=None, percent=percent, fontsize=fontsize, font=font, ymax=None)
 
 def plot_linear_pk(ds, simulations, path_result, narratives=None,
-                             name_x_axis='', name_y_axis='', percent=False, vlines=None):
+                   name_x_axis='', name_y_axis='', percent=False, vlines=None,
+                   fontsize=14, font='sans-serif'):
     x_axis = {'names_coord': 'PK',
               'name_axis': name_x_axis
               }
@@ -110,11 +113,11 @@ def plot_linear_pk(ds, simulations, path_result, narratives=None,
     }
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
-             title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None)
+             title=None, percent=percent, fontsize=fontsize, font=font, ymax=None)
 
 
 def plot_linear_time(ds, simulations, path_result, narratives=None,
-                   name_x_axis='', name_y_axis='', percent=False, vlines=None):
+                     name_x_axis='', name_y_axis='', percent=False, vlines=None, fontsize=14, font='sans-serif'):
 
     x_axis = {'names_coord': 'time',
               'name_axis': name_x_axis
@@ -153,10 +156,10 @@ def plot_linear_time(ds, simulations, path_result, narratives=None,
     rows = 4
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
-             title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None)
+             title=None, percent=percent, fontsize=fontsize, font=font, ymax=None)
 
 
-def plot_boxplot_station(ds, simulations, narratives, path_result, name_y_axis='', percent=False):
+def plot_boxplot_station_narrative(ds, simulations, narratives, references, path_result, name_y_axis='', percent=False):
 
 
     narratives = {
@@ -170,7 +173,14 @@ def plot_boxplot_station(ds, simulations, narratives, path_result, name_y_axis='
                                           'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True},
     }
 
-    references = ['K091001011', 'M624001000']
+    station_references = {'M842001000': 'La Loire à St Nazaire',
+                          'M530001010': 'La Loire à Mont Jean',
+                          'K683002001': 'La Loire à Langeais',
+                          'K480001001': 'La Loire à Onzain',
+                          'K418001201': 'La Loire à Gien',
+                          'K193001010': 'La Loire à Nevers',
+                          'K091001011': 'La Loire à Villerest',
+                          'K365081001': "L'Allier à Cuffy"}
 
     dict_sims = {}
     for narr_name, kwargs in narratives.items():
@@ -195,8 +205,8 @@ def plot_boxplot_station(ds, simulations, narratives, path_result, name_y_axis='
     cols = None
     rows = {
         'names_coord': 'gid',
-        'values_var': references,
-        'names_plot': references
+        'values_var': list(station_references.keys()),
+        'names_plot': list(station_references.values())
     }
 
     boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows,
@@ -249,14 +259,15 @@ def plot_map_indicator_climate(gdf, ds, path_result, cbar_title, dict_shapefiles
             font=font, vmax=vmax, vmin=vmin, markersize=markersize)
 
 
-def plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bounds, path_global_figures):
+def plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bounds, path_global_figures,
+                           fontsize=14):
     shape_hp = {
         'CTRIP': 'D',
         'EROS': 'H',
         'GRSD': '*',
         'J2000': 's',
-        'MORDOR-TS': '^',
         'MORDOR-SD': 'v',
+        'MORDOR-TS': '^',
         'SIM2': '>',
         'SMASH': '<',
         'ORCHIDEE': 'o',
@@ -271,12 +282,12 @@ def plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bou
             path_result=f"{path_global_figures}HM_by_sim.pdf",
             cols=cols_map, rows=rows,
             cbar_title=f"Simulation", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
-            discretize=2, cbar_ticks='mid', palette='RdBu_r', cbar_midpoint='min', fontsize=14, font='sans-serif', edgecolor='k',
+            discretize=2, cbar_ticks='mid', palette='RdBu_r', cbar_midpoint='min', fontsize=fontsize, font='sans-serif', edgecolor='k',
             vmin=-0.5, vmax=1.5, markersize=75,
             cbar_values=['Absente', 'Présente'])
 
 def plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles,
-                              path_global_figures, bounds):
+                              path_global_figures, bounds, fontsize=14):
     station_references = {
         'M842001000': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth': 1.5,
                        'facecolors':'none',
@@ -336,5 +347,5 @@ def plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles,
     mapplot(gdf=hydro_sim_points_gdf_simplified, indicator_plot='n', path_result=path_global_figures+'count_HM.pdf', ds=None,
             cols=None, rows=None, references=station_references, cbar_ticks='mid',  cbar_values=1,
             cbar_title=f"Nombre de HM", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
-            discretize=6, palette='RdBu_r', fontsize=9, font='sans-serif', edgecolor='k',
+            discretize=6, palette='RdBu_r', fontsize=fontsize-5, font='sans-serif', edgecolor='k',
             cbar_midpoint='min', vmin=3.5, vmax=9.5)
