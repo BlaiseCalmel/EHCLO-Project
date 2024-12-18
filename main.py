@@ -172,12 +172,12 @@ for data_type, subdict in path_files.items():
             # indicator='QA_seas-JJA'
 
 print(f'################################ PLOT INDICATOR ################################', end='\n')
-fontsize = 16
+fontsize = 18
 
 for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator']:
     print(indicator)
-    path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_ME_rcp85.nc"
-    path_indicator_figures = dict_paths['folder_study_figures'] + indicator + os.sep
+    path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_ME_rcp85_1976_2005.nc"
+    path_indicator_figures = dict_paths['folder_study_figures'] + indicator + "_1976_2005" + os.sep
 
     if not os.path.isdir(path_indicator_figures):
         os.makedirs(path_indicator_figures)
@@ -249,13 +249,13 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
             vlines['annotate'] = 0.02
 
             narratives = {
-                "HadGEM2-ES_ALADIN63_ADAMONT": {'color': '#569A71', 'zorder': 10, 'label': 'HadGEM2-ES_ALADIN63_ADAMONT',
+                "HadGEM2-ES_ALADIN63_ADAMONT": {'color': '#569A71', 'zorder': 10, 'label': 'Vert [HadGEM2-ES_ALADIN63_ADAMONT]',
                                                 'linewidth': 1},
-                "CNRM-CM5_ALADIN63_ADAMONT": {'color': '#EECC66', 'zorder': 10, 'label': 'CNRM-CM5_ALADIN63_ADAMONT',
+                "CNRM-CM5_ALADIN63_ADAMONT": {'color': '#EECC66', 'zorder': 10, 'label': 'Jaune [CNRM-CM5_ALADIN63_ADAMONT]',
                                               'linewidth': 1},
-                "EC-EARTH_HadREM3-GA7_ADAMONT": {'color': '#E09B2F', 'zorder': 10, 'label': 'EC-EARTH_HadREM3-GA7_ADAMONT',
+                "EC-EARTH_HadREM3-GA7_ADAMONT": {'color': '#E09B2F', 'zorder': 10, 'label': 'Orange [EC-EARTH_HadREM3-GA7_ADAMONT]',
                                                  'linewidth': 1},
-                "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'color': '#791F5D', 'zorder': 10, 'label': 'HadGEM2-ES_CCLM4-8-17_ADAMONT',
+                "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'color': '#791F5D', 'zorder': 10, 'label': 'Violet [HadGEM2-ES_CCLM4-8-17_ADAMONT]',
                                                   'linewidth': 1},
             }
 
@@ -311,9 +311,10 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                                  simulations=variables['simulation_horizon_deviation_by_sims'],
                                  narratives=None,
                                  references=None,
-                                 path_result=path_indicator_figures+'boxplot_deviation_narratives.pdf',
                                  name_y_axis=f'{indicator} variation (%)',
-                                 percent=True)
+                                 percent=True,
+                                 fontsize=fontsize,
+                                 path_result=path_indicator_figures+'boxplot_deviation_narratives.pdf',)
 
 
 
@@ -323,8 +324,8 @@ if not os.path.isdir(path_global_figures):
     os.makedirs(path_global_figures)
 
 print(f"> Plot HM by station...")
-plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bounds, path_global_figures
-                       fontsize=fontsize)
+plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bounds, path_global_figures,
+                       fontsize=fontsize+2)
 
 print(f"> Plot #HM by station and Ref station...")
 plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles, path_global_figures, bounds,

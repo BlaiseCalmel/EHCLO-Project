@@ -50,9 +50,8 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
         cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap, format='%.0f')
     else:
         cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap)
-
     if cbar_title:
-        label_ax = fig.add_axes([cbar_ax.get_position().x1 + 0.05, cbar_ax.get_position().y0, 0.02, height])
+        label_ax = fig.add_axes([cbar_ax.get_position().x1 + 0.075, cbar_ax.get_position().y0, 0.02, height])
         label_ax.annotate(cbar_title, xy=(0, 0.45), wrap=True, **text_kwargs)
         label_ax.axis('off')
         # cbar.set_label(cbar_title, rotation=0, wrap=True, labelpad=25, **text_kwargs)

@@ -90,7 +90,7 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
 
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
-    text_kwargs ={'weight': 'bold'}
+    text_kwargs ={'weight': 'bold', 'fontsize': fontsize}
 
     fig_dim = 4
     # fig_dim = 8

@@ -159,22 +159,26 @@ def plot_linear_time(ds, simulations, path_result, narratives=None,
              title=None, percent=percent, fontsize=fontsize, font=font, ymax=None)
 
 
-def plot_boxplot_station_narrative(ds, simulations, narratives, references, path_result, name_y_axis='', percent=False):
-
+def plot_boxplot_station_narrative(ds, simulations, narratives, references, path_result, name_y_axis='', percent=False,
+                                   fontsize=14, font='sans-serif'):
 
     narratives = {
         "HadGEM2-ES_ALADIN63_ADAMONT": {'boxprops':dict(facecolor='#569A71', alpha=0.9),
-                                        'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True},
+                                        'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
+                                        'label': 'Vert [HadGEM2-ES_ALADIN63_ADAMONT]'},
         "CNRM-CM5_ALADIN63_ADAMONT": {'boxprops':dict(facecolor='#EECC66', alpha=0.9),
-                                      'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True},
+                                      'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
+                                      'label': 'Jaune [CNRM-CM5_ALADIN63_ADAMONT]'},
         "EC-EARTH_HadREM3-GA7_ADAMONT": {'boxprops':dict(facecolor='#E09B2F', alpha=0.9),
-                                         'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True},
+                                         'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
+                                         'label': 'Orange [EC-EARTH_HadREM3-GA7_ADAMONT]'},
         "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'boxprops':dict(facecolor='#791F5D', alpha=0.9),
-                                          'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True},
+                                          'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
+                                          'label': 'Violet [HadGEM2-ES_CCLM4-8-17_ADAMONT]'},
     }
 
     station_references = {'M842001000': 'La Loire à St Nazaire',
-                          'M530001010': 'La Loire à Mont Jean',
+                          'M530001010': 'La Loire à Montjean',
                           'K683002001': 'La Loire à Langeais',
                           'K480001001': 'La Loire à Onzain',
                           'K418001201': 'La Loire à Gien',
@@ -183,6 +187,9 @@ def plot_boxplot_station_narrative(ds, simulations, narratives, references, path
                           'K365081001': "L'Allier à Cuffy"}
 
     dict_sims = {}
+    dict_sims['simulations'] = {'values': simulations, 'kwargs': {'boxprops':dict(facecolor='lightgray', alpha=0.6),
+                                                                  'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
+                                                                  'label': 'Simulations'}}
     for narr_name, kwargs in narratives.items():
         dict_sims[narr_name] = {'values': [], 'kwargs': kwargs}
         for sim_name in simulations:
@@ -192,7 +199,7 @@ def plot_boxplot_station_narrative(ds, simulations, narratives, references, path
     indicator_plot = [dict_sims]
     y_axis = {'names_coord': 'indicator',
               'values_var': indicator_plot,
-              'names_plot': list(narratives.keys()),
+              'names_plot': list(dict_sims.keys()),
               'name_axis': name_y_axis
               }
 
@@ -210,7 +217,7 @@ def plot_boxplot_station_narrative(ds, simulations, narratives, references, path
     }
 
     boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows,
-             title=None, percent=percent, fontsize=14, font='sans-serif', ymax=None)
+             title=None, percent=percent, fontsize=fontsize, font=font, ymax=None)
 
 def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, percent, bounds,
                           variables, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,
@@ -268,9 +275,9 @@ def plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bou
         'J2000': 's',
         'MORDOR-SD': 'v',
         'MORDOR-TS': '^',
+        'ORCHIDEE': 'o',
         'SIM2': '>',
         'SMASH': '<',
-        'ORCHIDEE': 'o',
     }
     cols_map = {
         'values_var': list(shape_hp.keys()),
@@ -296,7 +303,7 @@ def plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles,
                        },
         'M530001010': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth': 1.5,
                        'facecolors':'none',
-                       'text': {'text': 'La Loire à \nMont Jean', 'ha':'center', 'arrowprops':dict(arrowstyle='-'),
+                       'text': {'text': 'La Loire à \nMontjean', 'ha':'center', 'arrowprops':dict(arrowstyle='-'),
                                 'xytext':(0.2, 0.55), 'textcoords':'axes fraction'}
                        },
         'K683002001': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth': 1.5,

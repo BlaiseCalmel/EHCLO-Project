@@ -4,8 +4,8 @@ import numpy as np
 import matplotlib.ticker as mtick
 from plot_functions.plot_common import *
 
-def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ymax=None,
-             title=None, percent=False, palette='BrBG', fontsize=14, font='sans-serif', ):
+def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ymax=None, vlines=None,
+             title=None, percent=False, fontsize=14, font='sans-serif', ):
 
     ds_plot = copy.deepcopy(ds)
     len_cols, cols_plot, ds_plot = init_grid(cols, ds_plot)
@@ -31,11 +31,11 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
         y_title = None
 
     list_of_sims = [subdict['values'] for subdict in y_axis['values_var'][0].values()]
-    all_sims = [i for j in list_of_sims for i in j]
+    all_sims = set([i for j in list_of_sims for i in j])
     ymax = ds[all_sims].to_array().max()
     ymin = ds[all_sims].to_array().min()
-    xmin = -0.5
-    xmax = len(x_axis['names_plot']) * len(y_axis['names_plot']) + len(x_axis['names_plot']) - 1.5
+    xmin = -1.5
+    xmax = len(x_axis['names_plot']) * len(y_axis['names_plot']) + 2 * len(x_axis['names_plot']) - 2.5
 
     # Font parameters
     plt.rcParams['font.family'] = font
@@ -52,8 +52,10 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
         fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2)
 
     legend_items = []
-    centers = [((len(y_axis['names_plot']) + 1) / 2) - 1 + 5 * j for j in range(len(x_axis['names_plot']))]
-
+    legend_labels = []
+    # centers = [((len(y_axis['names_plot']) + 1) / 2) - 1 + 5 * j for j in range(len(x_axis['names_plot']))]
+    centers = [2, 9, 16]
+    vlines = [5.5, 12.5]
 
     for col_idx, col in enumerate(cols_plot['values_var']):
         for row_idx, row in enumerate(rows_plot['values_var']):
@@ -90,14 +92,25 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
                         mask = ~np.isnan(all_values)
                         cell_boxplots.append(all_values[mask])
                     i += 1
-                    current_position = [i + (len(y_axis['names_plot']) + 1) * j for j in range(len(x_axis['names_plot']))]
+                    current_position = [i + (len(y_axis['names_plot']) + 2) * j for j in range(len(x_axis['names_plot']))]
 
                     # Plot by sub box categories
                     bp = ax.boxplot(cell_boxplots, positions=current_position,
                                     **kwargs)
 
-                    if bp["boxes"][0] not in legend_items:
+                    if 'label' in kwargs:
+                        label = kwargs['label']
+                    else:
+                        label = y_axis['names_plot'][i]
+
+
+                    if label not in legend_labels:
                         legend_items.append(bp["boxes"][0])
+                        legend_labels.append(label)
+                        # if 'label' in kwargs:
+                        #     legend_labels.append(kwargs['label'])
+                        # else:
+                        #     legend_labels.append(y_axis['names_plot'][i])
 
             # Set ticks
             ax.set_xticks(centers)
@@ -105,8 +118,14 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
 
             ax.plot([xmin, xmax], [0, 0], color='k', linestyle='--', linewidth=0.5, dashes=(10,10),
                     zorder=1000)
-            plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.1, alpha=0.4)
-            ax.grid(True)
+
+            if vlines is not None:
+                ax.vlines(x=vlines,
+                          ymin=ymin, ymax=ymax,
+                          color='lightgray', linewidth=1, alpha=0.5)
+
+            # plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.1, alpha=0.4)
+            # ax.grid(True)
 
             ax.spines[['right', 'top']].set_visible(False)
 
@@ -122,8 +141,8 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
             ax.set_xlim(xmin, xmax)
             ax.set_ylim(ymin, ymax)
 
-    fig.legend(legend_items, y_axis['names_plot'], loc='upper center', bbox_to_anchor=(0.5, 0), fancybox=False, shadow=False,
-               ncol=2)
+    fig.legend(legend_items, legend_labels, loc='upper center', bbox_to_anchor=(0.5, 0), fancybox=False, shadow=False,
+               ncol=2, fontsize=fontsize-2)
 
     plt.savefig(path_result, bbox_inches='tight')
 
