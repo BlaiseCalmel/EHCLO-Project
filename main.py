@@ -28,7 +28,7 @@ plt.switch_backend('agg')
 
 # Load environments variables
 print(f'> Load json inputs...', end='\n')
-with open('config.json') as config_file:
+with open('config-perso.json') as config_file:
     config = json.load(config_file)
 
 with open('files_setup.json') as files_setup:
@@ -176,8 +176,8 @@ fontsize = 18
 
 for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator']:
     print(indicator)
-    path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_ME_rcp85_1976_2005.nc"
-    path_indicator_figures = dict_paths['folder_study_figures'] + indicator + "_1976_2005" + os.sep
+    path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_ME_rcp85.nc"
+    path_indicator_figures = dict_paths['folder_study_figures'] + indicator + os.sep
 
     if not os.path.isdir(path_indicator_figures):
         os.makedirs(path_indicator_figures)

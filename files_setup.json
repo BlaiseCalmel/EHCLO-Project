@@ -9,7 +9,7 @@
   "select_bc": ["ADAMONT"],
   "select_hm": [],
 
-  "historical": [1976, 2005],
+  "historical": [1991, 2020],
   "horizons": {
     "horizon1": [2021, 2050],
     "horizon2": [2041, 2070],

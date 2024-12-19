@@ -5,7 +5,7 @@ import matplotlib.ticker as mtick
 from plot_functions.plot_common import *
 
 def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ymax=None, vlines=None,
-             title=None, percent=False, fontsize=14, font='sans-serif', ):
+             title=None, percent=False, fontsize=14, font='sans-serif', blank_space=1):
 
     ds_plot = copy.deepcopy(ds)
     len_cols, cols_plot, ds_plot = init_grid(cols, ds_plot)
@@ -34,8 +34,22 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     all_sims = set([i for j in list_of_sims for i in j])
     ymax = ds[all_sims].to_array().max()
     ymin = ds[all_sims].to_array().min()
-    xmin = -1.5
-    xmax = len(x_axis['names_plot']) * len(y_axis['names_plot']) + 2 * len(x_axis['names_plot']) - 2.5
+    xmin = - blank_space / 2 - 1
+    xmax = (len(x_axis['names_plot']) * len(y_axis['names_plot']) + 2 * blank_space * (len(x_axis['names_plot'])) -
+            2 * blank_space)
+    # -3-2-1 0123 456
+    # 789 10111213 141516
+    # 171819 202122223 242526
+
+    legend_items = []
+    legend_labels = []
+    # centers = [((len(y_axis['names_plot']) + 1) / 2) - 1 + 5 * j for j in range(len(x_axis['names_plot']))]
+    init_center = (len(y_axis['names_plot']) - 1) / 2
+    centers = [init_center + k * (2 * blank_space + len(y_axis['names_plot'])) for k in
+               range(len(x_axis['names_plot']))]
+
+    if vlines:
+        vlines = [(centers[i] + centers[i + 1]) / 2 for i in range(len(centers) - 1)]
 
     # Font parameters
     plt.rcParams['font.family'] = font
@@ -50,12 +64,6 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     # Main title
     if title is not None:
         fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2)
-
-    legend_items = []
-    legend_labels = []
-    # centers = [((len(y_axis['names_plot']) + 1) / 2) - 1 + 5 * j for j in range(len(x_axis['names_plot']))]
-    centers = [2, 9, 16]
-    vlines = [5.5, 12.5]
 
     for col_idx, col in enumerate(cols_plot['values_var']):
         for row_idx, row in enumerate(rows_plot['values_var']):
@@ -92,7 +100,8 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
                         mask = ~np.isnan(all_values)
                         cell_boxplots.append(all_values[mask])
                     i += 1
-                    current_position = [i + (len(y_axis['names_plot']) + 2) * j for j in range(len(x_axis['names_plot']))]
+                    current_position = [i + (len(y_axis['names_plot']) + 2 * blank_space) * j for j in
+                                        range(len(x_axis['names_plot']))]
 
                     # Plot by sub box categories
                     bp = ax.boxplot(cell_boxplots, positions=current_position,

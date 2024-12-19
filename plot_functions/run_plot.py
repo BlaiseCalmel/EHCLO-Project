@@ -190,6 +190,10 @@ def plot_boxplot_station_narrative(ds, simulations, narratives, references, path
     dict_sims['simulations'] = {'values': simulations, 'kwargs': {'boxprops':dict(facecolor='lightgray', alpha=0.6),
                                                                   'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
                                                                   'label': 'Simulations'}}
+    dict_sims['simulations2'] = {'values': simulations, 'kwargs': {'boxprops': dict(facecolor='lightgray', alpha=0.6),
+                                                                  'medianprops': dict(color="black"), 'widths': 0.5,
+                                                                  'patch_artist': True,
+                                                                  'label': 'Simulations'}}
     for narr_name, kwargs in narratives.items():
         dict_sims[narr_name] = {'values': [], 'kwargs': kwargs}
         for sim_name in simulations:
@@ -216,8 +220,8 @@ def plot_boxplot_station_narrative(ds, simulations, narratives, references, path
         'names_plot': list(station_references.values())
     }
 
-    boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows,
-             title=None, percent=percent, fontsize=fontsize, font=font, ymax=None)
+    boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=True,
+             title=None, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=1)
 
 def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, percent, bounds,
                           variables, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,
