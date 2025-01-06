@@ -190,10 +190,7 @@ def plot_boxplot_station_narrative(ds, simulations, narratives, references, path
     dict_sims['simulations'] = {'values': simulations, 'kwargs': {'boxprops':dict(facecolor='lightgray', alpha=0.6),
                                                                   'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
                                                                   'label': 'Simulations'}}
-    dict_sims['simulations2'] = {'values': simulations, 'kwargs': {'boxprops': dict(facecolor='lightgray', alpha=0.6),
-                                                                  'medianprops': dict(color="black"), 'widths': 0.5,
-                                                                  'patch_artist': True,
-                                                                  'label': 'Simulations'}}
+
     for narr_name, kwargs in narratives.items():
         dict_sims[narr_name] = {'values': [], 'kwargs': kwargs}
         for sim_name in simulations:

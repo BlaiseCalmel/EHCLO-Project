@@ -42,8 +42,8 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
 
-    # fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 6 * len_cols, len_rows * 4), constrained_layout=True)
-    fig, axes = plt.subplots(len_rows, len_cols, figsize=(19, 6), constrained_layout=True)
+    fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 6 * len_cols, len_rows * 4), constrained_layout=True)
+    # fig, axes = plt.subplots(len_rows, len_cols, figsize=(19, 6), constrained_layout=True)
     if hasattr(axes, 'flatten'):
         axes_flatten = axes.flatten()
     else:
