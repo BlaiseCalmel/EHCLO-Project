@@ -119,7 +119,7 @@ subdict=path_files[data_type]
 rcp='rcp85'
 subdict2=subdict[rcp]
 indicator_settings = "QA_mon$ME/min[PdR5]/month[PdR5]"
-paths = subdict2[indicator]
+paths = subdict2[indicator_settings]
 
 hydro_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
 hydro_sim_points_gdf_simplified = hydro_sim_points_gdf[hydro_sim_points_gdf['n'] >= 4]
@@ -182,7 +182,7 @@ fontsize = 18
 
 for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator']:
     print(indicator)
-    path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_YE_rcp85.nc"
+    path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_rcp85.nc"
     path_indicator_figures = dict_paths['folder_study_figures'] + indicator + os.sep
 
     if not os.path.isdir(path_indicator_figures):
@@ -204,8 +204,19 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
         sim_points_gdf_simplified = sim_points_gdf_simplified.set_index('name')
         edgecolor = None
 
+    for args in indicator_settings.split('/')[1:]:
+        print(args)
+        # Load arguments for current indicator
+        match = re.match(r'([a-zA-Z]+)\[.*?(\d+)\]', args)
+        if match:
+            param = match.group(1)
+            pdr_value = int(match.group(2))
+        else:
+            param, pdr_value = None, None
+
     ds = xr.open_dataset(path_ncdf)
-    ds, variables = format_dataset(ds, data_type, files_setup)
+
+    ds, variables = format_dataset(ds, data_type, files_setup, param, pdr_value)
 
     sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds.gid]
 

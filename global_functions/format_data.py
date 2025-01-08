@@ -1,12 +1,24 @@
 import xarray as xr
 import numpy as np
+import pandas as pd
 
-def format_dataset(ds, data_type, files_setup):
+def format_dataset(ds, data_type, files_setup, param=None, pdr_value=None):
 
 
     # Define geometry for each data (Points hydro, Polygon climate)
     # print(f'> Match geometry and data...', end='\n')
     other_dimension = None
+    if param is not None:
+        if param == 'min':
+            ds = ds.groupby("time.year").min(dim="time")
+            ds = ds.rename({"year": "time"})
+
+            ds["time"] = pd.to_datetime(ds["time"].values, format="%Y")
+
+        # elif param == 'month':
+        #     ds = ds.assign_coords(month=ds['time.month'])
+        #     other_dimension = 'month'
+
     # if data_type == 'climate':
     #     # sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
     #     # sim_points_gdf_simplified = sim_points_gdf
@@ -19,16 +31,16 @@ def format_dataset(ds, data_type, files_setup):
     #     #                          coords={'gid': sim_points_gdf_simplified['name']})
     #     # ds = ds.assign_coords(region=region_da)
     #     # ds = ds.assign_coords(geometry=('region', [geometry_dict[code] for code in ds['region'].values]))
-    #     # ds = ds.rename({'region': 'id_geometry'})
+    #     # ds = ds.rename({'region': 'gid'})
     # else:
     #     # sim_points_gdf_simplified = sim_points_gdf.copy()
     #     # sim_points_gdf_simplified = sim_points_gdf_simplified.simplify(tolerance=1000, preserve_topology=True)
     #     # geometry_dict = sim_points_gdf_simplified['geometry'].to_dict()
-    #     # TODO Rename 'code' with id_geometry
+    #     # TODO Rename 'code' with gid
     #     # ds['geometry'] = ('code', [
     #     #     geometry_dict[code] if code in geometry_dict.keys() else None for code in ds['code'].values
     #     # ])
-    #     # ds = ds.rename({'code': 'id_geometry'})
+    #     # ds = ds.rename({'code': 'gid'})
     #
     #     # Compute PK
     #
@@ -67,7 +79,9 @@ def format_dataset(ds, data_type, files_setup):
     simulation_cols = [i for i in list(ds.data_vars)]
 
     # Return period
-    # ds = compute_return_period(ds, indicator_cols, files_setup, return_period=5, other_dimension=other_dimension)
+    if pdr_value is not None:
+        ds = compute_return_period(ds, list(ds.data_vars), files_setup, return_period=pdr_value,
+        other_dimension=other_dimension)
 
     # Compute mean value for each horizon for each sim
     print(f'>> Compute mean by horizon...', end='\n')
@@ -281,20 +295,20 @@ def compute_return_period(ds, indicator_cols, files_setup, return_period=5, othe
     if other_dimension:
         data_dim = np.unique(ds[other_dimension])
         dict_by_horizon = {
-            f"{i}_PdR{return_period}_by_horizon": (["id_geometry", "horizon", other_dimension],
-                                                   np.full((len(ds['id_geometry']),
+            f"{i}_PdR{return_period}_by_horizon": (["gid", "horizon", other_dimension],
+                                                   np.full((len(ds['gid']),
                                                             len(horizons),
                                                             len(data_dim)), np.nan))
             for i in indicator_cols
         }
-        coords = {"id_geometry": ds['id_geometry'].data, "horizon": horizons, other_dimension: data_dim.data}
+        coords = {"gid": ds['gid'].data, "horizon": horizons, other_dimension: data_dim.data}
     else:
         dict_by_horizon = {
-            f"{i}_PdR{return_period}_by_horizon": (["id_geometry", "horizon"],
-                                                   np.full((len(ds['id_geometry']), len(horizons)), np.nan))
+            f"{i}_PdR{return_period}_by_horizon": (["gid", "horizon"],
+                                                   np.full((len(ds['gid']), len(horizons)), np.nan))
             for i in indicator_cols
         }
-        coords = {"id_geometry": ds['id_geometry'].data, "horizon": horizons}
+        coords = {"gid": ds['gid'].data, "horizon": horizons}
 
     result = xr.Dataset(dict_by_horizon, coords=coords)
 

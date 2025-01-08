@@ -1,7 +1,7 @@
 {
   "gid": "",
   "hydro_indicator": ["QA_yr", "QA_seas-JJA", "QA_seas-DJF", "QA_seas-MAM", "QA_seas-SON",
-    "VCN10_seas-MJJASON", "Q10A", "Q90A", "QA_mon$ME/min[PdR5]/month[PdR5]", "debit$Q2"],
+    "VCN10_seas-MJJASON", "Q10A", "Q90A", "QA_mon$ME/min[PdR5]$YE", "debit$Q2"],
   "climate_indicator": ["tasminAdjust", "tasAdjust", "tasmaxAdjust", "prtotAdjust", "evspsblpotAdjust"],
   "select_rcp": ["rcp85"],
   "select_gcm": [],
