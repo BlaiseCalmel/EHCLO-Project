@@ -258,7 +258,7 @@ def compute_deviation_to_ref(ds, cols, ref='historical'):
 
 def compute_return_period(ds, indicator_cols, files_setup, return_period=5, other_dimension=None):
     """
-    Compute the LogNormal return period value for each station in an xarray Dataset.
+    Compute the LogNormal return period value for each station in xarray Dataset.
 
     Parameters:
     ds (xarray.Dataset): The dataset containing flow data with dimensions ('time', 'station').

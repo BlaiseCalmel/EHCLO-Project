@@ -25,6 +25,7 @@ def define_paths(config):
     dict_paths = {
         'folder_hydro_data': os.path.abspath(config['folder_path_hydro_data']),
         'folder_climate_data': os.path.abspath(config['folder_path_climate_data']),
+        'folder_raw_hydro_data': os.path.abspath(config['folder_path_raw_hydro_data']),
         'folder_data_contour': folder_data_contour,
         'folder_study_results': folder_study,
         'folder_study_figures': folder_study_figures,
@@ -42,7 +43,7 @@ def define_paths(config):
 def get_files_path(dict_paths, setup, extension='.nc'):
 
     ext_files = []
-    for p in [dict_paths[f'folder_hydro_data']]+[dict_paths[f'folder_climate_data']]:
+    for p in [dict_paths[f'folder_hydro_data']]+[dict_paths[f'folder_climate_data']]+[dict_paths[f'folder_raw_hydro_data']]:
         for root, dirs, files in os.walk(p):
             for file in files:
                 if file.endswith(extension):
@@ -51,7 +52,7 @@ def get_files_path(dict_paths, setup, extension='.nc'):
     dict_path = {}
     for data_type in ['hydro', 'climate']:
         dict_path[data_type] = {}
-        item_indicator = [i.split('$')[-1] for i in setup[f'{data_type}_indicator']]
+        item_indicator = [i.split('$')[0] for i in setup[f'{data_type}_indicator']]
 
         # Filter by indicator name
         data_files = [s for s in ext_files if any(word in s for word in item_indicator)]

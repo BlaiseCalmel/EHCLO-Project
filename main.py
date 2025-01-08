@@ -118,7 +118,7 @@ data_type='hydro'
 subdict=path_files[data_type]
 rcp='rcp85'
 subdict2=subdict[rcp]
-indicator = "QA_yr"
+indicator_settings = "QA_mon$ME/min[PdR5]/month[PdR5]"
 paths = subdict2[indicator]
 
 hydro_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
@@ -141,25 +141,31 @@ for data_type, subdict in path_files.items():
         # sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
 
     for rcp, subdict2 in subdict.items():
-        for indicator, paths in subdict2.items():
+        for indicator_settings, paths in subdict2.items():
             print(f'################################ RUN {data_type} {rcp} {indicator} ################################', end='\n')
-            # split_indicator = indicator_raw.split('-')
-            # indicator = split_indicator[0]
-            timestep = 'ME'
-            # if len(split_indicator) > 1:
-            #     timestep = split_indicator[1]
-            #
-            # if timestep == 'mon':
-            #     timestep = 'M'
+            timestep = 'YE'
+            indicator_extract = indicator_settings.split('/')[0]
+            split_indicator = indicator_extract.split('$')
+            indicator = split_indicator[0]
+            indicator_args = None
+            if len(split_indicator) > 1:
+                indicator_args = split_indicator[1:]
 
-            path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_{timestep}_{rcp}.nc"
+            if indicator_args is not None and 'ME' in indicator_args:
+                timestep = 'ME'
+                indicator_args.remove('ME')
+                if len(indicator_args) == 0:
+                    indicator_args = None
+
+            path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[-1]}_{rcp}.nc"
 
             if not os.path.isfile(path_ncdf):
                 print(f'> Create {indicator} export...', end='\n')
                 if len(paths) > 0 :
                     extract_ncdf_indicator(
-                        paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified, indicator=indicator,
-                        timestep=timestep, start=files_setup['historical'][0], path_result=path_ncdf,
+                        paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
+                        indicator=indicator, indicator_args=indicator_args, timestep=timestep,
+                        start=files_setup['historical'][0], path_result=path_ncdf,
                     )
                 else:
                     print(f'> Invalid {indicator} name', end='\n')
@@ -176,7 +182,7 @@ fontsize = 18
 
 for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator']:
     print(indicator)
-    path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_ME_rcp85.nc"
+    path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_YE_rcp85.nc"
     path_indicator_figures = dict_paths['folder_study_figures'] + indicator + os.sep
 
     if not os.path.isdir(path_indicator_figures):

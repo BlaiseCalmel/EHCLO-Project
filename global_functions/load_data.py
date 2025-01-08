@@ -6,6 +6,7 @@ import geopandas
 from tqdm import tqdm
 import xarray as xr
 import os
+import re
 
 
 def resample_ds(ds, var, timestep, operation='mean', q=None):
@@ -33,7 +34,7 @@ def resample_ds(ds, var, timestep, operation='mean', q=None):
 def rename_variables(dataset, suffix, var_name):
     return dataset.rename({var: suffix for var in dataset.data_vars if var == var_name})
 
-def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, timestep=None,
+def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, timestep=None, indicator_args=None,
                            start=None, path_result=None):
 
     # Create temporary directory
@@ -51,7 +52,16 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
         indexes_sim = [historical_dir.index(i) for i in rcp_dir]
         paths_data = [[historical_paths[val], rcp_paths[idx]] for idx, val in enumerate(indexes_sim)]
     else:
-        paths_data = [[i] for i in paths_data]
+        if not 'debit' in indicator:
+            paths_data = [[i] for i in paths_data]
+        else:
+            sim_chains = [i.split(os.sep)[-5:-1] for i in paths_data]
+            unique_chains = [list(x) for x in set(tuple(x) for x in sim_chains)]
+            temp_paths = []
+            for chain in unique_chains:
+                positions = [i for i, sub in enumerate(sim_chains) if sub == chain]
+                temp_paths.append([paths_data[i] for i in positions])
+            paths_data = temp_paths
 
     # Progress bar setup
     if path_result is None:
@@ -61,16 +71,12 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
     total_iterations = len(paths_data)
 
     temp_paths = []
-    with tqdm(total=total_iterations, desc=f"Create {title} file") as pbar:
+    with (tqdm(total=total_iterations, desc=f"Create {title} file") as pbar):
         for i, files in enumerate(paths_data):
             if param_type == "climate":
                 split_name = files[0].split(os.sep)[-4:-1]
             else:
                 split_name = files[0].split(os.sep)[-5:-1]
-
-            indicator = indicator.split('_')[0]
-            var_name = indicator.split('$')[-1]
-            indicator = indicator.split('$')[0]
 
             file_name = '_'.join(split_name)
             var = indicator+'_'+file_name
@@ -79,7 +85,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             for file in files:
                 ds = xr.open_dataset(file)
                 # Add sim suffix
-                ds = rename_variables(ds, file_name, var_name)
+                ds = rename_variables(ds, file_name, indicator.split('_')[0])
                 # Load only selected period
                 if start is not None:
                     ds = ds.sel(time=slice(dt.datetime(
@@ -105,23 +111,34 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                     ds = ds.rename({'name': 'gid'})
 
                 else:
-                    if indicator == 'Q2':
-                        resampled_var = resample_ds(ds, var, timestep, operation='quantile', q=0.98)
+                     # Use station code as coordinate
+                    ds = ds.set_coords('code')
+                    ds = ds.swap_dims({'station': 'code'})
+                    if 'station' in ds.data_vars:
+                        del ds['station']
+
+                    # Compute quantile
+                    if indicator_args is not None:
+                        resultat = [chaine for chaine in indicator_args if re.fullmatch(r"Q\d+", chaine)]
+                        if len(resultat) == 1:
+                            args = resultat[0]
+                        match = re.match(r"([A-Za-z]+)(\d+)", args)
+                        letters, numbers = match.groups()
+                        resampled_var = resample_ds(ds, file_name, timestep, operation='quantile',
+                                                    q=1-float(numbers)/100)
                         coordinates = {i: ds[i] for i in ds._coord_names if i != 'time'}
                         coordinates['time'] = resampled_var['time']
                         ds = xr.Dataset({
-                            var: (('time', 'station'), resampled_var.values)
+                            file_name: (('time', 'code'), resampled_var.values),
+                            'L93_X': (('code'), ds.L93_X.values),
+                            'L93_Y': (('code'), ds.L93_Y.values)
                         }, coords=coordinates
                         )
-
-                    ds = ds.set_coords('code')
-                    ds = ds.swap_dims({'station': 'code'})
-                    del ds['station']
 
                     ds['code'] = ds['code'].astype(str)
                     code_values = np.unique(sim_points_gdf.index.values)
                     codes_to_select = [code for code in code_values if code in ds['code'].values]
-                    missing = [code for code in code_values if code not in ds['code'].values]
+                    # missing = [code for code in code_values if code not in ds['code'].values]
 
                     ds = ds.rename({'code': 'gid'})
                     if len(codes_to_select) > 0:
