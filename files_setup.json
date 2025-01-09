@@ -1,8 +1,25 @@
 {
   "gid": "",
-  "hydro_indicator": ["QA_yr", "QA_seas-JJA", "QA_seas-DJF", "QA_seas-MAM", "QA_seas-SON",
-    "VCN10_seas-MJJASON", "Q10A", "Q90A", "QA_mon$ME/min[PdR5]$YE", "debit$Q2"],
-  "climate_indicator": ["tasminAdjust", "tasAdjust", "tasmaxAdjust", "prtotAdjust", "evspsblpotAdjust"],
+  "hydro_indicator": {
+      "QA_yr": {"title":  "débit annuel", "units":  "m3/s"},
+      "QA_seas-JJA": {"title":  "débit JJA", "units":  "m3/s"},
+      "QA_seas-DJF": {"title":  "débit DJF", "units":  "m3/s"},
+      "QA_seas-MAM": {"title":  "débit MAM", "units":  "m3/s"},
+      "QA_seas-SON": {"title":  "débit SON", "units":  "m3/s"},
+      "VCN10_seas-MJJASON": {"title":  "VCN10", "units":  "m3/s"},
+      "Q10A": {"title":  "quantile 10", "units":  "m3/s"},
+      "Q90A": {"title":  "quantile 90", "units":  "m3/s"},
+      "QA_mon": {"title":  "QMNA5", "units":  "m3/s", "plot_function":  "min", "return_period": 5,
+                 "extract_timestep":  "ME", "plot_timestep":  "YE"},
+      "debit": {"title":  "quantile 2", "units":  "m3/s", "extract_function":  "quantile2"}
+    },
+  "climate_indicator": {
+    "tasminAdjust": {"title":  "température min.", "units":  "°C"},
+    "tasAdjust": {"title":  "température moyenne", "units":  "°C"},
+    "tasmaxAdjust": {"title":  "température max.", "units":  "°C"},
+    "prtotAdjust": {"title":  "précipitation", "units":  "mm"},
+    "evspsblpotAdjust": {"title":  "évapotranspiration", "units":  "mm"}
+  },
   "select_rcp": ["rcp85"],
   "select_gcm": [],
   "select_rcm": [],

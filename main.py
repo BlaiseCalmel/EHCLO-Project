@@ -118,8 +118,8 @@ data_type='hydro'
 subdict=path_files[data_type]
 rcp='rcp85'
 subdict2=subdict[rcp]
-indicator_settings = "QA_mon$ME/min[PdR5]/month[PdR5]"
-paths = subdict2[indicator_settings]
+indicator = "QA_seas-DJF"
+paths = subdict2[indicator]
 
 hydro_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
 hydro_sim_points_gdf_simplified = hydro_sim_points_gdf[hydro_sim_points_gdf['n'] >= 4]
@@ -141,21 +141,27 @@ for data_type, subdict in path_files.items():
         # sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
 
     for rcp, subdict2 in subdict.items():
-        for indicator_settings, paths in subdict2.items():
+        for indicator, paths in subdict2.items():
             print(f'################################ RUN {data_type} {rcp} {indicator} ################################', end='\n')
             timestep = 'YE'
-            indicator_extract = indicator_settings.split('/')[0]
-            split_indicator = indicator_extract.split('$')
-            indicator = split_indicator[0]
-            indicator_args = None
-            if len(split_indicator) > 1:
-                indicator_args = split_indicator[1:]
+            function = None
+            if 'extract_timestep' in files_setup[f'{data_type}_indicator'][indicator]:
+                timestep = files_setup[f'{data_type}_indicator'][indicator]['extract_timestep']
 
-            if indicator_args is not None and 'ME' in indicator_args:
-                timestep = 'ME'
-                indicator_args.remove('ME')
-                if len(indicator_args) == 0:
-                    indicator_args = None
+            if 'extract_function' in files_setup[f'{data_type}_indicator'][indicator]:
+                function = files_setup[f'{data_type}_indicator'][indicator]['extract_function']
+            # indicator_extract = indicator_settings.split('/')[0]
+            # split_indicator = indicator_extract.split('$')
+            # indicator = split_indicator[0]
+            # indicator_args = None
+            # if len(split_indicator) > 1:
+            #     indicator_args = split_indicator[1:]
+            #
+            # if indicator_args is not None and 'ME' in indicator_args:
+            #     timestep = 'ME'
+            #     indicator_args.remove('ME')
+            #     if len(indicator_args) == 0:
+            #         indicator_args = None
 
             path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[-1]}_{rcp}.nc"
 
@@ -164,7 +170,7 @@ for data_type, subdict in path_files.items():
                 if len(paths) > 0 :
                     extract_ncdf_indicator(
                         paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
-                        indicator=indicator, indicator_args=indicator_args, timestep=timestep,
+                        indicator=indicator, function=function, timestep=timestep,
                         start=files_setup['historical'][0], path_result=path_ncdf,
                     )
                 else:
@@ -172,10 +178,6 @@ for data_type, subdict in path_files.items():
             else:
                 print(f'> {path_ncdf} already exists', end='\n')
 
-            print(f'################################ FORMAT DATA ################################', end='\n')
-            print(f'> Load from {indicator} export...', end='\n')
-            # path_ncdf = f"{dict_paths['folder_study_data']}QA_seas-JJA_ME_rcp85.nc"
-            # indicator='QA_seas-JJA'
 
 print(f'################################ PLOT INDICATOR ################################', end='\n')
 fontsize = 18
@@ -204,19 +206,40 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
         sim_points_gdf_simplified = sim_points_gdf_simplified.set_index('name')
         edgecolor = None
 
-    for args in indicator_settings.split('/')[1:]:
-        print(args)
-        # Load arguments for current indicator
-        match = re.match(r'([a-zA-Z]+)\[.*?(\d+)\]', args)
-        if match:
-            param = match.group(1)
-            pdr_value = int(match.group(2))
-        else:
-            param, pdr_value = None, None
+    # for args in indicator_settings.split('/')[1:]:
+    #     print(args)
+    #     # Load arguments for current indicator
+    #     match = re.match(r'([a-zA-Z]+)\[.*?(\d+)\]', args)
+    #     if match:
+    #         param = match.group(1)
+    #         pdr_value = int(match.group(2))
+    #     else:
+    #         param, pdr_value = None, None
+
+    indicator_setup = files_setup[f"{data_type}_indicator"][indicator]
+    if "title" in indicator_setup.keys():
+        title = indicator_setup["title"]
+    else:
+        title = indicator
+
+    if "units" in indicator_setup.keys():
+        units = indicator_setup["units"]
+    else:
+        units = ''
+
+    if "plot_function" in indicator_setup.keys():
+        plot_function = indicator_setup["plot_function"]
+    else:
+        plot_function = None
+
+    if "return_period" in indicator_setup.keys():
+        return_period = indicator_setup["return_period"]
+    else:
+        return_period = None
 
     ds = xr.open_dataset(path_ncdf)
 
-    ds, variables = format_dataset(ds, data_type, files_setup, param, pdr_value)
+    ds, variables = format_dataset(ds, data_type, files_setup, plot_function, return_period)
 
     sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds.gid]
 

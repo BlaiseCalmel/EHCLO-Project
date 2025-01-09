@@ -34,7 +34,7 @@ def resample_ds(ds, var, timestep, operation='mean', q=None):
 def rename_variables(dataset, suffix, var_name):
     return dataset.rename({var: suffix for var in dataset.data_vars if var == var_name})
 
-def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, timestep=None, indicator_args=None,
+def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, timestep=None, function=None,
                            start=None, path_result=None):
 
     # Create temporary directory
@@ -84,6 +84,21 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             datasets = []
             for file in files:
                 ds = xr.open_dataset(file)
+
+                # Check for coordinates without dimension
+                dims_without_coords = [dim for dim in ds.dims if dim not in ds.coords]
+                for dims in dims_without_coords:
+                    if dims != 'station':
+                        if len(ds[dims]) == len(ds['station']):
+                            ds = ds.assign_coords({dims: ds.station})
+                            ds = ds.swap_dims({dims: "station"}).drop_vars(dims)
+                        else:
+                            ds = ds.assign_coords({dims: ds[dims]})
+                            vars_to_remove = [var for var in ds.data_vars if dims in ds[var].dims]
+                            ds = ds.drop_vars(vars_to_remove + [dims])
+
+                ds = ds.assign_coords({"station": ds.station})
+
                 # Add sim suffix
                 ds = rename_variables(ds, file_name, indicator.split('_')[0])
                 # Load only selected period
@@ -116,34 +131,39 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                     ds = ds.swap_dims({'station': 'code'})
                     if 'station' in ds.data_vars:
                         del ds['station']
-
-                    # Compute quantile
-                    if indicator_args is not None:
-                        resultat = [chaine for chaine in indicator_args if re.fullmatch(r"Q\d+", chaine)]
-                        if len(resultat) == 1:
-                            args = resultat[0]
-                        match = re.match(r"([A-Za-z]+)(\d+)", args)
-                        letters, numbers = match.groups()
-                        resampled_var = resample_ds(ds, file_name, timestep, operation='quantile',
-                                                    q=1-float(numbers)/100)
-                        coordinates = {i: ds[i] for i in ds._coord_names if i != 'time'}
-                        coordinates['time'] = resampled_var['time']
-                        ds = xr.Dataset({
-                            file_name: (('time', 'code'), resampled_var.values),
-                            'L93_X': (('code'), ds.L93_X.values),
-                            'L93_Y': (('code'), ds.L93_Y.values)
-                        }, coords=coordinates
-                        )
-
-                    ds['code'] = ds['code'].astype(str)
-                    code_values = np.unique(sim_points_gdf.index.values)
-                    codes_to_select = [code for code in code_values if code in ds['code'].values]
-                    # missing = [code for code in code_values if code not in ds['code'].values]
+                    ds = ds.sel(code=ds["code"] != b'----------')
 
                     ds = ds.rename({'code': 'gid'})
+                    ds['gid'] = ds['gid'].astype(str)
+                    gid_values = np.unique(sim_points_gdf.index.values)
+                    codes_to_select = [code for code in gid_values if code in ds['gid'].values]
                     if len(codes_to_select) > 0:
-                        # TODO Rename dims to name
                         ds = ds.sel(gid=codes_to_select)
+
+                        # Compute quantile
+                        if function is not None:
+                            match = re.match(r"([a-zA-Z]+)(\d+)?", function)
+                            if match:
+                                string_function = match.group(1)  # Partie avec les lettres
+                                quantile_value = int(match.group(2)) if match.group(2) else None
+
+                            if quantile_value is not None:
+                                resampled_var = resample_ds(ds, file_name, timestep, operation=string_function,
+                                                            q=1-float(quantile_value)/100)
+                            else:
+                                resampled_var = resample_ds(ds, file_name, timestep, operation=string_function)
+
+                            # Create a new dataset
+                            coordinates = {'gid': ds.gid.values, 'time': resampled_var['time'].values}
+
+                            ds = xr.Dataset({
+                                file_name: (('time', 'gid'), resampled_var.values),
+                                'L93_X': (('gid'), ds.L93_X.values),
+                                'L93_Y': (('gid'), ds.L93_Y.values)
+                            }, coords=coordinates
+                            )
+
+                        ds['gid'] = ds['gid'].astype(str)
 
                         # Clean dataset
                         ds = xr.Dataset({

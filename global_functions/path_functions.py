@@ -52,7 +52,7 @@ def get_files_path(dict_paths, setup, extension='.nc'):
     dict_path = {}
     for data_type in ['hydro', 'climate']:
         dict_path[data_type] = {}
-        item_indicator = [i.split('$')[0] for i in setup[f'{data_type}_indicator']]
+        item_indicator = [i.split('$')[0] for i in setup[f'{data_type}_indicator'].keys()]
 
         # Filter by indicator name
         data_files = [s for s in ext_files if any(word in s for word in item_indicator)]
@@ -72,7 +72,7 @@ def get_files_path(dict_paths, setup, extension='.nc'):
             else:
                 rcp_files = [s for s in data_files if any(word in s for word in [rcp])]
 
-            for (item, indic) in zip(item_indicator, setup[f'{data_type}_indicator']):
+            for (item, indic) in zip(item_indicator, setup[f'{data_type}_indicator'].keys()):
                 indic_values = [s for s in rcp_files if item in s]
                 # Filter by HM
                 if data_type == 'hydro':
