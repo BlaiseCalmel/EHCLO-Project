@@ -2,14 +2,14 @@ import xarray as xr
 import numpy as np
 import pandas as pd
 
-def format_dataset(ds, data_type, files_setup, param=None, pdr_value=None):
+def format_dataset(ds, data_type, files_setup, plot_function=None, return_period=None):
 
 
     # Define geometry for each data (Points hydro, Polygon climate)
     # print(f'> Match geometry and data...', end='\n')
     other_dimension = None
-    if param is not None:
-        if param == 'min':
+    if plot_function is not None:
+        if plot_function == 'min':
             ds = ds.groupby("time.year").min(dim="time")
             ds = ds.rename({"year": "time"})
 
@@ -79,16 +79,17 @@ def format_dataset(ds, data_type, files_setup, param=None, pdr_value=None):
     simulation_cols = [i for i in list(ds.data_vars)]
 
     # Return period
-    if pdr_value is not None:
-        ds = compute_return_period(ds, list(ds.data_vars), files_setup, return_period=pdr_value,
+    if return_period is not None:
+        print(f'>> Compute value per return period {return_period} by horizon...', end='\n')
+        ds = compute_return_period(ds, list(ds.data_vars), files_setup, return_period=return_period,
         other_dimension=other_dimension)
+        simulation_horizon = [i for i in list(ds.data_vars) if '_by_horizon' in i]
 
-    # Compute mean value for each horizon for each sim
-    print(f'>> Compute mean by horizon...', end='\n')
-    ds, simulation_horizon = compute_mean_by_horizon(ds=ds, indicator_cols=simulation_cols,
-                                 files_setup=files_setup, other_dimension=other_dimension)
-
-    # simulation_horizon = [i for i in list(ds.variables) if '_by_horizon' in i]
+    else:
+        # Compute mean value for each horizon for each sim
+        print(f'>> Compute mean by horizon...', end='\n')
+        ds, simulation_horizon = compute_mean_by_horizon(ds=ds, indicator_cols=simulation_cols,
+                                     files_setup=files_setup, other_dimension=other_dimension)
 
     # Compute deviation/difference to reference
     print(f'>> Compute deviation & difference by horizon for each simulation...', end='\n')
@@ -295,7 +296,7 @@ def compute_return_period(ds, indicator_cols, files_setup, return_period=5, othe
     if other_dimension:
         data_dim = np.unique(ds[other_dimension])
         dict_by_horizon = {
-            f"{i}_PdR{return_period}_by_horizon": (["gid", "horizon", other_dimension],
+            f"{i}_by_horizon": (["gid", "horizon", other_dimension],
                                                    np.full((len(ds['gid']),
                                                             len(horizons),
                                                             len(data_dim)), np.nan))
@@ -304,7 +305,7 @@ def compute_return_period(ds, indicator_cols, files_setup, return_period=5, othe
         coords = {"gid": ds['gid'].data, "horizon": horizons, other_dimension: data_dim.data}
     else:
         dict_by_horizon = {
-            f"{i}_PdR{return_period}_by_horizon": (["gid", "horizon"],
+            f"{i}_by_horizon": (["gid", "horizon"],
                                                    np.full((len(ds['gid']), len(horizons)), np.nan))
             for i in indicator_cols
         }
@@ -313,22 +314,20 @@ def compute_return_period(ds, indicator_cols, files_setup, return_period=5, othe
     result = xr.Dataset(dict_by_horizon, coords=coords)
 
     for var_name in indicator_cols:
-        print(var_name)
         ds_var = ds[var_name]
         # Iterate over horizon
         for horizon in horizons:
-            print(f"> {horizon}")
             # Select period
             ds_horizon = ds_var.sel(time=ds_var[horizon])
             if other_dimension:
                 for dim in data_dim:
                     ds_dim = ds_horizon.sel(time=ds_horizon.time.where(ds_horizon.month == dim, drop=True))
                     Xn = xr.apply_ufunc(compute_LogNormal, ds_dim, input_core_dims=[["time"]], vectorize=True)
-                    result[f"{var_name}_PdR{return_period}_by_horizon"].loc[:, horizon, dim] = Xn
+                    result[f"{var_name}_by_horizon"].loc[:, horizon, dim] = Xn
             else:
                 ds_dim = ds_horizon.groupby('time.year').min()
                 Xn = xr.apply_ufunc(compute_LogNormal, ds_dim, input_core_dims=[["year"]], vectorize=True)
-                result[f"{var_name}_PdR{return_period}_by_horizon"].loc[:, horizon] = Xn
+                result[f"{var_name}_by_horizon"].loc[:, horizon] = Xn
 
         combined_means = xr.merge([ds, result])
 
