@@ -118,7 +118,7 @@ data_type='hydro'
 subdict=path_files[data_type]
 rcp='rcp85'
 subdict2=subdict[rcp]
-indicator = "QA_seas-DJF"
+indicator = "QA_mon"
 paths = subdict2[indicator]
 
 hydro_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
@@ -143,40 +143,30 @@ for data_type, subdict in path_files.items():
     for rcp, subdict2 in subdict.items():
         for indicator, paths in subdict2.items():
             print(f'################################ RUN {data_type} {rcp} {indicator} ################################', end='\n')
-            timestep = 'YE'
-            function = None
-            if 'extract_timestep' in files_setup[f'{data_type}_indicator'][indicator]:
-                timestep = files_setup[f'{data_type}_indicator'][indicator]['extract_timestep']
+            for name_indicator, settings_dict in files_setup[f'{data_type}_indicator'][indicator].items():
+                timestep = 'YE'
+                function = None
+                if 'timestep' in settings_dict:
+                    timestep = settings_dict['timestep']
 
-            if 'extract_function' in files_setup[f'{data_type}_indicator'][indicator]:
-                function = files_setup[f'{data_type}_indicator'][indicator]['extract_function']
-            # indicator_extract = indicator_settings.split('/')[0]
-            # split_indicator = indicator_extract.split('$')
-            # indicator = split_indicator[0]
-            # indicator_args = None
-            # if len(split_indicator) > 1:
-            #     indicator_args = split_indicator[1:]
-            #
-            # if indicator_args is not None and 'ME' in indicator_args:
-            #     timestep = 'ME'
-            #     indicator_args.remove('ME')
-            #     if len(indicator_args) == 0:
-            #         indicator_args = None
+                if 'extract_function' in settings_dict:
+                    function = settings_dict['extract_function']
 
-            path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[-1]}_{rcp}.nc"
+                name_join = name_indicator.replace(" ", "-")
+                path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}.nc"
 
-            if not os.path.isfile(path_ncdf):
-                print(f'> Create {indicator} export...', end='\n')
-                if len(paths) > 0 :
-                    extract_ncdf_indicator(
-                        paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
-                        indicator=indicator, function=function, timestep=timestep,
-                        start=files_setup['historical'][0], path_result=path_ncdf,
-                    )
+                if not os.path.isfile(path_ncdf):
+                    print(f'> Create {indicator} export...', end='\n')
+                    if len(paths) > 0 :
+                        extract_ncdf_indicator(
+                            paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
+                            indicator=indicator, function=function, timestep=timestep,
+                            start=files_setup['historical'][0], path_result=path_ncdf,
+                        )
+                    else:
+                        print(f'> Invalid {indicator} name', end='\n')
                 else:
-                    print(f'> Invalid {indicator} name', end='\n')
-            else:
-                print(f'> {path_ncdf} already exists', end='\n')
+                    print(f'> {path_ncdf} already exists', end='\n')
 
 
 print(f'################################ PLOT INDICATOR ################################', end='\n')

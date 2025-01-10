@@ -2,27 +2,27 @@
   "gid": "",
   "hydro_indicator": {
       "QA_yr": {
-        "débit annuel": {
+        "QA": {
           "units": "m3/s"
         }
       },
       "QA_seas-JJA": {
-        "débit JJA": {
+        "Q[JJA]": {
           "units": "m3/s"
         }
       },
       "QA_seas-DJF": {
-        "débit DJF": {
+        "Q[DJF]": {
           "units": "m3/s"
         }
       },
       "QA_seas-MAM": {
-        "débit MAM": {
+        "Q[MAM]": {
           "units": "m3/s"
         }
       },
       "QA_seas-SON": {
-        "débit SON":{
+        "Q[SON]":{
           "units": "m3/s"
         }
       },
