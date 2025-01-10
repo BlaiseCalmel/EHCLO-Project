@@ -74,7 +74,7 @@ def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
     rows = {
         'names_coord': 'indicator',
         'values_var': indicator_plot,
-        'names_plot': list(narratives.keys())
+        'names_plot': [f"Narratif {i['label'].split(' ')[0]}" for i in narratives.values()] #list(narratives.keys())
     }
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,

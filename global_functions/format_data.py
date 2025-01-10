@@ -40,7 +40,7 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
             ds = ds.assign_coords(month=ds['time.month'])
             other_dimension = 'month'
             dimension_names = {
-                1: "Janvier", 2: "Février", 3: "Maris", 4: "Avril",
+                1: "Janvier", 2: "Février", 3: "Mars", 4: "Avril",
                 5: "Mai", 6: "Juin", 7: "Juillet", 8: "Août",
                 9: "Septembre", 10: "Octobre", 11: "Novembre", 12: "Décembre",
             }

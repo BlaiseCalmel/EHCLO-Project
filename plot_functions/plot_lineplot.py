@@ -59,6 +59,7 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
             idx = len_cols * row_idx + col_idx
             ax = axes_flatten[idx]
 
+            # Select data
             if cols_plot['names_coord'] == 'indicator':
                 current_indicator = col
             elif rows_plot['names_coord'] == 'indicator':
@@ -68,6 +69,7 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
             else:
                 current_indicator = indicator_plot
 
+            # Sublpot title
             subplot_title = None
             if subplot_titles:
                 subplot_title = subplot_titles[idx]
@@ -90,6 +92,7 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
                 if value not in legend_items:
                     legend_items.append(value)
 
+            # Vertical lines
             if vlines is not None:
                 valid = np.logical_not(np.isnan(vlines[x_axis['names_coord']]))
                 vlines = vlines[valid]
@@ -105,7 +108,6 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
                 if 'alpha' not in vlines.columns:
                     vlines['alpha'] = 1
 
-
                 for i in range(len(vlines)):
                     ax.vlines(x=vlines.iloc[i][x_axis['names_coord']],
                               ymin=vlines.iloc[i]['ymin'], ymax=vlines.iloc[i]['ymax'],
@@ -115,7 +117,7 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
                             vlines.iloc[i]['label'], rotation=90, verticalalignment='top',
                             alpha=vlines.iloc[i]['alpha'])
 
-
+            # Plot data as line
             ax.plot([xmin, xmax], [0, 0], color='k', linestyle='--', linewidth=0.5, dashes=(10,10),
                     zorder=1000)
 
