@@ -1,12 +1,45 @@
 import xarray as xr
 import numpy as np
 import pandas as pd
+import os
+
+def load_settings(indicator_setup, indicator, name_indicator, dict_paths):
+    if "title" in indicator_setup.keys():
+        title = indicator_setup["title"]
+    else:
+        title = indicator
+    if not title[0].isupper():
+        title = title.title()
+
+    if "units" in indicator_setup.keys():
+        units = indicator_setup["units"]
+    else:
+        units = ''
+
+    if "timestep" in indicator_setup.keys():
+        timestep = indicator_setup["timestep"]
+    else:
+        timestep = "YE"
+
+    if "plot_function" in indicator_setup.keys():
+        plot_function = indicator_setup["plot_function"]
+    else:
+        plot_function = None
+
+    if "return_period" in indicator_setup.keys():
+        return_period = indicator_setup["return_period"]
+    else:
+        return_period = None
+
+        # Create folder
+    name_join = name_indicator.replace(" ", "-")
+    path_indicator_figures = dict_paths['folder_study_figures'] + name_join + os.sep
+    if not os.path.isdir(path_indicator_figures):
+        os.makedirs(path_indicator_figures)
+
+    return title, units, timestep, plot_function, return_period, path_indicator_figures
 
 def format_dataset(ds, data_type, files_setup, plot_function=None, return_period=None):
-
-
-    # Define geometry for each data (Points hydro, Polygon climate)
-    # print(f'> Match geometry and data...', end='\n')
     other_dimension = None
     if plot_function is not None:
         if plot_function == 'min':
@@ -15,9 +48,9 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
 
             ds["time"] = pd.to_datetime(ds["time"].values, format="%Y")
 
-        # elif param == 'month':
-        #     ds = ds.assign_coords(month=ds['time.month'])
-        #     other_dimension = 'month'
+        elif plot_function == 'month':
+            ds = ds.assign_coords(month=ds['time.month'])
+            other_dimension = 'month'
 
     # if data_type == 'climate':
     #     # sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
@@ -84,7 +117,6 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
         ds = compute_return_period(ds, list(ds.data_vars), files_setup, return_period=return_period,
         other_dimension=other_dimension)
         simulation_horizon = [i for i in list(ds.data_vars) if '_by_horizon' in i]
-
     else:
         # Compute mean value for each horizon for each sim
         print(f'>> Compute mean by horizon...', end='\n')

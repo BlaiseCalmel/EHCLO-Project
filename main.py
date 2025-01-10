@@ -172,9 +172,14 @@ for data_type, subdict in path_files.items():
 print(f'################################ PLOT INDICATOR ################################', end='\n')
 fontsize = 18
 
-for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator']:
-    print(indicator)
-    path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_rcp85.nc"
+for indicator, subdicts in (files_setup['hydro_indicator'] | files_setup['climate_indicator']).items():
+    for name_indicator, indicator_setup in subdicts.items():
+        # TODO put this in a function
+        title, units, timestep, plot_function, return_period, path_indicator_figures = load_settings(
+            indicator_setup, indicator, name_indicator, dict_paths)
+        # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}.nc"
+
+        path_ncdf = f"{dict_paths['folder_study_data']}debit_rcp85.nc"
 
     # Compute PK
     if indicator in files_setup['hydro_indicator']:
@@ -192,49 +197,14 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
         sim_points_gdf_simplified = sim_points_gdf_simplified.set_index('name')
         edgecolor = None
 
-    # for args in indicator_settings.split('/')[1:]:
-    #     print(args)
-    #     # Load arguments for current indicator
-    #     match = re.match(r'([a-zA-Z]+)\[.*?(\d+)\]', args)
-    #     if match:
-    #         param = match.group(1)
-    #         pdr_value = int(match.group(2))
-    #     else:
-    #         param, pdr_value = None, None
-
-    indicator_setup = files_setup[f"{data_type}_indicator"][indicator]
-    if "title" in indicator_setup.keys():
-        title = indicator_setup["title"]
-    else:
-        title = indicator
-    if not title[0].isupper():
-        title = title.title()
-
-    if "units" in indicator_setup.keys():
-        units = indicator_setup["units"]
-    else:
-        units = ''
-
-    if "plot_function" in indicator_setup.keys():
-        plot_function = indicator_setup["plot_function"]
-    else:
-        plot_function = None
-
-    if "return_period" in indicator_setup.keys():
-        return_period = indicator_setup["return_period"]
-    else:
-        return_period = None
-
-    path_indicator_figures = dict_paths['folder_study_figures'] + title + os.sep
-    if not os.path.isdir(path_indicator_figures):
-        os.makedirs(path_indicator_figures)
-
+    # Open ncdf dataset
     ds = xr.open_dataset(path_ncdf)
 
+    # Compute stats
     ds, variables = format_dataset(ds, data_type, files_setup, plot_function, return_period)
 
+    # Geodataframe
     sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds.gid]
-
     dict_shapefiles = define_plot_shapefiles(regions_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified,
                            indicator, files_setup)
 

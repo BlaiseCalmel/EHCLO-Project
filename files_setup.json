@@ -64,27 +64,27 @@
     },
   "climate_indicator": {
     "tasminAdjust": {
-      "température min.": {
+      "T min.": {
         "units": "°C"
       }
     },
     "tasAdjust": {
-      "température moyenne": {
+      "T moyenne": {
         "units": "°C"
       }
     },
     "tasmaxAdjust": {
-      "température max.": {
+      "T max.": {
         "units": "°C"
       }
     },
     "prtotAdjust": {
-      "précipitation": {
+      "RR": {
         "units": "mm"
       }
     },
     "evspsblpotAdjust": {
-      "évapotranspiration": {
+      "ETP": {
         "units": "mm"
       }
     }
