@@ -153,7 +153,7 @@ for data_type, subdict in path_files.items():
                 if 'extract_function' in settings_dict:
                     function = settings_dict['extract_function']
 
-                name_join = name_indicator.replace(" ", "-")
+                name_join = name_indicator.replace(" ", "-").replace(".", "")
                 path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}.nc"
 
                 if not os.path.isfile(path_ncdf):
@@ -182,7 +182,7 @@ for indicator, subdicts in (files_setup['hydro_indicator'] | files_setup['climat
         units, timestep, plot_function, return_period = load_settings(indicator_setup)
 
         # Create folder
-        title_join = name_indicator.replace(" ", "-")
+        title_join = name_indicator.replace(" ", "-").replace(".", "")
         path_indicator = dict_paths['folder_study_figures'] + title_join + os.sep
         if not os.path.isdir(path_indicator):
             os.makedirs(path_indicator)
@@ -246,7 +246,7 @@ for indicator, subdicts in (files_setup['hydro_indicator'] | files_setup['climat
                     print(f">> Difference map plot {indicator}")
                     plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_mean',
                                   path_result=path_indicator_figures+f'{title_join}_map_difference.pdf',
-                                  cbar_title=f"{title} mean difference ({units})", cbar_ticks=None, title=coordinate_value, dict_shapefiles=dict_shapefiles,
+                                  cbar_title=f"{title} différence moyenne ({units})", cbar_ticks=None, title=coordinate_value, dict_shapefiles=dict_shapefiles,
                                   percent=False, bounds=bounds, palette='RdBu_r', cbar_midpoint='zero', fontsize=fontsize,
                                   font='sans-serif', discretize=7, edgecolor=edgecolor, markersize=75, vmin=0, cbar_values=1)
 
