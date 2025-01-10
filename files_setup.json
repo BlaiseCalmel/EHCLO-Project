@@ -1,17 +1,66 @@
 {
   "gid": "",
   "hydro_indicator": {
-      "QA_yr": {"title":  "débit annuel", "units":  "m3/s"},
-      "QA_seas-JJA": {"title":  "débit JJA", "units":  "m3/s"},
-      "QA_seas-DJF": {"title":  "débit DJF", "units":  "m3/s"},
-      "QA_seas-MAM": {"title":  "débit MAM", "units":  "m3/s"},
-      "QA_seas-SON": {"title":  "débit SON", "units":  "m3/s"},
-      "VCN10_seas-MJJASON": {"title":  "VCN10", "units":  "m3/s"},
-      "Q10A": {"title":  "quantile 10", "units":  "m3/s"},
-      "Q90A": {"title":  "quantile 90", "units":  "m3/s"},
-      "QA_mon": {"title":  "QMNA5", "units":  "m3/s", "plot_function":  "min", "return_period": 5,
-                 "extract_timestep":  "ME", "plot_timestep":  "YE"},
-      "debit": {"title":  "quantile 2", "units":  "m3/s", "extract_function":  "quantile2"}
+      "QA_yr": {
+        "débit annuel": {
+          "units": "m3/s"
+        }
+      },
+      "QA_seas-JJA": {
+        "débit JJA": {
+          "units": "m3/s"
+        }
+      },
+      "QA_seas-DJF": {
+        "débit DJF": {
+          "units": "m3/s"
+        }
+      },
+      "QA_seas-MAM": {
+        "débit MAM": {
+          "units": "m3/s"
+        }
+      },
+      "QA_seas-SON": {
+        "débit SON":{
+          "units": "m3/s"
+        }
+      },
+      "VCN10_seas-MJJASON": {
+        "VCN10": {
+          "units": "m3/s"
+        }
+      },
+      "Q10A": {
+        "Q10": {
+          "units": "m3/s"
+        }
+      },
+      "Q90A": {
+        "Q90": {
+          "units": "m3/s"
+        }
+      },
+      "QA_mon": {
+        "QMNA5": {
+          "units": "m3/s",
+          "plot_function": "min",
+          "return_period": 5,
+          "timestep": "YE"
+        },
+        "QMN5": {
+          "units": "m3/s",
+          "plot_function": "month",
+          "return_period": 5,
+          "timestep": "ME"
+        }
+      },
+      "debit": {
+        "Q2": {
+          "units": "m3/s",
+          "extract_function": "quantile2"
+        }
+      }
     },
   "climate_indicator": {
     "tasminAdjust": {"title":  "température min.", "units":  "°C"},

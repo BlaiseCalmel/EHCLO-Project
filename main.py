@@ -185,10 +185,6 @@ fontsize = 18
 for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator']:
     print(indicator)
     path_ncdf = f"{dict_paths['folder_study_data']}{indicator.split('$')[0]}_rcp85.nc"
-    path_indicator_figures = dict_paths['folder_study_figures'] + indicator + os.sep
-
-    if not os.path.isdir(path_indicator_figures):
-        os.makedirs(path_indicator_figures)
 
     # Compute PK
     if indicator in files_setup['hydro_indicator']:
@@ -221,6 +217,8 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
         title = indicator_setup["title"]
     else:
         title = indicator
+    if not title[0].isupper():
+        title = title.title()
 
     if "units" in indicator_setup.keys():
         units = indicator_setup["units"]
@@ -236,6 +234,10 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
         return_period = indicator_setup["return_period"]
     else:
         return_period = None
+
+    path_indicator_figures = dict_paths['folder_study_figures'] + title + os.sep
+    if not os.path.isdir(path_indicator_figures):
+        os.makedirs(path_indicator_figures)
 
     ds = xr.open_dataset(path_ncdf)
 
@@ -253,11 +255,11 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
         print(f">> Difference map plot {indicator}")
         plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_mean',
                       path_result=path_indicator_figures+'map_difference.pdf',
-                      cbar_title=f"{indicator} mean difference", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
+                      cbar_title=f"{title} mean difference ({units})", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
                       percent=False, bounds=bounds, palette='RdBu_r', cbar_midpoint='zero', fontsize=fontsize,
                       font='sans-serif', discretize=7, edgecolor=edgecolor, markersize=75, vmin=0, cbar_values=1)
 
-    if indicator in files_setup['hydro_indicator']:
+    elif indicator in files_setup['hydro_indicator']:
         print(f">> Deviation map plot by HM")
         horizons = {'horizon1': 'Horizon 1 (2021-2050)',
                     'horizon2': 'Horizon 2 (2041-2070)',
@@ -269,7 +271,7 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
             print(f">>> {value}")
             plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), variables=variables,
                                   path_result=path_indicator_figures+f'maps_variation_mean_{key}.pdf',
-                                  cbar_title=f"Variation moyenne {indicator} (%)", title=value, cbar_midpoint='zero',
+                                  cbar_title=f"Variation moyenne {title} (%)", title=value, cbar_midpoint='zero',
                                   dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds, edgecolor=edgecolor,
                                   markersize=75, discretize=10, palette='BrBG', fontsize=fontsize, font='sans-serif',
                                   vmin=None, vmax=vmax)
@@ -304,7 +306,7 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                               simulations=variables['hydro_model_deviation_sim_horizon'],
                               narratives=narratives,
                               name_x_axis=f'PK (km)',
-                              name_y_axis=f'{indicator} variation (%)',
+                              name_y_axis=f'{title} variation (%)',
                               percent=True,
                               vlines=vlines,
                               fontsize=fontsize,
@@ -316,7 +318,7 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                            simulations=variables['simulation_horizon_deviation_by_sims'],
                            narratives=narratives,
                            name_x_axis=f'PK (km)',
-                           name_y_axis=f'{indicator} variation (%)',
+                           name_y_axis=f'{title} variation (%)',
                            percent=True,
                            vlines=vlines,
                            fontsize=fontsize,
@@ -327,7 +329,7 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                            simulations=variables['simulation_horizon_deviation_by_sims'],
                            narratives=narratives,
                            name_x_axis=f'PK (km)',
-                           name_y_axis=f'{indicator} variation (%)',
+                           name_y_axis=f'{title} variation (%)',
                            percent=True,
                            vlines=vlines,
                            fontsize=fontsize,
@@ -338,7 +340,7 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                              simulations=variables['simulation_deviation'],
                              narratives=narratives,
                              name_x_axis='Date',
-                             name_y_axis=f'{indicator} variation (%)',
+                             name_y_axis=f'{title} variation (%)',
                              percent=True,
                              vlines=None,
                              fontsize=fontsize,
@@ -351,7 +353,7 @@ for indicator in files_setup['hydro_indicator'] + files_setup['climate_indicator
                                  simulations=variables['simulation_horizon_deviation_by_sims'],
                                  narratives=None,
                                  references=None,
-                                 name_y_axis=f'{indicator} variation (%)',
+                                 name_y_axis=f'{title} variation (%)',
                                  percent=True,
                                  fontsize=fontsize,
                                  path_result=path_indicator_figures+'boxplot_deviation_narratives.pdf',)
