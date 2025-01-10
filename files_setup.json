@@ -63,11 +63,31 @@
       }
     },
   "climate_indicator": {
-    "tasminAdjust": {"title":  "température min.", "units":  "°C"},
-    "tasAdjust": {"title":  "température moyenne", "units":  "°C"},
-    "tasmaxAdjust": {"title":  "température max.", "units":  "°C"},
-    "prtotAdjust": {"title":  "précipitation", "units":  "mm"},
-    "evspsblpotAdjust": {"title":  "évapotranspiration", "units":  "mm"}
+    "tasminAdjust": {
+      "température min.": {
+        "units": "°C"
+      }
+    },
+    "tasAdjust": {
+      "température moyenne": {
+        "units": "°C"
+      }
+    },
+    "tasmaxAdjust": {
+      "température max.": {
+        "units": "°C"
+      }
+    },
+    "prtotAdjust": {
+      "précipitation": {
+        "units": "mm"
+      }
+    },
+    "evspsblpotAdjust": {
+      "évapotranspiration": {
+        "units": "mm"
+      }
+    }
   },
   "select_rcp": ["rcp85"],
   "select_gcm": [],
