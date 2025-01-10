@@ -45,8 +45,7 @@
         "QMNA5": {
           "units": "m3/s",
           "plot_function": "min",
-          "return_period": 5,
-          "timestep": "YE"
+          "return_period": 5
         },
         "QMN5": {
           "units": "m3/s",
@@ -69,7 +68,7 @@
       }
     },
     "tasAdjust": {
-      "T moyenne": {
+      "T moy.": {
         "units": "°C"
       }
     },

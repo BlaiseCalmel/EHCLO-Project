@@ -8,6 +8,7 @@ print(f'################################ IMPORT & INITIALIZATION ###############
 print(f'> General imports...', end='\n')
 import sys
 import os
+import copy
 # sys.path.insert(0, os.getcwd())
 import time
 import json
@@ -174,149 +175,190 @@ fontsize = 18
 
 for indicator, subdicts in (files_setup['hydro_indicator'] | files_setup['climate_indicator']).items():
     for name_indicator, indicator_setup in subdicts.items():
-        # TODO put this in a function
-        title, units, timestep, plot_function, return_period, path_indicator_figures = load_settings(
-            indicator_setup, indicator, name_indicator, dict_paths)
-        # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}.nc"
+        # Settings info on indicator
+        title = name_indicator
+        if not title[0].isupper():
+            title = title.title()
+        units, timestep, plot_function, return_period = load_settings(indicator_setup)
 
-        path_ncdf = f"{dict_paths['folder_study_data']}debit_rcp85.nc"
+        # Create folder
+        title_join = name_indicator.replace(" ", "-")
+        path_indicator = dict_paths['folder_study_figures'] + title_join + os.sep
+        if not os.path.isdir(path_indicator):
+            os.makedirs(path_indicator)
+        path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{timestep}.nc"
+        # path_ncdf = f"{dict_paths['folder_study_data']}QMNA5_rcp85_YE.nc"
 
-    # Compute PK
-    if indicator in files_setup['hydro_indicator']:
-        data_type = 'hydro'
-        sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
-        loire = sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7]
-        value = compute_river_distance(rivers_shp, loire, river_name='loire',
-                                       start_from='last')
-        sim_points_gdf_simplified['PK'] = np.nan
-        sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7, 'PK'] = value
-        edgecolor = 'k'
-    else:
-        data_type = 'climate'
-        sim_points_gdf_simplified = climate_sim_points_gdf_simplified
-        sim_points_gdf_simplified = sim_points_gdf_simplified.set_index('name')
-        edgecolor = None
+        # Compute PK
+        if indicator in files_setup['hydro_indicator']:
+            data_type = 'hydro'
+            sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
+            loire = sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7]
+            value = compute_river_distance(rivers_shp, loire, river_name='loire',
+                                           start_from='last')
+            sim_points_gdf_simplified['PK'] = np.nan
+            sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7, 'PK'] = value
+            edgecolor = 'k'
+        else:
+            data_type = 'climate'
+            sim_points_gdf_simplified = climate_sim_points_gdf_simplified
+            sim_points_gdf_simplified = sim_points_gdf_simplified.set_index('name')
+            edgecolor = None
 
-    # Open ncdf dataset
-    ds = xr.open_dataset(path_ncdf)
+        # Open ncdf dataset
+        ds_stats = xr.open_dataset(path_ncdf)
 
-    # Compute stats
-    ds, variables = format_dataset(ds, data_type, files_setup, plot_function, return_period)
+        # Compute stats
+        ds_stats, variables = format_dataset(ds_stats, data_type, files_setup, plot_function, return_period)
 
-    # Geodataframe
-    sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds.gid]
-    dict_shapefiles = define_plot_shapefiles(regions_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified,
-                           indicator, files_setup)
+        # Geodataframe
+        sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds_stats.gid]
+        dict_shapefiles = define_plot_shapefiles(regions_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified,
+                               indicator, files_setup)
 
-    # Plot map
-    # Relative
-    print(f"> Map plot...")
-    if indicator in files_setup['climate_indicator']:
-        print(f">> Difference map plot {indicator}")
-        plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_mean',
-                      path_result=path_indicator_figures+'map_difference.pdf',
-                      cbar_title=f"{title} mean difference ({units})", cbar_ticks=None, title=None, dict_shapefiles=dict_shapefiles,
-                      percent=False, bounds=bounds, palette='RdBu_r', cbar_midpoint='zero', fontsize=fontsize,
-                      font='sans-serif', discretize=7, edgecolor=edgecolor, markersize=75, vmin=0, cbar_values=1)
+        # Check for additional coordinates
+        used_coords = set()
+        for var in ds_stats.data_vars:
+            used_coords.update(ds_stats[var].dims)
 
-    elif indicator in files_setup['hydro_indicator']:
-        print(f">> Deviation map plot by HM")
-        horizons = {'horizon1': 'Horizon 1 (2021-2050)',
-                    'horizon2': 'Horizon 2 (2041-2070)',
-                    'horizon3': 'Horizon 3 (2070-2099)',
-                    }
-        mean_by_hm = [s for sublist in variables['hydro_model_deviation'].values() for s in sublist if "mean" in s]
-        vmax = math.ceil(abs(ds[mean_by_hm].to_array()).max() / 5) * 5
-        for key, value in horizons.items():
-            print(f">>> {value}")
-            plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), variables=variables,
-                                  path_result=path_indicator_figures+f'maps_variation_mean_{key}.pdf',
-                                  cbar_title=f"Variation moyenne {title} (%)", title=value, cbar_midpoint='zero',
-                                  dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds, edgecolor=edgecolor,
-                                  markersize=75, discretize=10, palette='BrBG', fontsize=fontsize, font='sans-serif',
-                                  vmin=None, vmax=vmax)
+        additional_coordinates = {i: ds_stats[i].values for i in used_coords if i not in
+                                  ['gid', 'time', 'horizon']}
 
-        # Sim by PK + quantile
-        print(f"> Linear plot...")
+        if len(additional_coordinates) == 0:
+            additional_coordinates = {'': [None]}
 
-        if 'PK' in sim_points_gdf_simplified.columns:
-            ds = ds.assign(PK=("gid", sim_points_gdf_simplified.loc[ds.gid.values, "PK"]))
+        for coordinate, unique_value in additional_coordinates.items():
+            for coordinate_value in unique_value:
+                # Selection from the current coordinate value
+                if coordinate_value is not None:
+                    ds = ds_stats.sel({coordinate: coordinate_value})
 
-            villes = ['Villerest', 'Nevers', 'Orleans', 'Tours', 'Saumur', 'Nantes'] #'Blois',
-            regex = "|".join(villes)
-            vlines = sim_points_gdf_simplified[sim_points_gdf_simplified['Suggesti_2'].str.contains(regex, case=False, na=False)]
-            vlines.loc[: ,'color'] = 'none'
-            cities = [i.split(' A ')[-1].split(' [')[0] for i in vlines['Suggesti_2']]
-            vlines.insert(loc=0, column='label', value=cities)
-            vlines['annotate'] = 0.02
+                    path_indicator_figures = path_indicator + coordinate_value + os.sep
+                    if not os.path.isdir(path_indicator_figures):
+                        os.makedirs(path_indicator_figures)
+                else:
+                    ds = copy.deepcopy(ds_stats)
+                    path_indicator_figures = path_indicator
 
-            narratives = {
-                "HadGEM2-ES_ALADIN63_ADAMONT": {'color': '#569A71', 'zorder': 10, 'label': 'Vert [HadGEM2-ES_ALADIN63_ADAMONT]',
-                                                'linewidth': 1},
-                "CNRM-CM5_ALADIN63_ADAMONT": {'color': '#EECC66', 'zorder': 10, 'label': 'Jaune [CNRM-CM5_ALADIN63_ADAMONT]',
-                                              'linewidth': 1},
-                "EC-EARTH_HadREM3-GA7_ADAMONT": {'color': '#E09B2F', 'zorder': 10, 'label': 'Orange [EC-EARTH_HadREM3-GA7_ADAMONT]',
-                                                 'linewidth': 1},
-                "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'color': '#791F5D', 'zorder': 10, 'label': 'Violet [HadGEM2-ES_CCLM4-8-17_ADAMONT]',
-                                                  'linewidth': 1},
-            }
+                print(f"> Map plot...")
+                # Climate difference map
+                if indicator in files_setup['climate_indicator']:
+                    print(f">> Difference map plot {indicator}")
+                    plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_mean',
+                                  path_result=path_indicator_figures+f'{title_join}_map_difference.pdf',
+                                  cbar_title=f"{title} mean difference ({units})", cbar_ticks=None, title=coordinate_value, dict_shapefiles=dict_shapefiles,
+                                  percent=False, bounds=bounds, palette='RdBu_r', cbar_midpoint='zero', fontsize=fontsize,
+                                  font='sans-serif', discretize=7, edgecolor=edgecolor, markersize=75, vmin=0, cbar_values=1)
 
-            print(f">> Linear deviation - x: PK, y: {indicator}, row: HM, col: Horizon")
-            plot_linear_pk_hm(ds,
-                              simulations=variables['hydro_model_deviation_sim_horizon'],
-                              narratives=narratives,
-                              name_x_axis=f'PK (km)',
-                              name_y_axis=f'{title} variation (%)',
-                              percent=True,
-                              vlines=vlines,
-                              fontsize=fontsize,
-                              path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{indicator}_row-HM_col-horizon.pdf')
+                elif indicator in files_setup['hydro_indicator']:
+                    print(f">> Deviation map plot by HM")
+                    horizons = {'horizon1': 'Horizon 1 (2021-2050)',
+                                'horizon2': 'Horizon 2 (2041-2070)',
+                                'horizon3': 'Horizon 3 (2070-2099)',
+                                }
+                    mean_by_hm = [s for sublist in variables['hydro_model_deviation'].values() for s in sublist if "mean" in s]
+                    vmax = math.ceil(abs(ds[mean_by_hm].to_array()).max() / 5) * 5
+                    for key, value in horizons.items():
+                        print(f">>> {value}")
+                        if coordinate_value is not None:
+                            map_title = f"{value}: {coordinate_value} "
+                        else:
+                            map_title = f"{value}"
+                        plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), variables=variables,
+                                              path_result=path_indicator_figures+f'{title_join}_map_variation_mean_{key}.pdf',
+                                              cbar_title=f"Variation moyenne {title} (%)", title=map_title, cbar_midpoint='zero',
+                                              dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds, edgecolor=edgecolor,
+                                              markersize=75, discretize=10, palette='BrBG', fontsize=fontsize, font='sans-serif',
+                                              vmin=None, vmax=vmax)
 
+                    # Sim by PK + quantile
+                    print(f"> Linear plot...")
 
-            print(f">> Linear deviation - x: PK, y: {indicator}, row: Narratif, col: Horizon")
-            plot_linear_pk_narrative(ds,
-                           simulations=variables['simulation_horizon_deviation_by_sims'],
-                           narratives=narratives,
-                           name_x_axis=f'PK (km)',
-                           name_y_axis=f'{title} variation (%)',
-                           percent=True,
-                           vlines=vlines,
-                           fontsize=fontsize,
-                           path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{indicator}_row-narrative_col-horizon.pdf')
+                    if 'PK' in sim_points_gdf_simplified.columns:
+                        ds = ds.assign(PK=("gid", sim_points_gdf_simplified.loc[ds.gid.values, "PK"]))
 
-            print(f">> Linear deviation - x: PK, y: {indicator}, col: Horizon")
-            plot_linear_pk(ds,
-                           simulations=variables['simulation_horizon_deviation_by_sims'],
-                           narratives=narratives,
-                           name_x_axis=f'PK (km)',
-                           name_y_axis=f'{title} variation (%)',
-                           percent=True,
-                           vlines=vlines,
-                           fontsize=fontsize,
-                           path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{indicator}_col-horizon.pdf')
+                        villes = ['Villerest', 'Nevers', 'Orleans', 'Tours', 'Saumur', 'Nantes'] #'Blois',
+                        regex = "|".join(villes)
+                        vlines = sim_points_gdf_simplified[sim_points_gdf_simplified['Suggesti_2'].str.contains(regex, case=False, na=False)]
+                        vlines.loc[: ,'color'] = 'none'
+                        cities = [i.split(' A ')[-1].split(' [')[0] for i in vlines['Suggesti_2']]
+                        vlines.insert(loc=0, column='label', value=cities)
+                        vlines['annotate'] = 0.02
 
-            print(f">> Linear timeline deviation - x: time, y: {indicator}, row/col: Stations ref")
-            plot_linear_time(ds,
-                             simulations=variables['simulation_deviation'],
-                             narratives=narratives,
-                             name_x_axis='Date',
-                             name_y_axis=f'{title} variation (%)',
-                             percent=True,
-                             vlines=None,
-                             fontsize=fontsize,
-                             path_result=path_indicator_figures+f'lineplot_variation_x-time_y-{indicator}_row-col-stations-ref.pdf',)
+                        narratives = {
+                            "HadGEM2-ES_ALADIN63_ADAMONT": {'color': '#569A71', 'zorder': 10, 'label': 'Vert [HadGEM2-ES_ALADIN63_ADAMONT]',
+                                                            'linewidth': 1},
+                            "CNRM-CM5_ALADIN63_ADAMONT": {'color': '#EECC66', 'zorder': 10, 'label': 'Jaune [CNRM-CM5_ALADIN63_ADAMONT]',
+                                                          'linewidth': 1},
+                            "EC-EARTH_HadREM3-GA7_ADAMONT": {'color': '#E09B2F', 'zorder': 10, 'label': 'Orange [EC-EARTH_HadREM3-GA7_ADAMONT]',
+                                                             'linewidth': 1},
+                            "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'color': '#791F5D', 'zorder': 10, 'label': 'Violet [HadGEM2-ES_CCLM4-8-17_ADAMONT]',
+                                                              'linewidth': 1},
+                        }
+
+                        print(f">> Linear deviation - x: PK, y: {indicator}, row: HM, col: Horizon")
+                        plot_linear_pk_hm(ds,
+                                          simulations=variables['hydro_model_deviation_sim_horizon'],
+                                          narratives=narratives,
+                                          title=coordinate_value,
+                                          name_x_axis=f'PK (km)',
+                                          name_y_axis=f'{title} variation (%)',
+                                          percent=True,
+                                          vlines=vlines,
+                                          fontsize=fontsize,
+                                          path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{title_join}_row-HM_col-horizon.pdf')
 
 
-            print(f"> Box plot...")
-            print(f">> Boxplot deviation by horizon and selected stations")
-            plot_boxplot_station_narrative(ds,
-                                 simulations=variables['simulation_horizon_deviation_by_sims'],
-                                 narratives=None,
-                                 references=None,
-                                 name_y_axis=f'{title} variation (%)',
-                                 percent=True,
-                                 fontsize=fontsize,
-                                 path_result=path_indicator_figures+'boxplot_deviation_narratives.pdf',)
+                        print(f">> Linear deviation - x: PK, y: {indicator}, row: Narratif, col: Horizon")
+                        plot_linear_pk_narrative(ds,
+                                                 simulations=variables['simulation_horizon_deviation_by_sims'],
+                                                 narratives=narratives,
+                                                 title=coordinate_value,
+                                                 name_x_axis=f'PK (km)',
+                                                 name_y_axis=f'{title} variation (%)',
+                                                 percent=True,
+                                                 vlines=vlines,
+                                                 fontsize=fontsize,
+                                                 path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{title_join}_row-narrative_col-horizon.pdf')
+
+
+                        print(f">> Linear deviation - x: PK, y: {indicator}, col: Horizon")
+                        plot_linear_pk(ds,
+                                       simulations=variables['simulation_horizon_deviation_by_sims'],
+                                       narratives=narratives,
+                                       title=coordinate_value,
+                                       name_x_axis=f'PK (km)',
+                                       name_y_axis=f'{title} variation (%)',
+                                       percent=True,
+                                       vlines=vlines,
+                                       fontsize=fontsize,
+                                       path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{title_join}_col-horizon.pdf')
+
+                        print(f">> Linear timeline deviation - x: time, y: {indicator}, row/col: Stations ref")
+                        plot_linear_time(ds,
+                                         simulations=variables['simulation_deviation'],
+                                         narratives=narratives,
+                                         title=coordinate_value,
+                                         name_x_axis='Date',
+                                         name_y_axis=f'{title} variation (%)',
+                                         percent=True,
+                                         vlines=None,
+                                         fontsize=fontsize,
+                                         path_result=path_indicator_figures+f'lineplot_variation_x-time_y-{title_join}_row-col-stations-ref.pdf',)
+
+
+                        print(f"> Box plot...")
+                        print(f">> Boxplot deviation by horizon and selected stations")
+                        plot_boxplot_station_narrative(ds,
+                                                       simulations=variables['simulation_horizon_deviation_by_sims'],
+                                                       narratives=None,
+                                                       title=coordinate_value,
+                                                       references=None,
+                                                       name_y_axis=f'{title} variation (%)',
+                                                       percent=True,
+                                                       fontsize=fontsize,
+                                                       path_result=path_indicator_figures+f'{title_join}_boxplot_deviation_narratives.pdf',)
+
 
 
 

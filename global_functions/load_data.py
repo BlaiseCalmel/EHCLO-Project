@@ -97,7 +97,8 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                             vars_to_remove = [var for var in ds.data_vars if dims in ds[var].dims]
                             ds = ds.drop_vars(vars_to_remove + [dims])
 
-                ds = ds.assign_coords({"station": ds.station})
+                if len(dims_without_coords) > 0:
+                    ds = ds.assign_coords({"station": ds.station})
 
                 # Add sim suffix
                 ds = rename_variables(ds, file_name, indicator.split('_')[0])

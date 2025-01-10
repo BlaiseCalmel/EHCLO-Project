@@ -5,7 +5,7 @@ from plot_functions.plot_lineplot import *
 from plot_functions.plot_boxplot import *
 
 def plot_linear_pk_hm(ds, simulations, path_result, narratives=None,
-                   name_x_axis='', name_y_axis='', percent=False, vlines=None,
+                   name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None,
                       fontsize=14, font='sans-serif'):
     x_axis = {'names_coord': 'PK',
               'name_axis': name_x_axis
@@ -39,10 +39,10 @@ def plot_linear_pk_hm(ds, simulations, path_result, narratives=None,
     }
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
-             title=None, percent=percent, fontsize=fontsize, font=font, ymax=None)
+             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None)
 
 def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
-                      name_x_axis='', name_y_axis='', percent=False, vlines=None,
+                      name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None,
                              fontsize=14, font='sans-serif'):
     x_axis = {'names_coord': 'PK',
               'name_axis': name_x_axis
@@ -78,10 +78,10 @@ def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
     }
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
-             title=None, percent=percent, fontsize=fontsize, font=font, ymax=None)
+             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None)
 
 def plot_linear_pk(ds, simulations, path_result, narratives=None,
-                   name_x_axis='', name_y_axis='', percent=False, vlines=None,
+                   name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None,
                    fontsize=14, font='sans-serif'):
     x_axis = {'names_coord': 'PK',
               'name_axis': name_x_axis
@@ -113,11 +113,12 @@ def plot_linear_pk(ds, simulations, path_result, narratives=None,
     }
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
-             title=None, percent=percent, fontsize=fontsize, font=font, ymax=None)
+             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None)
 
 
 def plot_linear_time(ds, simulations, path_result, narratives=None,
-                     name_x_axis='', name_y_axis='', percent=False, vlines=None, fontsize=14, font='sans-serif'):
+                     name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None,
+                     fontsize=14, font='sans-serif'):
 
     x_axis = {'names_coord': 'time',
               'name_axis': name_x_axis
@@ -156,11 +157,11 @@ def plot_linear_time(ds, simulations, path_result, narratives=None,
     rows = 4
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
-             title=None, percent=percent, fontsize=fontsize, font=font, ymax=None)
+             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None)
 
 
 def plot_boxplot_station_narrative(ds, simulations, narratives, references, path_result, name_y_axis='', percent=False,
-                                   fontsize=14, font='sans-serif'):
+                                   title=None, fontsize=14, font='sans-serif'):
 
     narratives = {
         "HadGEM2-ES_ALADIN63_ADAMONT": {'boxprops':dict(facecolor='#569A71', alpha=0.9),
@@ -218,7 +219,7 @@ def plot_boxplot_station_narrative(ds, simulations, narratives, references, path
     }
 
     boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=True,
-             title=None, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=1)
+             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=1)
 
 def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, percent, bounds,
                           variables, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,

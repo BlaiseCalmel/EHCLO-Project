@@ -3,14 +3,7 @@ import numpy as np
 import pandas as pd
 import os
 
-def load_settings(indicator_setup, indicator, name_indicator, dict_paths):
-    if "title" in indicator_setup.keys():
-        title = indicator_setup["title"]
-    else:
-        title = indicator
-    if not title[0].isupper():
-        title = title.title()
-
+def load_settings(indicator_setup):
     if "units" in indicator_setup.keys():
         units = indicator_setup["units"]
     else:
@@ -31,16 +24,11 @@ def load_settings(indicator_setup, indicator, name_indicator, dict_paths):
     else:
         return_period = None
 
-        # Create folder
-    name_join = name_indicator.replace(" ", "-")
-    path_indicator_figures = dict_paths['folder_study_figures'] + name_join + os.sep
-    if not os.path.isdir(path_indicator_figures):
-        os.makedirs(path_indicator_figures)
-
-    return title, units, timestep, plot_function, return_period, path_indicator_figures
+    return units, timestep, plot_function, return_period
 
 def format_dataset(ds, data_type, files_setup, plot_function=None, return_period=None):
     other_dimension = None
+    dimension_names = None
     if plot_function is not None:
         if plot_function == 'min':
             ds = ds.groupby("time.year").min(dim="time")
@@ -51,6 +39,11 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
         elif plot_function == 'month':
             ds = ds.assign_coords(month=ds['time.month'])
             other_dimension = 'month'
+            dimension_names = {
+                1: "Janvier", 2: "Février", 3: "Maris", 4: "Avril",
+                5: "Mai", 6: "Juin", 7: "Juillet", 8: "Août",
+                9: "Septembre", 10: "Octobre", 11: "Novembre", 12: "Décembre",
+            }
 
     # if data_type == 'climate':
     #     # sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
@@ -177,7 +170,11 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
                'horizon_difference': horizon_difference,
                'timeline_deviation': timeline_deviation, # mean timeline deviation among sims
                'timeline_difference': timeline_difference
-     }
+    }
+
+    if dimension_names is not None:
+        ds = ds.assign_coords(month=[dimension_names[m] for m in ds["month"].values])
+
 
     return ds, columns
 
