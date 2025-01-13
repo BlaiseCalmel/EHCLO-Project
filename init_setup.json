@@ -1,0 +1,10 @@
+{
+  "units": "",
+  "timestep": "YE",
+  "plot_function": "None",
+  "palette": "BrBG",
+  "fontsize":18,
+  "font": "sans-serif",
+  "vmin": "None",
+  "vmax": "None"
+}

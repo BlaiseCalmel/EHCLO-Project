@@ -3,6 +3,16 @@ import numpy as np
 import pandas as pd
 import os
 
+def create_variables_from_dict(data):
+    """
+    Crée des variables globales pour chaque clé d'un dictionnaire.
+    Si une clé n'a pas de valeur, elle est définie sur None.
+
+    :param data: dict, dictionnaire contenant les clés et leurs valeurs
+    """
+    globals().update({key: value if value is not "None" else None for key, value in data.items()})
+
+
 def load_settings(indicator_setup):
     if "units" in indicator_setup.keys():
         units = indicator_setup["units"]
@@ -44,6 +54,20 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
                 5: "Mai", 6: "Juin", 7: "Juillet", 8: "Août",
                 9: "Septembre", 10: "Octobre", 11: "Novembre", 12: "Décembre",
             }
+        elif plot_function == 'season':
+            def get_season(month):
+                if month in [12, 1, 2]:
+                    return 1
+                elif month in [6, 7, 8]:
+                    return 2
+                elif month in [3, 4, 5]:
+                    return 3
+                elif month in [9, 10, 11]:
+                    return 4
+            seasons = [get_season(date) for date in ds["time.month"]]
+            ds = ds.assign_coords(season=("time", seasons))
+            other_dimension = 'season'
+            dimension_names = {1: "Hiver", 2: "Printemps", 3: "Été", 4: "Automne"}
 
     # if data_type == 'climate':
     #     # sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
@@ -173,8 +197,7 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
     }
 
     if dimension_names is not None:
-        ds = ds.assign_coords(month=[dimension_names[m] for m in ds["month"].values])
-
+        ds = ds.assign_coords({plot_function: [dimension_names[m] for m in ds[plot_function].values]})
 
     return ds, columns
 

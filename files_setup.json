@@ -64,27 +64,42 @@
   "climate_indicator": {
     "tasminAdjust": {
       "T min.": {
-        "units": "°C"
+        "units": "°C",
+        "timestep": "ME",
+        "plot_function": "season",
+        "palette": "RdBu_r"
       }
     },
     "tasAdjust": {
       "T moy.": {
-        "units": "°C"
+        "units": "°C",
+        "timestep": "ME",
+        "plot_function": "season",
+        "palette": "RdBu_r"
       }
     },
     "tasmaxAdjust": {
       "T max.": {
-        "units": "°C"
+        "units": "°C",
+        "timestep": "ME",
+        "plot_function": "season",
+        "palette": "RdBu_r"
       }
     },
     "prtotAdjust": {
       "RR": {
-        "units": "mm"
+        "units": "mm",
+        "timestep": "ME",
+        "plot_function": "season",
+        "palette": "RdBu"
       }
     },
     "evspsblpotAdjust": {
       "ETP": {
-        "units": "mm"
+        "units": "mm",
+        "timestep": "ME",
+        "plot_function": "season",
+        "palette": "RdBu"
       }
     }
   },
