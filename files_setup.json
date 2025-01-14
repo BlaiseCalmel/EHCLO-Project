@@ -67,7 +67,9 @@
         "units": "°C",
         "timestep": "ME",
         "plot_function": "season",
-        "palette": "RdBu_r"
+        "palette": "RdBu_r",
+        "vmin": 0,
+        "vmax": 2
       }
     },
     "tasAdjust": {
@@ -75,7 +77,9 @@
         "units": "°C",
         "timestep": "ME",
         "plot_function": "season",
-        "palette": "RdBu_r"
+        "palette": "RdBu_r",
+        "vmin": 0,
+        "vmax": 2
       }
     },
     "tasmaxAdjust": {
@@ -83,7 +87,9 @@
         "units": "°C",
         "timestep": "ME",
         "plot_function": "season",
-        "palette": "RdBu_r"
+        "palette": "RdBu_r",
+        "vmin": 0,
+        "vmax": 2.2
       }
     },
     "prtotAdjust": {
@@ -91,7 +97,9 @@
         "units": "mm",
         "timestep": "ME",
         "plot_function": "season",
-        "palette": "RdBu"
+        "palette": "RdBu",
+        "vmin": -35,
+        "vmax": 35
       }
     },
     "evspsblpotAdjust": {
@@ -99,7 +107,9 @@
         "units": "mm",
         "timestep": "ME",
         "plot_function": "season",
-        "palette": "RdBu"
+        "palette": "RdBu_r",
+        "vmin": 0,
+        "vmax": 35
       }
     }
   },

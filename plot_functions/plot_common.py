@@ -39,9 +39,17 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
         bottom = 0.15
         height = 0.7
     else:
-        middle = int(len_rows / 2)
-        bottom = axes_flatten[middle].get_position().y0 - 0.2
-        height = axes_flatten[middle].get_position().y1 + 0.2
+        middle = int(len_rows * len_cols / 2)
+        if len_rows % 2 == 0:
+            center = (axes_flatten[middle-1].get_position().y0 + axes_flatten[middle].get_position().y1)/2
+        else:
+            center = (axes_flatten[middle].get_position().y0 + axes_flatten[middle].get_position().y1)/2
+        size = axes_flatten[middle-1].get_position().y1 - axes_flatten[middle-1].get_position().y0 + 0.1
+        bottom = center - size
+        height = 2 * size
+
+        # bottom = axes_flatten[middle].get_position().y0 - 0.2
+        # height = axes_flatten[middle].get_position().y1 + 0.2
 
     cbar_ax = fig.add_axes([axes_flatten[len_cols - 1].get_position().x1 + 0.05, bottom, 0.02, height])
 

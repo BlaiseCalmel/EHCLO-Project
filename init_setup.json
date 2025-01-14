@@ -2,9 +2,12 @@
   "units": "",
   "timestep": "YE",
   "plot_function": "None",
+  "return_period": "None",
+  "additional_coordinates": "None",
   "palette": "BrBG",
   "fontsize":18,
   "font": "sans-serif",
   "vmin": "None",
-  "vmax": "None"
+  "vmax": "None",
+  "discretize": 10
 }

@@ -1,45 +1,38 @@
+import copy
+
 import xarray as xr
 import numpy as np
 import pandas as pd
 import os
-
-def create_variables_from_dict(data):
-    """
-    Crée des variables globales pour chaque clé d'un dictionnaire.
-    Si une clé n'a pas de valeur, elle est définie sur None.
-
-    :param data: dict, dictionnaire contenant les clés et leurs valeurs
-    """
-    globals().update({key: value if value is not "None" else None for key, value in data.items()})
+import json
 
 
 def load_settings(indicator_setup):
-    if "units" in indicator_setup.keys():
-        units = indicator_setup["units"]
-    else:
-        units = ''
+    with open('init_setup.json') as init_setup_file:
+        init_setup = json.load(init_setup_file)
 
-    if "timestep" in indicator_setup.keys():
-        timestep = indicator_setup["timestep"]
-    else:
-        timestep = "YE"
+    settings = copy.deepcopy(init_setup)
+    for key, value in indicator_setup.items():
+        settings.update({key: value})
 
-    if "plot_function" in indicator_setup.keys():
-        plot_function = indicator_setup["plot_function"]
-    else:
-        plot_function = None
+    settings = {key: value if value != 'None' else None for key, value in settings.items()}
+    return settings
 
-    if "return_period" in indicator_setup.keys():
-        return_period = indicator_setup["return_period"]
-    else:
-        return_period = None
-
-    return units, timestep, plot_function, return_period
+def get_season(month):
+    if month in [12, 1, 2]:
+        return 1
+    elif month in [3, 4, 5]:
+        return 2
+    elif month in [6, 7, 8]:
+        return 3
+    elif month in [9, 10, 11]:
+        return 4
 
 def format_dataset(ds, data_type, files_setup, plot_function=None, return_period=None):
     other_dimension = None
     dimension_names = None
     if plot_function is not None:
+        # TODO Define HM as secondary dimension
         if plot_function == 'min':
             ds = ds.groupby("time.year").min(dim="time")
             ds = ds.rename({"year": "time"})
@@ -55,15 +48,6 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
                 9: "Septembre", 10: "Octobre", 11: "Novembre", 12: "Décembre",
             }
         elif plot_function == 'season':
-            def get_season(month):
-                if month in [12, 1, 2]:
-                    return 1
-                elif month in [6, 7, 8]:
-                    return 2
-                elif month in [3, 4, 5]:
-                    return 3
-                elif month in [9, 10, 11]:
-                    return 4
             seasons = [get_season(date) for date in ds["time.month"]]
             ds = ds.assign_coords(season=("time", seasons))
             other_dimension = 'season'

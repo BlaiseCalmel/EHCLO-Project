@@ -120,8 +120,8 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
 
     # Iterate over subplots
     idx = -1
-    for col_idx, col in enumerate(cols_plot['values_var']):
-        for row_idx, row in enumerate(rows_plot['values_var']):
+    for row_idx, row in enumerate(rows_plot['values_var']):
+        for col_idx, col in enumerate(cols_plot['values_var']):
             idx += 1
             # idx = len_cols * row_idx + col_idx
             subplot_title = None

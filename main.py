@@ -170,22 +170,17 @@ for data_type, subdict in path_files.items():
                     print(f'> {path_ncdf} already exists', end='\n')
 
 name = 'prtotAdjust'
-
 data_to_plot = {name: files_setup['climate_indicator'][name]}
 data_to_plot = (files_setup['climate_indicator'])
 for indicator, subdicts in data_to_plot.items():
     for name_indicator, indicator_setup in subdicts.items():
-        print(f'################################ PLOT {name_indicator.upper()} ################################', end='\n')
+        print(f'################################ STATS {name_indicator.upper()} ################################', end='\n')
         # Settings info on indicator
         title = name_indicator
         if not title[0].isupper():
             title = title.title()
 
-        with open('init_setup.json') as init_setup_file:
-            init_setup = json.load(init_setup_file)
-
-        create_variables_from_dict(init_setup)
-        create_variables_from_dict(indicator_setup)
+        settings = load_settings(indicator_setup)
 
         # Create folder
         title_join = name_indicator.replace(" ", "-").replace(".", "")
@@ -214,7 +209,8 @@ for indicator, subdicts in data_to_plot.items():
         ds_stats = xr.open_dataset(path_ncdf)
 
         # Compute stats
-        ds_stats, variables = format_dataset(ds_stats, data_type, files_setup, plot_function, return_period)
+        ds_stats, variables = format_dataset(ds_stats, data_type, files_setup, settings['plot_function'],
+                                             settings['return_period'])
 
         # Geodataframe
         sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds_stats.gid]
@@ -226,15 +222,14 @@ for indicator, subdicts in data_to_plot.items():
         for var in ds_stats.data_vars:
             used_coords.update(ds_stats[var].dims)
 
-        # additional_coordinates = {i: ds_stats[i].values for i in used_coords if i not in
-        #                           ['gid', 'time', 'horizon']}
-        if plot_function is not None:
-            additional_coordinates = {plot_function: ds_stats[plot_function].values}
+        if settings['additional_coordinates'] is not None:
+            additional_coordinates = {settings['plot_additional_coordinatesfunction']: ds_stats[settings['additional_coordinates']].values}
         else:
             additional_coordinates = {'': [None]}
 
         for coordinate, unique_value in additional_coordinates.items():
             for coordinate_value in unique_value:
+                print(f'################################ PLOT {name_indicator.upper()} {coordinate_value} ################################', end='\n')
                 # Selection from the current coordinate value
                 if coordinate_value is not None:
                     ds = ds_stats.sel({coordinate: coordinate_value})
@@ -250,11 +245,12 @@ for indicator, subdicts in data_to_plot.items():
                 # Climate difference map
                 if indicator in files_setup['climate_indicator']:
                     print(f">> Difference map plot {indicator}")
-                    plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_mean',
+                    plot_map_indicator_climate_seas(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_mean',
                                   path_result=path_indicator_figures+f'{title_join}_map_difference.pdf',
-                                  cbar_title=f"Différence moyenne {title} ({units})", cbar_ticks=None, title=coordinate_value, dict_shapefiles=dict_shapefiles,
-                                  percent=False, bounds=bounds, palette='RdBu', cbar_midpoint='zero', fontsize=fontsize, #palette='RdBu_r'
-                                  font=font, discretize=7, edgecolor=edgecolor, vmin=-10, markersize=75, cbar_values=1) #vmin=0,
+                                  cbar_title=f"Différence moyenne {title} ({settings['units']})", cbar_ticks=None, title=coordinate_value, dict_shapefiles=dict_shapefiles,
+                                  percent=False, bounds=bounds, palette=settings['palette'], cbar_midpoint='zero', fontsize=settings['fontsize'],
+                                  font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75, cbar_values=1,
+                                  vmin=settings['vmin'], vmax=settings['vmax'])
 
                 elif indicator in files_setup['hydro_indicator']:
                     print(f">> Deviation map plot by HM")
@@ -263,7 +259,10 @@ for indicator, subdicts in data_to_plot.items():
                                 'horizon3': 'Horizon 3 (2070-2099)',
                                 }
                     mean_by_hm = [s for sublist in variables['hydro_model_deviation'].values() for s in sublist if "mean" in s]
-                    vmax = math.ceil(abs(ds[mean_by_hm].to_array()).max() / 5) * 5
+                    if settings['vmax'] == 'auto':
+                        vmax = math.ceil(abs(ds[mean_by_hm].to_array()).max() / 5) * 5
+                    else:
+                        vmax = settings['vmax']
                     for key, value in horizons.items():
                         print(f">>> Map {value}")
                         if coordinate_value is not None:
@@ -274,8 +273,8 @@ for indicator, subdicts in data_to_plot.items():
                                               path_result=path_indicator_figures+f'{title_join}_map_variation_mean_{key}.pdf',
                                               cbar_title=f"Variation moyenne {title} (%)", title=map_title, cbar_midpoint='zero',
                                               dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds, edgecolor=edgecolor,
-                                              markersize=75, discretize=10, palette='BrBG', fontsize=fontsize, font=font,
-                                              vmin=None, vmax=vmax)
+                                              markersize=75, discretize=settings['discretize'], palette=settings['palette'], fontsize=settings['fontsize'], font=settings['font'],
+                                              vmin=settings['vmin'], vmax=vmax)
 
                     # Sim by PK + quantile
                     print(f"> Linear plot...")
@@ -311,8 +310,8 @@ for indicator, subdicts in data_to_plot.items():
                                           name_y_axis=f'{title} variation (%)',
                                           percent=True,
                                           vlines=vlines,
-                                          fontsize=fontsize,
-                                          font=font,
+                                          fontsize=settings['fontsize'],
+                                          font=settings['font'],
                                           path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{title_join}_row-HM_col-horizon.pdf')
 
 
@@ -325,8 +324,8 @@ for indicator, subdicts in data_to_plot.items():
                                                  name_y_axis=f'{title} variation (%)',
                                                  percent=True,
                                                  vlines=vlines,
-                                                 fontsize=fontsize,
-                                                 font=font,
+                                                 fontsize=settings['fontsize'],
+                                                 font=settings['font'],
                                                  path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{title_join}_row-narrative_col-horizon.pdf')
 
 
@@ -339,8 +338,8 @@ for indicator, subdicts in data_to_plot.items():
                                        name_y_axis=f'{title} variation (%)',
                                        percent=True,
                                        vlines=vlines,
-                                       fontsize=fontsize,
-                                       font=font,
+                                       fontsize=settings['fontsize'],
+                                       font=settings['font'],
                                        path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{title_join}_col-horizon.pdf')
 
                         print(f">> Linear timeline deviation - x: time, y: {indicator}, row/col: Stations ref")
@@ -352,8 +351,8 @@ for indicator, subdicts in data_to_plot.items():
                                          name_y_axis=f'{title} variation (%)',
                                          percent=True,
                                          vlines=None,
-                                         fontsize=fontsize,
-                                         font=font,
+                                         fontsize=settings['fontsize'],
+                                         font=settings['font'],
                                          path_result=path_indicator_figures+f'lineplot_variation_x-time_y-{title_join}_row-col-stations-ref.pdf',)
 
 
@@ -366,8 +365,8 @@ for indicator, subdicts in data_to_plot.items():
                                                        references=None,
                                                        name_y_axis=f'{title} variation (%)',
                                                        percent=True,
-                                                       fontsize=fontsize,
-                                                       font=font,
+                                                       fontsize=settings['fontsize'],
+                                                       font=settings['font'],
                                                        path_result=path_indicator_figures+f'{title_join}_boxplot_deviation_narratives.pdf',)
 
 

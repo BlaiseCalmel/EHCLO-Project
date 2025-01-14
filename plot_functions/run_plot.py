@@ -247,9 +247,10 @@ def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, per
             discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
             font=font, vmax=vmax, vmin=vmin, markersize=markersize)
 
-def plot_map_indicator_climate(gdf, ds, path_result, cbar_title, dict_shapefiles, percent, bounds,
-                               indicator_plot, cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,
-                               vmin=None, vmax=None, edgecolor='k', cbar_midpoint=None, markersize=50,cbar_values=None):
+def plot_map_indicator_climate_seas(gdf, ds, path_result, cbar_title, dict_shapefiles, percent, bounds,
+                                    indicator_plot, cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,
+                                    font='sans-serif', title=None, vmin=None, vmax=None, edgecolor='k',
+                                    cbar_midpoint=None, markersize=50,cbar_values=None):
 
     cols = {
             'names_coord': 'horizon',
@@ -257,7 +258,13 @@ def plot_map_indicator_climate(gdf, ds, path_result, cbar_title, dict_shapefiles
             'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2099)']
              }
 
-    rows = 1
+    # rows = 1
+
+    rows = {
+        'names_coord': 'season',
+        'values_var': ['Hiver', 'Printemps', 'Été', 'Automne'],
+        'names_plot': ['Hiver', 'Printemps', 'Été', 'Automne']
+    }
 
     mapplot(gdf=gdf, ds=ds, indicator_plot=indicator_plot,
             path_result=path_result,
