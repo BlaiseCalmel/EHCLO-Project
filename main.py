@@ -119,7 +119,7 @@ data_type='climate'
 subdict=path_files[data_type]
 rcp='rcp85'
 subdict2=subdict[rcp]
-indicator = "tasmaxAdjust$sup30"
+indicator = "prtotAdjust"
 paths = subdict2[indicator]
 
 hydro_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
@@ -169,7 +169,7 @@ for data_type, subdict in path_files.items():
                 else:
                     print(f'> {path_ncdf} already exists', end='\n')
 
-name = 'tasAdjust'
+name = 'tasminAdjust'
 data_to_plot = {name: files_setup['climate_indicator'][name]}
 data_to_plot = (files_setup['climate_indicator'])
 for indicator, subdicts in data_to_plot.items():
@@ -187,7 +187,7 @@ for indicator, subdicts in data_to_plot.items():
         path_indicator = dict_paths['folder_study_figures'] + title_join + os.sep
         if not os.path.isdir(path_indicator):
             os.makedirs(path_indicator)
-        path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{timestep}.nc"
+        path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}.nc"
 
         # Compute PK
         if indicator in files_setup['hydro_indicator']:
@@ -209,8 +209,9 @@ for indicator, subdicts in data_to_plot.items():
         ds_stats = xr.open_dataset(path_ncdf)
 
         # Compute stats
-        ds_stats, variables = format_dataset(ds_stats, data_type, files_setup, settings['plot_function'],
-                                             settings['return_period'])
+        ds_stats, variables = format_dataset(ds_stats, data_type, files_setup,
+                                             plot_function=settings['plot_function'],
+                                             return_period=settings['return_period'])
 
         # Geodataframe
         sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds_stats.gid]
@@ -223,7 +224,7 @@ for indicator, subdicts in data_to_plot.items():
             used_coords.update(ds_stats[var].dims)
 
         if settings['additional_coordinates'] is not None:
-            additional_coordinates = {settings['plot_additional_coordinatesfunction']: ds_stats[settings['additional_coordinates']].values}
+            additional_coordinates = {settings['additional_coordinates']: ds_stats[settings['additional_coordinates']].values}
         else:
             additional_coordinates = {'': [None]}
 
@@ -246,11 +247,16 @@ for indicator, subdicts in data_to_plot.items():
                 # Climate difference map
                 if indicator in files_setup['climate_indicator']:
                     print(f">> Difference map plot {indicator}")
-                    plot_map_indicator_climate_seas(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_deviation_mean',
-                                  path_result=path_indicator_figures+f'{title_join}_map_difference.pdf',
-                                  cbar_title=f"Différence moyenne {title} ({settings['units']})", cbar_ticks=None, title=coordinate_value, dict_shapefiles=dict_shapefiles,
+                    if settings['units'] != '':
+                        units = f" ({settings['units']})"
+                    else:
+                        units = ''
+                    plot_type = settings['plot_type']
+                    plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=f'horizon_{plot_type}_mean',
+                                  path_result=path_indicator_figures+f'{title_join}_map_{plot_type}.pdf',
+                                  cbar_title=f"Différence moyenne {title}{units}", cbar_ticks=None, title=coordinate_value, dict_shapefiles=dict_shapefiles,
                                   percent=False, bounds=bounds, palette=settings['palette'], cbar_midpoint='zero', fontsize=settings['fontsize'],
-                                  font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75, cbar_values=1,
+                                  font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75, cbar_values=settings['cbar_values'],
                                   vmin=settings['vmin'], vmax=settings['vmax'])
 
                 elif indicator in files_setup['hydro_indicator']:

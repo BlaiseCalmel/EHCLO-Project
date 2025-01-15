@@ -4,10 +4,12 @@
   "plot_function": "None",
   "return_period": "None",
   "additional_coordinates": "None",
+  "plot_type": "deviation",
   "palette": "BrBG",
   "fontsize":18,
   "font": "sans-serif",
   "vmin": "None",
   "vmax": "None",
-  "discretize": 10
+  "discretize": 10,
+  "cbar_values": "None"
 }

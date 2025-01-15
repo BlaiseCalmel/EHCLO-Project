@@ -8,7 +8,10 @@ import matplotlib.cm as cm
 
 def format_significant(lst, n):
     # formatted_list = [f"{x:.{n}g}" for x in lst]
-    formatted_list = [str(np.round(x, n)) for x in lst]
+    if n > 0:
+        formatted_list = [str(np.round(float(x), n)) for x in lst]
+    else:
+        formatted_list = [str(int(np.round(x, n))) for x in lst]
     return formatted_list
 
 def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,

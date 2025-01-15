@@ -36,12 +36,11 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
         if plot_function == 'min':
             ds = ds.groupby("time.year").min(dim="time")
             ds = ds.rename({"year": "time"})
-
             ds["time"] = pd.to_datetime(ds["time"].values, format="%Y")
+
         elif plot_function == 'max':
             ds = ds.groupby("time.year").max(dim="time")
             ds = ds.rename({"year": "time"})
-
             ds["time"] = pd.to_datetime(ds["time"].values, format="%Y")
 
         elif plot_function == 'month':
@@ -292,9 +291,9 @@ def apply_statistic(ds, function='mean', q=None):
                 raise ValueError("Quantile should be a number")
             return ds.quantile(q, dim='new')
         elif  function.lower() == 'max':
-            return ds.max(dim='time')
+            return ds.max(dim='new')
         elif  function.lower() == 'min':
-            return ds.min(dim='time')
+            return ds.min(dim='new')
         else:
             raise ValueError("Unknown function, chose 'mean', 'median', 'max', 'min' or 'quantile'")
 

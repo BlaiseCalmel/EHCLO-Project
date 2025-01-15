@@ -66,46 +66,54 @@
       "T min.": {
         "units": "°C",
         "timestep": "ME",
+        "plot_type": "difference",
         "plot_function": "season",
         "palette": "RdBu_r",
+        "cbar_values": 1,
         "vmin": 0,
-        "vmax": 2
+        "vmax": 6.4
       }
     },
     "tasAdjust": {
       "T moy.": {
         "units": "°C",
         "timestep": "ME",
+        "plot_type": "difference",
         "plot_function": "season",
         "palette": "RdBu_r",
+        "cbar_values": 1,
         "vmin": 0,
-        "vmax": 2
+        "vmax": 6.4
       }
     },
     "tasmaxAdjust": {
       "T max.": {
         "units": "°C",
         "timestep": "ME",
+        "plot_type": "difference",
         "plot_function": "season",
         "palette": "RdBu_r",
+        "cbar_values": 1,
         "vmin": 0,
-        "vmax": 2.2
+        "vmax": 6.4
       },
       "NJ30": {
         "units": "",
         "extract_function": "sup30",
+        "plot_type": "difference",
         "palette": "RdBu_r",
+        "cbar_values": 0,
         "vmin": 0
+
       }
     },
     "prtotAdjust": {
       "RR": {
         "units": "mm",
         "timestep": "ME",
+        "plot_type": "difference",
         "plot_function": "season",
-        "palette": "RdBu",
-        "vmin": -35,
-        "vmax": 35
+        "palette": "RdBu"
       }
     },
     "evspsblpotAdjust": {
@@ -113,9 +121,7 @@
         "units": "mm",
         "timestep": "ME",
         "plot_function": "season",
-        "palette": "RdBu",
-        "vmin": 0,
-        "vmax": 35
+        "palette": "RdBu"
       }
     }
   },
