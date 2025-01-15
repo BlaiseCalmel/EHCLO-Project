@@ -38,6 +38,11 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
             ds = ds.rename({"year": "time"})
 
             ds["time"] = pd.to_datetime(ds["time"].values, format="%Y")
+        elif plot_function == 'max':
+            ds = ds.groupby("time.year").max(dim="time")
+            ds = ds.rename({"year": "time"})
+
+            ds["time"] = pd.to_datetime(ds["time"].values, format="%Y")
 
         elif plot_function == 'month':
             ds = ds.assign_coords(month=ds['time.month'])

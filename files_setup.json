@@ -90,6 +90,12 @@
         "palette": "RdBu_r",
         "vmin": 0,
         "vmax": 2.2
+      },
+      "NJ30": {
+        "units": "",
+        "extract_function": "sup30",
+        "palette": "RdBu_r",
+        "vmin": 0
       }
     },
     "prtotAdjust": {
@@ -107,7 +113,7 @@
         "units": "mm",
         "timestep": "ME",
         "plot_function": "season",
-        "palette": "RdBu_r",
+        "palette": "RdBu",
         "vmin": 0,
         "vmax": 35
       }

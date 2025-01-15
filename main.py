@@ -115,11 +115,11 @@ print(f'> Load ncdf data paths...', end='\n')
 path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 
 # Run among data type climate/hydro
-data_type='hydro'
+data_type='climate'
 subdict=path_files[data_type]
 rcp='rcp85'
 subdict2=subdict[rcp]
-indicator = "QA_mon"
+indicator = "tasmaxAdjust$sup30"
 paths = subdict2[indicator]
 
 hydro_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
@@ -169,7 +169,7 @@ for data_type, subdict in path_files.items():
                 else:
                     print(f'> {path_ncdf} already exists', end='\n')
 
-name = 'prtotAdjust'
+name = 'tasAdjust'
 data_to_plot = {name: files_setup['climate_indicator'][name]}
 data_to_plot = (files_setup['climate_indicator'])
 for indicator, subdicts in data_to_plot.items():
@@ -229,7 +229,8 @@ for indicator, subdicts in data_to_plot.items():
 
         for coordinate, unique_value in additional_coordinates.items():
             for coordinate_value in unique_value:
-                print(f'################################ PLOT {name_indicator.upper()} {coordinate_value} ################################', end='\n')
+                print(f'################################ PLOT {name_indicator.upper()}{coordinate_value if coordinate_value is not None else ""} '
+                      f'################################', end='\n')
                 # Selection from the current coordinate value
                 if coordinate_value is not None:
                     ds = ds_stats.sel({coordinate: coordinate_value})

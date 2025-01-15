@@ -34,6 +34,34 @@ def resample_ds(ds, var, timestep, operation='mean', q=None):
 def rename_variables(dataset, suffix, var_name):
     return dataset.rename({var: suffix for var in dataset.data_vars if var == var_name})
 
+def apply_function_to_ds(ds, function, file_name, timestep):
+    match = re.match(r"([a-zA-Z]+)(\d+)?", function)
+    string_function = 'mean'
+    int_value = None
+    if match:
+        string_function = match.group(1).lower()  # Partie avec les lettres
+        int_value = int(match.group(2)) if match.group(2) else None
+
+        if string_function == 'quantile':
+            int_value = 1-float(int_value)/100
+        elif string_function in ['inf', 'sup']:
+            if ds[file_name].attrs.get("units") == 'K':
+                int_value = int_value + 273.15
+            if string_function == 'sup':
+                ds[file_name] = xr.where(ds[file_name] > int_value, 1, 0)
+            elif string_function == 'inf':
+                ds[file_name] = xr.where(ds[file_name] < int_value, 1, 0)
+            string_function = 'sum'
+
+    if int_value is not None:
+        resampled_var = resample_ds(ds, file_name, timestep, operation=string_function,
+                                    q=int_value)
+    else:
+        resampled_var = resample_ds(ds, file_name, timestep, operation=string_function)
+
+
+    return resampled_var
+
 def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, timestep=None, function=None,
                            start=None, path_result=None):
 
@@ -112,15 +140,15 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                     del ds['LII']
 
                 if param_type == "climate":
-                    # TODO Look for seasonal indicator (climate) DJF/JJA
-                    if timestep is not None:
-                        resampled_var = resample_ds(ds, file_name, timestep)
-                        coordinates = {i: ds[i] for i in ds._coord_names if i != 'time'}
-                        coordinates['time'] = resampled_var['time']
-                        ds = xr.Dataset({
-                            file_name: (('time', 'y', 'x'), resampled_var.values)
-                        }, coords=coordinates
-                        )
+                    resampled_var = apply_function_to_ds(ds, function, file_name, timestep)
+                    # if timestep is not None:
+                    #     resampled_var = resample_ds(ds, file_name, timestep)
+                    #     coordinates = {i: ds[i] for i in ds._coord_names if i != 'time'}
+                    #     coordinates['time'] = resampled_var['time']
+                    #     ds = xr.Dataset({
+                    #         file_name: (('time', 'y', 'x'), resampled_var.values)
+                    #     }, coords=coordinates
+                    #     )
 
                     ds = ds.sel(x=xr.DataArray(sim_points_gdf['x']), y=xr.DataArray(sim_points_gdf['y']))
                     ds = ds.assign_coords(dim_0=sim_points_gdf['name']).rename(dim_0='name')
@@ -143,17 +171,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
                         # Compute quantile
                         if function is not None:
-                            match = re.match(r"([a-zA-Z]+)(\d+)?", function)
-                            if match:
-                                string_function = match.group(1)  # Partie avec les lettres
-                                quantile_value = int(match.group(2)) if match.group(2) else None
-
-                            if quantile_value is not None:
-                                resampled_var = resample_ds(ds, file_name, timestep, operation=string_function,
-                                                            q=1-float(quantile_value)/100)
-                            else:
-                                resampled_var = resample_ds(ds, file_name, timestep, operation=string_function)
-
+                            resampled_var = apply_function_to_ds(ds, function, file_name, timestep)
                             # Create a new dataset
                             coordinates = {'gid': ds.gid.values, 'time': resampled_var['time'].values}
 
