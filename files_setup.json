@@ -50,6 +50,7 @@
         "QMN5": {
           "units": "m3/s",
           "plot_function": "month",
+          "additional_coordinates": "month",
           "return_period": 5,
           "timestep": "ME"
         }
@@ -72,6 +73,16 @@
         "cbar_values": 1,
         "vmin": 0,
         "vmax": 6.4
+      },
+      "NJinf0": {
+        "units": "",
+        "label": "nombre de jours/an avec des températures <0°C",
+        "extract_function": "inf0",
+        "plot_type": "difference",
+        "palette": "RdBu",
+        "cbar_values": 0,
+        "vmin": 0
+
       }
     },
     "tasAdjust": {
@@ -97,8 +108,9 @@
         "vmin": 0,
         "vmax": 6.4
       },
-      "NJ30": {
+      "NJsup30": {
         "units": "",
+        "label": "nombre de jours/an avec des températures >30°C",
         "extract_function": "sup30",
         "plot_type": "difference",
         "palette": "RdBu_r",

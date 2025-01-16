@@ -4,6 +4,7 @@
   "plot_function": "None",
   "return_period": "None",
   "additional_coordinates": "None",
+  "label": "None",
   "plot_type": "deviation",
   "palette": "BrBG",
   "fontsize":18,
