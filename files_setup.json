@@ -3,52 +3,62 @@
   "hydro_indicator": {
       "QA_yr": {
         "QA": {
-          "units": "m3/s"
+          "units": "m3/s",
+          "label": "du Q annuel"
         }
       },
       "QA_seas-JJA": {
         "Q[JJA]": {
-          "units": "m3/s"
+          "units": "m3/s",
+          "label": "du Q estival [JJA]"
         }
       },
       "QA_seas-DJF": {
         "Q[DJF]": {
-          "units": "m3/s"
+          "units": "m3/s",
+          "label": "du Q hivernal [DJF]"
         }
       },
       "QA_seas-MAM": {
         "Q[MAM]": {
-          "units": "m3/s"
+          "units": "m3/s",
+          "label": "du Q printanier [MAM]"
         }
       },
       "QA_seas-SON": {
         "Q[SON]":{
-          "units": "m3/s"
+          "units": "m3/s",
+          "label": "du Q automnal [SON]"
         }
       },
       "VCN10_seas-MJJASON": {
         "VCN10": {
-          "units": "m3/s"
+          "units": "m3/s",
+          "label": "du VCN10"
         }
       },
       "Q10A": {
         "Q10": {
-          "units": "m3/s"
+          "units": "m3/s",
+          "label": "du Q10"
         }
       },
       "Q90A": {
         "Q90": {
-          "units": "m3/s"
+          "units": "m3/s",
+          "label": "du Q90"
         }
       },
       "QA_mon": {
         "QMNA5": {
           "units": "m3/s",
+          "label": "du QMNA5",
           "plot_function": "min",
           "return_period": 5
         },
         "QMN5": {
           "units": "m3/s",
+          "label": "du QMN5",
           "plot_function": "month",
           "additional_coordinates": "month",
           "return_period": 5,
@@ -58,6 +68,7 @@
       "debit": {
         "Q2": {
           "units": "m3/s",
+          "label": "du Q2",
           "extract_function": "quantile2"
         }
       }
@@ -66,6 +77,7 @@
     "tasminAdjust": {
       "T min.": {
         "units": "°C",
+        "label": "de la T min.",
         "timestep": "ME",
         "plot_type": "difference",
         "plot_function": "season",
@@ -76,7 +88,7 @@
       },
       "NJinf0": {
         "units": "",
-        "label": "nombre de jours/an avec des températures <0°C",
+        "label": "du nombre de j/an T<0°C",
         "extract_function": "inf0",
         "plot_type": "difference",
         "palette": "RdBu",
@@ -88,6 +100,7 @@
     "tasAdjust": {
       "T moy.": {
         "units": "°C",
+        "label": "de la T moy.",
         "timestep": "ME",
         "plot_type": "difference",
         "plot_function": "season",
@@ -100,6 +113,7 @@
     "tasmaxAdjust": {
       "T max.": {
         "units": "°C",
+        "label": "de la T max.",
         "timestep": "ME",
         "plot_type": "difference",
         "plot_function": "season",
@@ -108,9 +122,9 @@
         "vmin": 0,
         "vmax": 6.4
       },
-      "NJsup30": {
+      "NJ30": {
         "units": "",
-        "label": "nombre de jours/an avec des températures >30°C",
+        "label": "nombre de j/an T>30°C",
         "extract_function": "sup30",
         "plot_type": "difference",
         "palette": "RdBu_r",
@@ -122,6 +136,7 @@
     "prtotAdjust": {
       "RR": {
         "units": "mm",
+        "label": "des RR moy.",
         "timestep": "ME",
         "plot_type": "difference",
         "plot_function": "season",
@@ -131,6 +146,7 @@
     "evspsblpotAdjust": {
       "ETP": {
         "units": "mm",
+        "label": "de l'ETP",
         "timestep": "ME",
         "plot_function": "season",
         "palette": "RdBu"

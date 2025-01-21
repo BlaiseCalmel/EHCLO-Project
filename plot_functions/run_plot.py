@@ -25,6 +25,8 @@ def plot_linear_pk_hm(ds, simulations, path_result, narratives=None,
                 for narr_name, kwargs in narratives.items():
                     if narr_name in key:
                         subdict[key] = kwargs
+    legend_items = [{'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation', 'linewidth': 0.5}]
+    legend_items += [value for value in narratives.values()]
 
     cols = {
         'names_coord': 'horizon',
@@ -39,7 +41,7 @@ def plot_linear_pk_hm(ds, simulations, path_result, narratives=None,
     }
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
-             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None)
+             legend_items=legend_items, title=title, percent=percent, fontsize=fontsize, font=font, ymax=None)
 
 def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
                       name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None,
@@ -65,6 +67,9 @@ def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
     else:
         indicator_plot = [copy.deepcopy(dict_sim)]
 
+    legend_items = [{'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation', 'linewidth': 0.5}]
+    legend_items += [value for value in narratives.values()]
+
     cols = {
         'names_coord': 'horizon',
         'values_var': ['horizon1', 'horizon2', 'horizon3'],
@@ -78,7 +83,7 @@ def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
     }
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
-             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None)
+             legend_items=legend_items, title=title, percent=percent, fontsize=fontsize, font=font, ymax=None)
 
 def plot_linear_pk(ds, simulations, path_result, narratives=None,
                    name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None,
@@ -116,7 +121,7 @@ def plot_linear_pk(ds, simulations, path_result, narratives=None,
              title=title, percent=percent, fontsize=fontsize, font=font, ymax=None)
 
 
-def plot_linear_time(ds, simulations, path_result, narratives=None,
+def plot_linear_time(ds, simulations, path_result, station_references, narratives=None,
                      name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None,
                      fontsize=14, font='sans-serif'):
 
@@ -128,15 +133,6 @@ def plot_linear_time(ds, simulations, path_result, narratives=None,
               'name_axis': name_y_axis
               }
 
-    station_references = {'M842001000': 'La Loire à St Nazaire',
-                          'M530001010': 'La Loire à Mont Jean',
-                          'K683002001': 'La Loire à Langeais',
-                          'K480001001': 'La Loire à Onzain',
-                          'K418001201': 'La Loire à Gien',
-                          'K193001010': 'La Loire à Nevers',
-                          'K091001011': 'La Loire à Villerest',
-                          'K365081001': "L'Allier à Cuffy"}
-
     dict_sim = {sim_name: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation', 'linewidth': 0.5}
        for sim_name in simulations}
 
@@ -145,6 +141,9 @@ def plot_linear_time(ds, simulations, path_result, narratives=None,
             for narr_name, kwargs in narratives.items():
                 if narr_name in key:
                     dict_sim[key] = kwargs
+
+    legend_items = [{'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation', 'linewidth': 0.5}]
+    legend_items += [value for value in narratives.values()]
 
     indicator_plot = [dict_sim for i in range(len(station_references))]
 
@@ -157,42 +156,38 @@ def plot_linear_time(ds, simulations, path_result, narratives=None,
     rows = 4
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
-             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None)
+             title=title, percent=percent, legend_items=legend_items, fontsize=fontsize, font=font, ymax=None)
 
 
-def plot_boxplot_station_narrative(ds, simulations, narratives, references, path_result, name_y_axis='', percent=False,
+def plot_boxplot_station_narrative(ds, simulations, station_references, narratives, references, path_result, name_y_axis='', percent=False,
                                    title=None, fontsize=14, font='sans-serif'):
 
-    narratives = {
-        "HadGEM2-ES_ALADIN63_ADAMONT": {'boxprops':dict(facecolor='#569A71', alpha=0.9),
-                                        'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
-                                        'label': 'Vert [HadGEM2-ES_ALADIN63_ADAMONT]'},
-        "CNRM-CM5_ALADIN63_ADAMONT": {'boxprops':dict(facecolor='#EECC66', alpha=0.9),
-                                      'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
-                                      'label': 'Jaune [CNRM-CM5_ALADIN63_ADAMONT]'},
-        "EC-EARTH_HadREM3-GA7_ADAMONT": {'boxprops':dict(facecolor='#E09B2F', alpha=0.9),
-                                         'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
-                                         'label': 'Orange [EC-EARTH_HadREM3-GA7_ADAMONT]'},
-        "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'boxprops':dict(facecolor='#791F5D', alpha=0.9),
-                                          'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
-                                          'label': 'Violet [HadGEM2-ES_CCLM4-8-17_ADAMONT]'},
-    }
+    # narratives_bp = {
+    #     "HadGEM2-ES_ALADIN63_ADAMONT": {'boxprops':dict(facecolor='#569A71', alpha=0.9),
+    #                                     'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
+    #                                     'label': 'Vert [HadGEM2-ES_ALADIN63_ADAMONT]'},
+    #     "CNRM-CM5_ALADIN63_ADAMONT": {'boxprops':dict(facecolor='#EECC66', alpha=0.9),
+    #                                   'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
+    #                                   'label': 'Jaune [CNRM-CM5_ALADIN63_ADAMONT]'},
+    #     "EC-EARTH_HadREM3-GA7_ADAMONT": {'boxprops':dict(facecolor='#E09B2F', alpha=0.9),
+    #                                      'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
+    #                                      'label': 'Orange [EC-EARTH_HadREM3-GA7_ADAMONT]'},
+    #     "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'boxprops':dict(facecolor='#791F5D', alpha=0.9),
+    #                                       'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
+    #                                       'label': 'Violet [HadGEM2-ES_CCLM4-8-17_ADAMONT]'},
+    # }
 
-    station_references = {'M842001000': 'La Loire à St Nazaire',
-                          'M530001010': 'La Loire à Montjean',
-                          'K683002001': 'La Loire à Langeais',
-                          'K480001001': 'La Loire à Onzain',
-                          'K418001201': 'La Loire à Gien',
-                          'K193001010': 'La Loire à Nevers',
-                          'K091001011': 'La Loire à Villerest',
-                          'K365081001': "L'Allier à Cuffy"}
+    narratives_bp = {key: {'boxprops':dict(facecolor=value['color'], alpha=0.9),
+    'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
+    'label': value['label']} for key, value in narratives.items()}
+
 
     dict_sims = {}
     dict_sims['simulations'] = {'values': simulations, 'kwargs': {'boxprops':dict(facecolor='lightgray', alpha=0.6),
                                                                   'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
                                                                   'label': 'Simulations'}}
 
-    for narr_name, kwargs in narratives.items():
+    for narr_name, kwargs in narratives_bp.items():
         dict_sims[narr_name] = {'values': [], 'kwargs': kwargs}
         for sim_name in simulations:
             if narr_name in sim_name:
@@ -306,7 +301,7 @@ def plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bou
 
 def plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles,
                               path_global_figures, bounds, fontsize=14):
-    station_references = {
+    station_references_plot = {
         'M842001000': {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth': 1.5,
                        'facecolors':'none',
                        'text': {'text': 'La Loire à\nSt Nazaire', 'arrowprops':dict(arrowstyle='-'),
@@ -349,10 +344,10 @@ def plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles,
                        }
     }
 
-    for key in station_references.keys():
-        station_references[key] |= {'x': hydro_sim_points_gdf_simplified.loc[key].geometry.x,
+    for key in station_references_plot.keys():
+        station_references_plot[key] |= {'x': hydro_sim_points_gdf_simplified.loc[key].geometry.x,
                                     'y': hydro_sim_points_gdf_simplified.loc[key].geometry.y}
-        station_references[key]['text'] |= {'xy': (hydro_sim_points_gdf_simplified.loc[key].geometry.x,
+        station_references_plot[key]['text'] |= {'xy': (hydro_sim_points_gdf_simplified.loc[key].geometry.x,
                                                    hydro_sim_points_gdf_simplified.loc[key].geometry.y)}
 
     print(f"> Plot Number of HM by station...")
@@ -363,7 +358,7 @@ def plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles,
         dict_shapefiles[key]['zorder'] = -j
 
     mapplot(gdf=hydro_sim_points_gdf_simplified, indicator_plot='n', path_result=path_global_figures+'count_HM.pdf', ds=None,
-            cols=None, rows=None, references=station_references, cbar_ticks='mid',  cbar_values=1,
+            cols=None, rows=None, references=station_references_plot, cbar_ticks='mid',  cbar_values=1,
             cbar_title=f"Nombre de HM", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
             discretize=6, palette='RdBu_r', fontsize=fontsize-5, font='sans-serif', edgecolor='k',
             cbar_midpoint='min', vmin=3.5, vmax=9.5)

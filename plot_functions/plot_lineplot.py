@@ -3,7 +3,8 @@ from matplotlib.lines import Line2D
 
 from plot_functions.plot_common import *
 
-def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines=None, xmin=None, xmax=None, ymin=None, ymax=None,
+def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines=None, legend_items= None,
+             xmin=None, xmax=None, ymin=None, ymax=None,
              title=None, percent=True, fontsize=14, font='sans-serif'):
 
     ds_plot = copy.deepcopy(ds)
@@ -53,7 +54,8 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
     if title is not None:
         fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2)
 
-    legend_items = []
+    if legend_items is None:
+        legend_items = []
     for col_idx, col in enumerate(cols_plot['values_var']):
         for row_idx, row in enumerate(rows_plot['values_var']):
             idx = len_cols * row_idx + col_idx

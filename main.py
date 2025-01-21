@@ -89,7 +89,7 @@ data_type='climate'
 subdict=path_files[data_type]
 rcp='rcp85'
 subdict2=subdict[rcp]
-indicator = "prtotAdjust"
+indicator = "tasminAdjust"
 paths = subdict2[indicator]
 
 hydro_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
@@ -139,7 +139,7 @@ for data_type, subdict in path_files.items():
                 else:
                     print(f'> {path_ncdf} already exists', end='\n')
 
-name = 'tasminAdjust'
+name = 'tasAdjust'
 data_to_plot = {name: files_setup['climate_indicator'][name]}
 data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
 overwrite = False
@@ -270,7 +270,7 @@ for indicator, subdicts in data_to_plot.items():
                             else:
                                 map_title = f"{value}"
                             plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), variables=variables,
-                                                  path_result=path_indicator_figures+f'{title_join}_map_variation_mean_{key}.pdf',
+                                                  path_result=path_indicator_figures+f'{title_join}_map_{plot_type}_mean_{key}.pdf',
                                                   cbar_title=f"{plot_type_name.title()} moyenne du {title}{units}", title=map_title, cbar_midpoint='zero',
                                                   dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds, edgecolor=edgecolor,
                                                   markersize=75, discretize=settings['discretize'], palette=settings['palette'], fontsize=settings['fontsize'], font=settings['font'],
@@ -301,6 +301,15 @@ for indicator, subdicts in data_to_plot.items():
                                                                   'linewidth': 1},
                             }
 
+                            station_references = {'M842001000': 'La Loire à St Nazaire',
+                                                  'M530001010': 'La Loire à Mont Jean',
+                                                  'K683002001': 'La Loire à Langeais',
+                                                  'K480001001': 'La Loire à Onzain',
+                                                  'K418001201': 'La Loire à Gien',
+                                                  'K193001010': 'La Loire à Nevers',
+                                                  'K091001011': 'La Loire à Villerest',
+                                                  'K365081001': "L'Allier à Cuffy"}
+
                             print(f">> Linear deviation - x: PK, y: {indicator}, row: HM, col: Horizon")
                             plot_linear_pk_hm(ds,
                                               simulations=variables['hydro_model_deviation_sim_horizon'],
@@ -312,7 +321,7 @@ for indicator, subdicts in data_to_plot.items():
                                               vlines=vlines,
                                               fontsize=settings['fontsize'],
                                               font=settings['font'],
-                                              path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{title_join}_row-HM_col-horizon.pdf')
+                                              path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_row-HM_col-horizon.pdf')
 
 
                             print(f">> Linear deviation - x: PK, y: {indicator}, row: Narratif, col: Horizon")
@@ -326,7 +335,7 @@ for indicator, subdicts in data_to_plot.items():
                                                      vlines=vlines,
                                                      fontsize=settings['fontsize'],
                                                      font=settings['font'],
-                                                     path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{title_join}_row-narrative_col-horizon.pdf')
+                                                     path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_row-narrative_col-horizon.pdf')
 
 
                             print(f">> Linear deviation - x: PK, y: {indicator}, col: Horizon")
@@ -340,11 +349,12 @@ for indicator, subdicts in data_to_plot.items():
                                            vlines=vlines,
                                            fontsize=settings['fontsize'],
                                            font=settings['font'],
-                                           path_result=path_indicator_figures+f'lineplot_variation_x-PK_y-{title_join}_col-horizon.pdf')
+                                           path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_col-horizon.pdf')
 
                             print(f">> Linear timeline deviation - x: time, y: {indicator}, row/col: Stations ref")
                             plot_linear_time(ds,
                                              simulations=variables['simulation_deviation'],
+                                             station_references=station_references,
                                              narratives=narratives,
                                              title=coordinate_value,
                                              name_x_axis='Date',
@@ -353,13 +363,14 @@ for indicator, subdicts in data_to_plot.items():
                                              vlines=None,
                                              fontsize=settings['fontsize'],
                                              font=settings['font'],
-                                             path_result=path_indicator_figures+f'lineplot_variation_x-time_y-{title_join}_row-col-stations-ref.pdf',)
+                                             path_result=path_indicator_figures+f'lineplot_{plot_type}_x-time_y-{title_join}_row-col-stations-ref.pdf',)
 
 
                             print(f"> Box plot...")
                             print(f">> Boxplot deviation by horizon and selected stations")
                             plot_boxplot_station_narrative(ds,
                                                            simulations=variables['simulation_horizon_deviation_by_sims'],
+                                                           station_references=station_references,
                                                            narratives=None,
                                                            title=coordinate_value,
                                                            references=None,
@@ -367,9 +378,7 @@ for indicator, subdicts in data_to_plot.items():
                                                            percent=True,
                                                            fontsize=settings['fontsize'],
                                                            font=settings['font'],
-                                                           path_result=path_indicator_figures+f'{title_join}_boxplot_deviation_narratives.pdf',)
-
-
+                                                           path_result=path_indicator_figures+f'{title_join}_boxplot_{plot_type}_narratives.pdf',)
 
 
 print(f'################################ PLOT GLOBAL ################################', end='\n')
