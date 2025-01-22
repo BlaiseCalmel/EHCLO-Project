@@ -62,13 +62,17 @@ regions_shp, study_hydro_shp, study_climate_shp, rivers_shp = load_shp(dict_path
 
 # Check if study area is already matched with sim points
 print(f'> Searching sim points in study area...', end='\n')
+with open('reference_stations.json') as ref_stations:
+    stations_references = json.load(ref_stations)
+
 for data_type, path in dict_paths['dict_study_points_sim'].items():
     if not os.path.isfile(path):
         print(f'>> Find {data_type} data points in study area')
         sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
         if data_type == 'hydro':
             overlay_shapefile(shapefile=study_hydro_shp, data=sim_all_points_info,
-                              path_result=path, force_contains={'Suggesti_2': ['LA LOIRE', 'L\'ALLIER']})
+                              path_result=path, force_contains={'Suggesti_2': ['LA LOIRE', 'L\'ALLIER'],
+                                                                'Suggestion': stations_references.keys()})
         else:
             overlay_shapefile(shapefile=study_climate_shp, data=sim_all_points_info,
                               path_result=path)
@@ -139,8 +143,8 @@ for data_type, subdict in path_files.items():
                 else:
                     print(f'> {path_ncdf} already exists', end='\n')
 
-name = 'tasAdjust'
-data_to_plot = {name: files_setup['climate_indicator'][name]}
+name = 'QA_mon'
+data_to_plot = {name: files_setup['hydro_indicator'][name]}
 data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
 overwrite = False
 for indicator, subdicts in data_to_plot.items():
@@ -202,7 +206,7 @@ for indicator, subdicts in data_to_plot.items():
             ds_stats = xr.open_dataset(path_ncdf)
 
             # Compute stats
-            ds_stats, variables = format_dataset(ds_stats, data_type, files_setup,
+            ds_stats, variables = format_dataset(ds=ds_stats, data_type=data_type, files_setup=files_setup,
                                                  plot_function=settings['plot_function'],
                                                  return_period=settings['return_period'])
 
@@ -300,15 +304,6 @@ for indicator, subdicts in data_to_plot.items():
                                 "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'color': '#791F5D', 'zorder': 10, 'label': 'Violet [HadGEM2-ES_CCLM4-8-17_ADAMONT]',
                                                                   'linewidth': 1},
                             }
-
-                            station_references = {'M842001000': 'La Loire à St Nazaire',
-                                                  'M530001010': 'La Loire à Mont Jean',
-                                                  'K683002001': 'La Loire à Langeais',
-                                                  'K480001001': 'La Loire à Onzain',
-                                                  'K418001201': 'La Loire à Gien',
-                                                  'K193001010': 'La Loire à Nevers',
-                                                  'K091001011': 'La Loire à Villerest',
-                                                  'K365081001': "L'Allier à Cuffy"}
 
                             print(f">> Linear deviation - x: PK, y: {indicator}, row: HM, col: Horizon")
                             plot_linear_pk_hm(ds,
@@ -491,91 +486,6 @@ y_axis = {
 boxplot(ds, x_axis, y_axis, path_result=path_indicator_figures+'boxplot.pdf', cols=cols, rows=rows,
         title=None, percent=False, palette='BrBG', fontsize=14, font='sans-serif', ymax=None)
 
-import matplotlib.lines as mlines
-from sklearn.cluster import KMeans
-from scipy.spatial import Voronoi, voronoi_plot_2d
-
-stations = list(sim_points_gdf[sim_points_gdf['INDEX'].isin([1774,1895,2294,1633,1786,2337])].index)
-stations = ['M842001000']
-
-x = ds[indicator_horizon_deviation_sims].sel(season='DJF', horizon='horizon3', id_geometry=stations)
-y = ds[indicator_horizon_deviation_sims].sel(season = 'JJA', horizon='horizon3', id_geometry=stations)
-x_list = []
-y_list = []
-for var in x.data_vars:
-    if any(np.isnan(x[var].values)) and any(~np.isnan(y[var].values)):
-        x_list.append(np.nanmedian(x[var].values))
-        y_list.append(np.nanmedian(y[var].values))
-
-# Narratifs by clustering (K-means)
-kmeans = KMeans(n_clusters=4, random_state=0)
-df = pd.DataFrame({'x': x_list, 'y': y_list})
-df['cluster'] = kmeans.fit_predict(df[['x','y']])
-# Sélectionner un point représentatif par cluster (par exemple, le plus proche du centroïde)
-representative_points = df.loc[
-    df.groupby('cluster').apply(
-        lambda group: group[['x', 'y']].sub(kmeans.cluster_centers_[group.name]).pow(2).sum(axis=1).idxmin()
-    )
-]
-couples = list(zip(representative_points['x'], representative_points['y']))
-# Obtenir les centroïdes
-centroids = kmeans.cluster_centers_
-# Créer un Voronoi pour délimiter les aires
-vor = Voronoi(centroids)
-
-fig, ax = plt.subplots(1, 1, figsize=(6,4), constrained_layout=True)
-ax.grid()
-dict_hm = {key: [] for key in shape_hp.keys()}
-
-for var in x.data_vars:
-    print(var)
-    # Identifier la clé du dictionnaire présente dans le nom de la variable
-    hm = next((key for key in shape_hp if key in var), 'NONE')
-    marker = shape_hp[hm]
-    dict_hm[hm].append(var)
-
-    # Tracer la variable
-    x_value = np.nanmedian(x[var].values)
-    y_value = np.nanmedian(y[var].values)
-
-    if (x_value, y_value) in couples:
-        plt.scatter(x_value, y_value, marker=marker, alpha=1,
-                    color='green', zorder=2)
-    else:
-        plt.scatter(x_value, y_value, marker=marker, alpha=0.8,
-                    color='k', zorder=0)
-
-
-for key, shape in shape_hp.items():
-    plt.scatter(np.nanmedian(x[dict_hm[key]].to_array()), np.nanmedian(y[dict_hm[key]].to_array()),
-                marker=shape, alpha=0.8,
-                color='firebrick', zorder=1)
-
-# Tracer les aires des clusters avec Voronoi
-voronoi_plot_2d(vor, ax=plt.gca(), show_vertices=False, line_colors='green',
-                line_width=0.4, line_alpha=0.6, point_size=0, linestyle='--')
-
-
-ax.spines[['right', 'top']].set_visible(False)
-ax.set_xlim(-70, 70)
-ax.set_ylim(-70, 70)
-ax.yaxis.set_major_formatter(mtick.PercentFormatter())
-ax.xaxis.set_major_formatter(mtick.PercentFormatter())
-ax.set_ylabel('Qm estival')
-ax.set_xlabel('Qm hivernal')
-legend_handles = [
-    mlines.Line2D([], [], color='black', marker=shape, linestyle='None', markersize=8,
-                  label=f'{key}')
-    for key, shape in shape_hp.items()
-]
-plt.legend(
-    handles=legend_handles,
-    loc="center left",  # Position relative
-    bbox_to_anchor=(1, 0.5)  # Placer la légende à droite du graphique
-)
-
-plt.savefig(f"/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/figures/global/narratifs.pdf",
-                            bbox_inches='tight')
 
 
 print(f'################################ END ################################', end='\n')

@@ -119,9 +119,9 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
     # Return period
     if return_period is not None:
         print(f'>> Compute value per return period {return_period} by horizon...', end='\n')
-        ds = compute_return_period(ds, list(ds.data_vars), files_setup, return_period=return_period,
+        ds = compute_return_period(ds, indicator_cols=list(ds.data_vars), files_setup=files_setup, return_period=return_period,
         other_dimension=other_dimension)
-        simulation_horizon = [i for i in list(ds.data_vars) if '_by_horizon' in i]
+        simulation_horizon = [i for i in list(ds.data_vars) if '_by-horizon' in i]
     else:
         # Compute mean value for each horizon for each sim
         print(f'>> Compute mean by horizon...', end='\n')
@@ -132,11 +132,13 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
     print(f'>> Compute deviation & difference by horizon for each simulation...', end='\n')
     ds = compute_deviation_to_ref(ds, cols=simulation_horizon)
 
-    simulation_deviation = [i for i in list(ds.variables) if 'deviation' in i and '_by_horizon' not in i]
-    simulation_difference = [i for i in list(ds.variables) if 'difference' in i and '_by_horizon' not in i]
+    # Deviation/difference by timestep
+    simulation_deviation = [i for i in list(ds.variables) if 'deviation' in i and '_by-horizon' not in i]
+    simulation_difference = [i for i in list(ds.variables) if 'difference' in i and '_by-horizon' not in i]
 
-    simulation_horizon_deviation_by_sims = [i for i in list(ds.variables) if '_by_horizon_deviation' in i]
-    simulation_horizon_difference_by_sims = [i for i in list(ds.variables) if '_by_horizon_difference' in i]
+    # Deviation/difference by horizon
+    simulation_horizon_deviation_by_sims = [i for i in list(ds.variables) if '_by-horizon_deviation' in i]
+    simulation_horizon_difference_by_sims = [i for i in list(ds.variables) if '_by-horizon_difference' in i]
 
     # Compute statistic among all sims
     print(f'>> Compute stats by horizon among simulations...', end='\n')
@@ -164,13 +166,13 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
         hydro_model_deviation = {i: [] for i in np.unique(hm_names)}
         for hm, var_list in hm_dict_deviation_horizon.items():
             ds, deviation_name = run_stats(ds, hm_dict_deviation_horizon[hm], files_setup,
-                                 name=f"horizon_{hm}_deviation")
+                                 name=f"horizon_deviation_{hm}")
             hydro_model_deviation[hm] = deviation_name
 
         columns |= {'hydro_model_deviation': hydro_model_deviation}
 
-    ds, timeline_deviation = run_stats(ds, simulation_deviation, files_setup, name="timeline_deviation")
-    ds, timeline_difference = run_stats(ds, simulation_difference, files_setup, name="timeline_difference")
+    ds, timeline_deviation = run_stats(ds, simulation_deviation, files_setup, name="timeline-deviation")
+    ds, timeline_difference = run_stats(ds, simulation_difference, files_setup, name="timeline-difference")
 
     columns |= {'simulation_cols': simulation_cols, # raw value
                'simulation_deviation': simulation_deviation, # deviation from averaged historical reference
@@ -194,7 +196,7 @@ def run_stats(ds, cols, files_setup, name="deviation"):
                                function=files_setup['function'],
                                q=files_setup['quantile']
                                )
-    simulation_horizon = [f"{name}_{i}" for i in
+    simulation_horizon = [f"{name}-{i}" for i in
                           list(ds_stats.data_vars)]
     ds[simulation_horizon] = ds_stats
     return ds, simulation_horizon
@@ -251,11 +253,11 @@ def compute_mean_by_horizon(ds, indicator_cols, files_setup, other_dimension=Non
         horizon_list.append(mean_horizon[indicator_cols])
 
     combined_means = xr.concat(objs=horizon_list, dim='horizon')
-    combined_means = combined_means.rename({i: i+'_by_horizon' for i in indicator_cols})
+    combined_means = combined_means.rename({i: i+'_by-horizon' for i in indicator_cols})
 
     combined_means = xr.merge([ds, combined_means])
 
-    simulation_horizon = [i for i in list(combined_means.variables) if '_by_horizon' in i]
+    simulation_horizon = [i for i in list(combined_means.variables) if '_by-horizon' in i]
 
     return combined_means, simulation_horizon
 
@@ -274,6 +276,10 @@ def apply_statistic(ds, function='mean', q=None):
                     da_quantile = ds.quantile(q_value, dim='new')
                     del da_quantile['quantile']
                     agg_vars[func_name+str(int(q_value*100))] = da_quantile
+            elif  func_name.lower() == 'max':
+                agg_vars[func_name] =  ds.max(dim='new')
+            elif  func_name.lower() == 'min':
+                agg_vars[func_name] =  ds.min(dim='new')
         ds_agg = xr.Dataset(agg_vars)
         return ds_agg
     else:
@@ -301,7 +307,7 @@ def compute_deviation_to_ref(ds, cols, ref='historical'):
     horizons = [i for i in ds.horizon.data if i != ref]
 
     for col in cols:
-        data_col = col.split('_by_horizon')[0]
+        data_col = col.split('_by-horizon')[0]
         ds[data_col+'_difference'] = ds[data_col] - ds[col].sel(horizon=ref)
         ds[data_col+'_deviation'] = (ds[data_col+'_difference']) * 100 / ds[col].sel(horizon=ref)
 
@@ -336,7 +342,7 @@ def compute_return_period(ds, indicator_cols, files_setup, return_period=5, othe
     if other_dimension:
         data_dim = np.unique(ds[other_dimension])
         dict_by_horizon = {
-            f"{i}_by_horizon": (["gid", "horizon", other_dimension],
+            f"{i}_by-horizon": (["gid", "horizon", other_dimension],
                                                    np.full((len(ds['gid']),
                                                             len(horizons),
                                                             len(data_dim)), np.nan))
@@ -345,7 +351,7 @@ def compute_return_period(ds, indicator_cols, files_setup, return_period=5, othe
         coords = {"gid": ds['gid'].data, "horizon": horizons, other_dimension: data_dim.data}
     else:
         dict_by_horizon = {
-            f"{i}_by_horizon": (["gid", "horizon"],
+            f"{i}_by-horizon": (["gid", "horizon"],
                                                    np.full((len(ds['gid']), len(horizons)), np.nan))
             for i in indicator_cols
         }
@@ -363,11 +369,11 @@ def compute_return_period(ds, indicator_cols, files_setup, return_period=5, othe
                 for dim in data_dim:
                     ds_dim = ds_horizon.sel(time=ds_horizon.time.where(ds_horizon.month == dim, drop=True))
                     Xn = xr.apply_ufunc(compute_LogNormal, ds_dim, input_core_dims=[["time"]], vectorize=True)
-                    result[f"{var_name}_by_horizon"].loc[:, horizon, dim] = Xn
+                    result[f"{var_name}_by-horizon"].loc[:, horizon, dim] = Xn
             else:
                 ds_dim = ds_horizon.groupby('time.year').min()
                 Xn = xr.apply_ufunc(compute_LogNormal, ds_dim, input_core_dims=[["year"]], vectorize=True)
-                result[f"{var_name}_by_horizon"].loc[:, horizon] = Xn
+                result[f"{var_name}_by-horizon"].loc[:, horizon] = Xn
 
         combined_means = xr.merge([ds, result])
 

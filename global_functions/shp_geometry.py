@@ -63,17 +63,17 @@ def overlay_shapefile(shapefile, data, path_result=None, force_contains=None):
         matched_points = data.sjoin(shapefile, how='inner', predicate='intersects')
         # matched_points = matched_points.loc[~matched_points.index.duplicated(keep='first')]
     matched_points = matched_points.drop('index_right', axis=1)
+
     if force_contains:
         keeping = []
         for key, value in force_contains.items():
             for item in value:
-                keeping.append(matched_points[(matched_points[key].str.contains(item, case=False, na=False))])
-            matched_points = pd.concat(keeping).reset_index()
+                keeping.append(data[(data[key].str.contains(item, case=False, na=False))])
+            matched_points = pd.concat(keeping).drop_duplicates().reset_index()
 
     if 'PointsSupp' in matched_points.columns:
         valid_stations = pd.isna(matched_points['PointsSupp'])
         matched_points = matched_points[valid_stations]
-
 
         # if geometry_type.value_counts().idxmax() == "LineString":
         #     # Keep only lines with more than 75% of their length inside polygons
