@@ -12,14 +12,29 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     len_rows, rows_plot, ds_plot = init_grid(rows, ds_plot)
 
     subplot_titles = None
+    del_axes = None
     if isinstance(rows, int):
-        len_cols = int(len_cols / len_rows)
+        len_cols, mod = divmod(len_cols, len_rows)
+        if mod > 0:
+            len_cols += 1
+            del_axes = len_rows - mod
         subplot_titles = cols['names_plot']
         cols_plot['names_plot'] = [None]
     if isinstance(cols, int):
-        len_rows = int(len_rows / len_cols)
+        len_rows, mod = divmod(len_rows, len_cols)
+        if mod > 0:
+            len_rows += 1
+            del_axes = len_cols - mod
         subplot_titles = rows['names_plot']
         rows_plot['names_plot'] = [None]
+    # if isinstance(rows, int):
+    #     len_cols = int(len_cols / len_rows)
+    #     subplot_titles = cols['names_plot']
+    #     cols_plot['names_plot'] = [None]
+    # if isinstance(cols, int):
+    #     len_rows = int(len_rows / len_cols)
+    #     subplot_titles = rows['names_plot']
+    #     rows_plot['names_plot'] = [None]
 
     if 'name_axis' in x_axis:
         x_title = x_axis['name_axis']
@@ -56,8 +71,15 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     plt.rcParams['font.size'] = fontsize
 
     fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 10 * len_cols, len_rows * 4), constrained_layout=True)
+    if del_axes:
+        for i in range(del_axes):
+            fig.delaxes(fig.axes[-1])
+            axes = fig.axes
+
     if hasattr(axes, 'flatten'):
         axes_flatten = axes.flatten()
+    elif isinstance(axes, list):
+        axes_flatten = axes
     else:
         axes_flatten = [axes]
 
@@ -65,9 +87,11 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     if title is not None:
         fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2)
 
-    for col_idx, col in enumerate(cols_plot['values_var']):
-        for row_idx, row in enumerate(rows_plot['values_var']):
-            idx = len_cols * row_idx + col_idx
+    idx = -1
+    for row_idx, row in enumerate(rows_plot['values_var']):
+        for col_idx, col in enumerate(cols_plot['values_var']):
+            # idx = len_cols * row_idx + col_idx
+            idx += 1
             ax = axes_flatten[idx]
 
             temp_dict = {}

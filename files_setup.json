@@ -7,6 +7,12 @@
           "label": "du Q annuel"
         }
       },
+    "QJXA": {
+      "QJXA": {
+        "units": "m3/s",
+        "label": "du QJXA"
+      }
+    },
       "QA_seas-JJA": {
         "Q[JJA]": {
           "units": "m3/s",
@@ -74,29 +80,6 @@
       }
     },
   "climate_indicator": {
-    "tasminAdjust": {
-      "T min.": {
-        "units": "°C",
-        "label": "de la T min.",
-        "timestep": "ME",
-        "plot_type": "difference",
-        "plot_function": "season",
-        "palette": "RdBu_r",
-        "cbar_values": 1,
-        "vmin": 0,
-        "vmax": 6.4
-      },
-      "NJinf0": {
-        "units": "",
-        "label": "du nombre de j/an T<0°C",
-        "extract_function": "inf0",
-        "plot_type": "difference",
-        "palette": "RdBu",
-        "cbar_values": 0,
-        "vmin": 0
-
-      }
-    },
     "tasAdjust": {
       "T moy.": {
         "units": "°C",
@@ -108,38 +91,42 @@
         "cbar_values": 1,
         "vmin": 0,
         "vmax": 6.4
-      }
-    },
-    "tasmaxAdjust": {
-      "T max.": {
-        "units": "°C",
-        "label": "de la T max.",
-        "timestep": "ME",
-        "plot_type": "difference",
-        "plot_function": "season",
-        "palette": "RdBu_r",
-        "cbar_values": 1,
-        "vmin": 0,
-        "vmax": 6.4
       },
-      "NJ30": {
+      "NJ<0": {
         "units": "",
-        "label": "nombre de j/an T>30°C",
+        "label": "du nombre de j/an T<0°C",
+        "extract_function": "inf0",
+        "plot_type": "difference",
+        "palette": "RdBu",
+        "cbar_values": 0,
+        "vmax": 0
+      },
+      "NJ>30": {
+        "units": "",
+        "label": "du nombre de j/an T>30°C",
         "extract_function": "sup30",
         "plot_type": "difference",
         "palette": "RdBu_r",
         "cbar_values": 0,
         "vmin": 0
-
       }
     },
     "prtotAdjust": {
-      "RR": {
+      "RRm": {
         "units": "mm",
-        "label": "des RR moy.",
+        "label": "des RR M. moy.",
+        "extract_function": "sum",
         "timestep": "ME",
-        "plot_type": "difference",
+        "plot_type": "variation",
         "plot_function": "season",
+        "palette": "RdBu"
+      },
+      "RRa": {
+        "units": "mm",
+        "label": "des RR A. moy.",
+        "extract_function": "sum",
+        "timestep": "YE",
+        "plot_type": "variation",
         "palette": "RdBu"
       }
     },

@@ -1,25 +1,28 @@
-{
+{"La Loire": {
   "M842001000": "La Loire à St Nazaire",
   "M624001000": "La Loire à Nantes",
   "M530001010": "La Loire à Mont Jean",
   "K683002001": "La Loire à Langeais",
   "K480001001": "La Loire à Onzain",
   "K418001201": "La Loire à Gien",
+  "K400001010": "La Loire à Cours-les-Barres",
   "K193001010": "La Loire à Nevers",
   "K091001011": "La Loire à Villerest",
-
-  "K400001010": "La Loire à Cours-les-Barres",
-  "K212301002": "Le Chapeauroux à Pierrefiche",
-  "K207081010": "L'Allier à Langogne",
-  "K217302001": "Le Chapeauroux à St Bonnet",
-  "K209081001": "L'Allier à St Haon",
-  "K055001010": "La Loire à Bas en Basset",
   "K069001001": "La Loire à Montrond les bains",
-
-  "K365081001": "L'Allier à Cuffy",
-  "K279081001": "L'Allier à Limons",
-  "K268081001": "L'Allier à Vic-le-Comte",
-  "K233081001": "L'Allier à Vieille-Brioude",
-  "K224082001": "L'Allier à Prades",
-  "K208082001": "L'Allier à Naussac"
+  "K055001010": "La Loire à Bas en Basset"
+},
+  "L'Allier": {
+    "K365081001": "L'Allier à Cuffy",
+    "K279081001": "L'Allier à Limons",
+    "K268081001": "L'Allier à Vic-le-Comte",
+    "K233081001": "L'Allier à Vieille-Brioude",
+    "K224082001": "L'Allier à Prades",
+    "K209081001": "L'Allier à St Haon",
+    "K208082001": "L'Allier à Naussac",
+    "K207081010": "L'Allier à Langogne"
+  },
+  "Le Chapeauroux": {
+    "K212301002": "Le Chapeauroux à Pierrefiche",
+    "K217302001": "Le Chapeauroux à St Bonnet"
+  }
 }

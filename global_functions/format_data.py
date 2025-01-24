@@ -127,7 +127,6 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
         print(f'>> Compute mean by horizon...', end='\n')
         ds, simulation_horizon = compute_mean_by_horizon(ds=ds, indicator_cols=simulation_cols,
                                      files_setup=files_setup, other_dimension=other_dimension)
-
     # Compute deviation/difference to reference
     print(f'>> Compute deviation & difference by horizon for each simulation...', end='\n')
     ds = compute_deviation_to_ref(ds, cols=simulation_horizon)
@@ -150,17 +149,17 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
     # Find every HM
     if data_type == 'hydro':
         print(f'>> Compute stats by HM by horizon among simulations...', end='\n')
-        hm_names = [name.split('_')[-4] for name in simulation_horizon_deviation_by_sims]
+        hm_names = [name.split('_')[-3] for name in simulation_horizon_deviation_by_sims]
         hm_dict_deviation_horizon = {i: [] for i in np.unique(hm_names)}
         for idx, name_sim in enumerate(simulation_horizon_deviation_by_sims):
             hm_dict_deviation_horizon[hm_names[idx]].append(name_sim)
-        columns |= {'hydro_model_deviation_sim_horizon': hm_dict_deviation_horizon}
+        columns |= {'hydro-model_sim-horizon_deviation': hm_dict_deviation_horizon}
 
         # Load timeline by HM
         hm_dict_deviation_timeline = {i: [] for i in np.unique(hm_names)}
         for idx, name_sim in enumerate(simulation_deviation):
             hm_dict_deviation_timeline[hm_names[idx]].append(name_sim)
-        columns |= {'hydro_model_deviation_sim_timeline': hm_dict_deviation_timeline}
+        columns |= {'hydro-model_sim-timeline_deviation': hm_dict_deviation_timeline}
 
         # Compute stats for Horizons
         hydro_model_deviation = {i: [] for i in np.unique(hm_names)}
@@ -169,7 +168,7 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
                                  name=f"horizon_deviation_{hm}")
             hydro_model_deviation[hm] = deviation_name
 
-        columns |= {'hydro_model_deviation': hydro_model_deviation}
+        columns |= {'hydro-model_deviation': hydro_model_deviation}
 
     ds, timeline_deviation = run_stats(ds, simulation_deviation, files_setup, name="timeline-deviation")
     ds, timeline_difference = run_stats(ds, simulation_difference, files_setup, name="timeline-difference")
@@ -178,8 +177,8 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
                'simulation_deviation': simulation_deviation, # deviation from averaged historical reference
                'simulation_difference': simulation_difference, # difference from AHR
                'simulation_horizon': simulation_horizon, # mean value per horizon
-               'simulation_horizon_deviation_by_sims': simulation_horizon_deviation_by_sims, # Horz deviation from AHR
-               'simulation_horizon_difference_by_sims': simulation_horizon_difference_by_sims, # Horz difference from AHR
+               'simulation-horizon_by-sims_deviation': simulation_horizon_deviation_by_sims, # Horz deviation from AHR
+               'simulation-horizon_by-sims_difference': simulation_horizon_difference_by_sims, # Horz difference from AHR
                'horizon_deviation': horizon_deviation, # mean horizon deviation among sims
                'horizon_difference': horizon_difference,
                'timeline_deviation': timeline_deviation, # mean timeline deviation among sims

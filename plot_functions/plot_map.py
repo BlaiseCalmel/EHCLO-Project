@@ -5,6 +5,7 @@ import numpy as np
 from matplotlib.colors import from_levels_and_colors
 from plot_functions.plot_common import *
 import matplotlib.cm as cm
+from adjustText import adjust_text
 
 def format_significant(lst, n):
     # formatted_list = [f"{x:.{n}g}" for x in lst]
@@ -96,7 +97,7 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     text_kwargs ={'weight': 'bold', 'fontsize': fontsize}
 
     fig_dim = 4
-    # fig_dim = 8
+    # fig_dim = 6
     if bounds is not None:
         x_y_ratio = abs((bounds[2] - bounds[0]) / (bounds[3] - bounds[1]))
         if x_y_ratio > 1:
@@ -165,6 +166,24 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
 
 
             if references is not None:
+                # texts = [
+                #     plt.text(value['x'] + 0.8, value['y'] + 0.8, value['text']['text'], fontsize=9)  # Décalage initial
+                #     for key, value in references.items()
+                # ]
+                # adjust_text(
+                #     texts,
+                #     only_move={'points': 'xy', 'text': 'xy'},  # Permet de bouger librement
+                #     force_text=0.7,  # Force appliquée pour éloigner les textes entre eux
+                #     force_points=1.0,  # Force appliquée pour éloigner les textes des points
+                #     expand_text=(1.8, 1.8),  # Distance minimale entre le texte et les autres textes
+                #     expand_points=(2.0, 2.0),  # Distance minimale entre le texte et les points
+                #     arrowprops=dict(
+                #         arrowstyle='->',  # Style de flèche
+                #         color='k',     # Couleur de la flèche
+                #         lw=0.8            # Épaisseur de la flèche
+                #     )
+                # )
+
                 for key, values in references.items():
                     scatter_kwarg = {i: j for i, j in values.items() if i != 'text'}
                     ax.scatter(**scatter_kwarg)

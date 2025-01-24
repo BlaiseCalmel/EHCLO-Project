@@ -32,7 +32,7 @@ def resample_ds(ds, var, timestep, operation='mean', q=None):
         raise ValueError(f"Operation '{operation}' is not supported.")
 
 def rename_variables(dataset, suffix, var_name):
-    return dataset.rename({var: suffix for var in dataset.data_vars if var == var_name})
+    return dataset.rename({var: suffix for var in dataset.data_vars if var.lower().find(var_name.lower()) != -1})
 
 def apply_function_to_ds(ds, function, file_name, timestep):
     string_function = 'mean'
