@@ -28,7 +28,7 @@ plt.switch_backend('agg')
 
 # Load environments variables
 print(f'> Load json inputs...', end='\n')
-with open('config.json') as config_file:
+with open('config-perso.json') as config_file:
     config = json.load(config_file)
 
 with open('files_setup.json') as files_setup:
@@ -144,8 +144,8 @@ for data_type, subdict in path_files.items():
                 else:
                     print(f'> {path_ncdf} already exists', end='\n')
 
-name = 'QA_yr'
-data_to_plot = {name: files_setup['hydro_indicator'][name]}
+name = 'prtotAdjust'
+data_to_plot = {name: files_setup['climate_indicator'][name]}
 data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
 overwrite = False
 for indicator, subdicts in data_to_plot.items():

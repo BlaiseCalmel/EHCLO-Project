@@ -5,7 +5,7 @@ import numpy as np
 from matplotlib.colors import from_levels_and_colors
 from plot_functions.plot_common import *
 import matplotlib.cm as cm
-from adjustText import adjust_text
+# from adjustText import adjust_text
 
 def format_significant(lst, n):
     # formatted_list = [f"{x:.{n}g}" for x in lst]

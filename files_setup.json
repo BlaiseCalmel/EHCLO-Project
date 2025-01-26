@@ -114,28 +114,42 @@
     "prtotAdjust": {
       "RRm": {
         "units": "mm",
-        "label": "des RR M. moy.",
+        "label": "des RR mensuelles.",
         "extract_function": "sum",
         "timestep": "ME",
-        "plot_type": "variation",
+        "plot_type": "deviation",
         "plot_function": "season",
-        "palette": "RdBu"
+        "palette": "RdBu",
+        "vmax": 35,
+        "vmin": -35
       },
       "RRa": {
         "units": "mm",
-        "label": "des RR A. moy.",
+        "label": "des RR annuelles",
         "extract_function": "sum",
         "timestep": "YE",
-        "plot_type": "variation",
-        "palette": "RdBu"
+        "plot_type": "deviation",
+        "palette": "RdBu",
+        "vmin": -12,
+        "vmax": 6
       }
     },
     "evspsblpotAdjust": {
-      "ETP": {
+      "ETPm": {
         "units": "mm",
-        "label": "de l'ETP",
+        "label": "de l'ETP mensuelle",
+        "extract_function": "sum",
         "timestep": "ME",
+        "plot_type": "deviation",
         "plot_function": "season",
+        "palette": "RdBu"
+      },
+      "ETPa": {
+        "units": "mm",
+        "label": "de l'ETP annuelle",
+        "extract_function": "sum",
+        "timestep": "YE",
+        "plot_type": "deviation",
         "palette": "RdBu"
       }
     }
