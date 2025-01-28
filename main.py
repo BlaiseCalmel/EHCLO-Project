@@ -28,7 +28,7 @@ plt.switch_backend('agg')
 
 # Load environments variables
 print(f'> Load json inputs...', end='\n')
-with open('config-perso.json') as config_file:
+with open('config.json') as config_file:
     config = json.load(config_file)
 
 with open('files_setup.json') as files_setup:
@@ -94,7 +94,7 @@ data_type='climate'
 subdict=path_files[data_type]
 rcp='rcp85'
 subdict2=subdict[rcp]
-indicator = "prtotAdjust"
+indicator = "tasAdjust"
 paths = subdict2[indicator]
 
 hydro_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
@@ -144,13 +144,15 @@ for data_type, subdict in path_files.items():
                 else:
                     print(f'> {path_ncdf} already exists', end='\n')
 
-name = 'prtotAdjust'
+name = 'tasAdjust'
 data_to_plot = {name: files_setup['climate_indicator'][name]}
-data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
-overwrite = False
+# data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
+overwrite = True
 for indicator, subdicts in data_to_plot.items():
     for name_indicator, indicator_setup in subdicts.items():
         print(f'################################ STATS {name_indicator.upper()} ################################', end='\n')
+        # if name_indicator.upper() == "NJ<0":
+        #     break
         if overwrite:
             write_fig = True
         else:
@@ -171,11 +173,18 @@ for indicator, subdicts in data_to_plot.items():
             units = ''
 
         plot_type = settings['plot_type']
+        start_cbar_ticks = ''
+        end_cbar_ticks = ''
         if plot_type == 'difference':
             plot_type_name = 'difference'
         else:
             plot_type_name = 'variation'
             units = " (%)"
+
+        if settings['start_cbar_ticks'] != '':
+            start_cbar_ticks = f" {settings['start_cbar_ticks']}"
+        if settings['end_cbar_ticks'] != '':
+            end_cbar_ticks = f" {settings['end_cbar_ticks']}"
 
         # Create folder
         title_join = name_indicator.replace(" ", "-").replace(".", "")
@@ -223,10 +232,9 @@ for indicator, subdicts in data_to_plot.items():
                 used_coords.update(ds_stats[var].dims)
 
             # Use another dimension to create different plots (ex: one plot per month)
+            additional_coordinates = {'': [None]}
             if settings['additional_coordinates'] is not None:
                 additional_coordinates = {settings['additional_coordinates']: ds_stats[settings['additional_coordinates']].values}
-            else:
-                additional_coordinates = {'': [None]}
 
             for coordinate, unique_value in additional_coordinates.items():
                 for coordinate_value in unique_value:
@@ -244,19 +252,30 @@ for indicator, subdicts in data_to_plot.items():
                         path_indicator_figures = path_indicator
 
                     print(f"> Map plot...")
+                    print(f">> {plot_type_name.title()} matching map plot {indicator}")
+                    plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_matching',
+                                               path_result=path_indicator_figures+f'{title_join}_map_matching_sims.pdf',
+                                               cbar_title=f"{title_join} Accord des modèles sur le sens d'évolution (%)", cbar_ticks=None, title=coordinate_value, dict_shapefiles=dict_shapefiles,
+                                               bounds=bounds, palette='PuOr', cbar_midpoint='zero', cbar_values=settings['cbar_values'],
+                                               start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
+                                               fontsize=settings['fontsize'],
+                                               font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75,
+                                               vmin=-100, vmax=100)
                     # Climate difference map
                     if indicator in files_setup['climate_indicator']:
                         print(f">> {plot_type_name.title()} map plot {indicator}")
                         plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=f'horizon_{plot_type}-median',
                                       path_result=path_indicator_figures+f'{title_join}_map_{plot_type}.pdf',
-                                      cbar_title=f"{plot_type_name.title()} médiane {title}{units}", cbar_ticks=None, title=coordinate_value, dict_shapefiles=dict_shapefiles,
-                                      percent=False, bounds=bounds, palette=settings['palette'], cbar_midpoint='zero', fontsize=settings['fontsize'],
-                                      font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75, cbar_values=settings['cbar_values'],
+                                      cbar_title=f"{plot_type_name.title()} médiane {title}{units}", cbar_ticks=settings['cbar_ticks'],
+                                                   title=coordinate_value, dict_shapefiles=dict_shapefiles,
+                                      bounds=bounds, palette=settings['palette'], cbar_midpoint='zero', cbar_values=settings['cbar_values'],
+                                      start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
+                                      fontsize=settings['fontsize'],
+                                      font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75,
                                       vmin=settings['vmin'], vmax=settings['vmax'])
 
                         # Histogramme Différence par moyenne multi-modèle annuelle par rapport à la période de référence
                         # timeline_difference_mean mais pour l'ensemble du territoire
-
                     elif indicator in files_setup['hydro_indicator']:
                         print(f">> {plot_type_name.title()} map plot by HM")
                         horizons = {'horizon1': 'Horizon 1 (2021-2050)',
@@ -264,7 +283,7 @@ for indicator, subdicts in data_to_plot.items():
                                     'horizon3': 'Horizon 3 (2070-2099)',
                                     }
                         mean_by_hm = [s for sublist in variables['hydro-model_deviation'].values() for s in sublist if "mean" in s]
-                        if settings['vmax'] == 'auto':
+                        if settings['vmax'] is None:
                             vmax = math.ceil(abs(ds[mean_by_hm].to_array()).max() / 5) * 5
                         else:
                             vmax = settings['vmax']
@@ -276,9 +295,9 @@ for indicator, subdicts in data_to_plot.items():
                             else:
                                 map_title = f"{value}"
                             plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), variables=variables,
-                                                  path_result=path_indicator_figures+f'{title_join}_map_{plot_type}_mean_{key}.pdf',
-                                                  cbar_title=f"{plot_type_name.title()} moyenne {title}{units}", title=map_title, cbar_midpoint='zero',
-                                                  dict_shapefiles=dict_shapefiles, percent=True, bounds=bounds, edgecolor=edgecolor,
+                                                  path_result=path_indicator_figures+f'{title_join}_map_{plot_type}_median_{key}.pdf',
+                                                  cbar_title=f"{plot_type_name.title()} médiane {title}{units}", title=map_title, cbar_midpoint='zero',
+                                                  dict_shapefiles=dict_shapefiles, bounds=bounds, edgecolor=edgecolor,
                                                   markersize=75, discretize=settings['discretize'], palette=settings['palette'], fontsize=settings['fontsize'],
                                                   font=settings['font'],
                                                   vmin=settings['vmin'], vmax=vmax)

@@ -5,6 +5,7 @@ import geopandas.geodataframe as gpd
 import matplotlib as mpl
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
+from textwrap import wrap
 
 
 def init_grid(grid_dict, ds_plot):
@@ -27,8 +28,23 @@ def init_grid(grid_dict, ds_plot):
 
     return length_dict, grid_dict_temp, ds_plot
 
+def format_significant(lst, n=0, start_cbar_ticks='', end_cbar_ticks=''):
+    if n is None:
+        formatted_list = [np.round(x, 0) if isinstance(x, (int, float)) else x for x in lst]
+    elif n > 0:
+        formatted_list = [np.round(float(x), n) if isinstance(x, (int, float)) else x for x in lst ]
+    else:
+        formatted_list = [int(np.round(x, n)) if isinstance(x, (int, float)) else x for x in lst]
+
+    if start_cbar_ticks == 'sign':
+        formatted_list = [f"{x:+}{end_cbar_ticks}" if isinstance(x, (int, float)) else x for x in formatted_list]
+    else:
+        formatted_list = [f"{x}{end_cbar_ticks}" if isinstance(x, (int, float)) else x for x in formatted_list]
+    return formatted_list
+
 def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
-                cbar_title=None, percent=False, **text_kwargs):
+                cbar_title=None, cbar_values=None, cbar_ticks='border',
+                start_cbar_ticks='sign', end_cbar_ticks='', **text_kwargs):
     # Scalar mappable
     sm = mpl.cm.ScalarMappable(cmap=cmap, norm=mpl.colors.BoundaryNorm(bounds_cmap, cmap.N))
 
@@ -54,14 +70,43 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
     cbar_ax = fig.add_axes([axes_flatten[len_cols - 1].get_position().x1 + 0.05, bottom, 0.02, height])
 
     sm._A = []
-    if percent:
-        cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap, format='%.0f')
+    # if percent:
+    #     cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap, format='%.0f')
+    # else:
+    #     cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap)
+
+    cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap, format=f'{start_cbar_ticks}.0f')
+
+    if cbar_ticks == 'mid':
+        # Set ticks middle
+        tick_values = [(bounds_cmap[i] + bounds_cmap[i + 1]) / 2 for i in range(len(bounds_cmap) - 1)]
+        cbar.set_ticks(tick_values)
+        cbar.ax.tick_params(size=0)
+        # if isinstance(cbar_values, int):
+        # cbar.set_ticklabels(format_significant(mid_values, cbar_values,
+        #                                        start_cbar_ticks, end_cbar_ticks))
+        # else:
+        #     # cbar.set_ticklabels(cbar_values)
+        #     tick_values = cbar.get_ticks()
+        #     cbar.set_ticklabels(format_significant(tick_values, cbar_values, start_cbar_ticks, end_cbar_ticks))
     else:
-        cbar = fig.colorbar(sm, cax=cbar_ax, drawedges=True, ticks=bounds_cmap)
+        tick_values = cbar.get_ticks()
+
+    if isinstance(cbar_values, list):
+        tick_values[0: min([len(tick_values), len(cbar_values)])] =  cbar_values
+        cbar_values = 0
+
+    cbar.set_ticklabels(format_significant(tick_values, cbar_values, start_cbar_ticks, end_cbar_ticks))
+
+
     if cbar_title:
-        label_ax = fig.add_axes([cbar_ax.get_position().x1 + 0.075, cbar_ax.get_position().y0, 0.02, height])
-        label_ax.annotate(cbar_title, xy=(0, 0.45), wrap=True, **text_kwargs)
-        label_ax.axis('off')
+        # label_ax = fig.add_axes([cbar_ax.get_position().x1 + 0.045, cbar_ax.get_position().y0, 0.15, height])
+        # label_ax.annotate(cbar_title, xy=(0, 0.45), wrap=True, **text_kwargs)
+        # label_ax.axis('off')
+        wrapped_label = "\n".join(wrap(cbar_title, width=15))
+        cbar.set_label(wrapped_label, rotation=0, ha='left', va='center', **text_kwargs)
+        # cbar.ax.yaxis.label.set_horizontalalignment('center')
+
         # cbar.set_label(cbar_title, rotation=0, wrap=True, labelpad=25, **text_kwargs)
 
     return cbar

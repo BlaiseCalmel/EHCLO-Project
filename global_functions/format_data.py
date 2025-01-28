@@ -138,13 +138,16 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
     # Deviation/difference by horizon
     simulation_horizon_deviation_by_sims = [i for i in list(ds.variables) if '_by-horizon_deviation' in i]
     simulation_horizon_difference_by_sims = [i for i in list(ds.variables) if '_by-horizon_difference' in i]
+    simulation_horizon_matching_by_sims = [i for i in list(ds.variables) if '_by-horizon_matching' in i]
 
     # Compute statistic among all sims
     print(f'>> Compute stats by horizon among simulations...', end='\n')
-    ds, horizon_deviation = run_stats(ds, simulation_horizon_deviation_by_sims, files_setup,
-                                                 name="horizon_deviation")
-    ds, horizon_difference = run_stats(ds, simulation_horizon_difference_by_sims, files_setup,
-                                                  name="horizon_difference")
+    ds, horizon_deviation = run_stats(ds, cols=simulation_horizon_deviation_by_sims, function=files_setup['function'],
+                                      quantile=files_setup['quantile'], name="horizon_deviation")
+    ds, horizon_difference = run_stats(ds, cols=simulation_horizon_difference_by_sims, function=files_setup['function'],
+                                       quantile=files_setup['quantile'], name="horizon_difference")
+    ds, horizon_matching = run_stats(ds, cols=simulation_horizon_matching_by_sims, function='stats',
+                                     quantile=files_setup['quantile'], name="horizon_matching")
 
     # Find every HM
     if data_type == 'hydro':
@@ -164,25 +167,28 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
         # Compute stats for Horizons
         hydro_model_deviation = {i: [] for i in np.unique(hm_names)}
         for hm, var_list in hm_dict_deviation_horizon.items():
-            ds, deviation_name = run_stats(ds, hm_dict_deviation_horizon[hm], files_setup,
-                                 name=f"horizon_deviation_{hm}")
+            ds, deviation_name = run_stats(ds, hm_dict_deviation_horizon[hm], function=files_setup['function'],
+                                           quantile=files_setup['quantile'], name=f"horizon_deviation_{hm}")
             hydro_model_deviation[hm] = deviation_name
 
         columns |= {'hydro-model_deviation': hydro_model_deviation}
 
-    ds, timeline_deviation = run_stats(ds, simulation_deviation, files_setup, name="timeline-deviation")
-    ds, timeline_difference = run_stats(ds, simulation_difference, files_setup, name="timeline-difference")
+    ds, timeline_deviation = run_stats(ds, simulation_deviation, function=files_setup['function'],
+                                       quantile=files_setup['quantile'], name="timeline-deviation")
+    ds, timeline_difference = run_stats(ds, simulation_difference, function=files_setup['function'],
+                                        quantile=files_setup['quantile'], name="timeline-difference")
 
     columns |= {'simulation_cols': simulation_cols, # raw value
-               'simulation_deviation': simulation_deviation, # deviation from averaged historical reference
-               'simulation_difference': simulation_difference, # difference from AHR
-               'simulation_horizon': simulation_horizon, # mean value per horizon
-               'simulation-horizon_by-sims_deviation': simulation_horizon_deviation_by_sims, # Horz deviation from AHR
-               'simulation-horizon_by-sims_difference': simulation_horizon_difference_by_sims, # Horz difference from AHR
-               'horizon_deviation': horizon_deviation, # mean horizon deviation among sims
-               'horizon_difference': horizon_difference,
-               'timeline_deviation': timeline_deviation, # mean timeline deviation among sims
-               'timeline_difference': timeline_difference
+                'simulation_deviation': simulation_deviation, # deviation from averaged historical reference
+                'simulation_difference': simulation_difference, # difference from AHR
+                'simulation_horizon': simulation_horizon, # mean value per horizon
+                'simulation-horizon_by-sims_deviation': simulation_horizon_deviation_by_sims, # Horz deviation from AHR
+                'simulation-horizon_by-sims_difference': simulation_horizon_difference_by_sims, # Horz difference from AHR
+                'horizon_deviation': horizon_deviation, # mean horizon deviation among sims
+                'horizon_difference': horizon_difference,
+                'horizon_matching': horizon_matching,
+                'timeline_deviation': timeline_deviation, # mean timeline deviation among sims
+                'timeline_difference': timeline_difference
     }
 
     if dimension_names is not None:
@@ -190,14 +196,15 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
 
     return ds, columns
 
-def run_stats(ds, cols, files_setup, name="deviation"):
-    ds_stats = apply_statistic(ds=ds[cols].to_array(dim='new'),
-                               function=files_setup['function'],
-                               q=files_setup['quantile']
-                               )
-    simulation_horizon = [f"{name}-{i}" for i in
-                          list(ds_stats.data_vars)]
-    ds[simulation_horizon] = ds_stats
+def run_stats(ds, cols, function=['mean'], quantile=[], name="deviation"):
+    ds_stats = apply_statistic(ds=ds[cols].to_array(dim='new'), function=function, q=quantile)
+    if hasattr(ds_stats, "data_vars"):
+        simulation_horizon = [f"{name}-{i}" for i in
+                              list(ds_stats.data_vars)]
+        ds[simulation_horizon] = ds_stats
+    else:
+        simulation_horizon = [name]
+        ds[name] = ds_stats
     return ds, simulation_horizon
 
 
@@ -279,6 +286,9 @@ def apply_statistic(ds, function='mean', q=None):
                 agg_vars[func_name] =  ds.max(dim='new')
             elif  func_name.lower() == 'min':
                 agg_vars[func_name] =  ds.min(dim='new')
+            elif func_name.lower() == 'stats':
+                agg_vars[func_name] = 100 * ds.sum(dim='new') / ds.count(dim='new')
+
         ds_agg = xr.Dataset(agg_vars)
         return ds_agg
     else:
@@ -299,6 +309,8 @@ def apply_statistic(ds, function='mean', q=None):
             return ds.max(dim='new')
         elif  function.lower() == 'min':
             return ds.min(dim='new')
+        elif function.lower() == 'stats':
+            return 100 * ds.sum(dim='new') / ds.count(dim='new')
         else:
             raise ValueError("Unknown function, chose 'mean', 'median', 'max', 'min' or 'quantile'")
 
@@ -312,6 +324,11 @@ def compute_deviation_to_ref(ds, cols, ref='historical'):
 
         ds[col+'_difference'] = (ds[col].sel(horizon=horizons) - ds[col].sel(horizon=ref))
         ds[col+'_deviation'] = (ds[col+'_difference']) * 100 / ds[col].sel(horizon=ref)
+
+        ds[col+'_matching'] = ds[col+'_deviation'] > 0
+
+        ds[col+'_matching'] = xr.where(ds[col+'_deviation'] > 0, 1,
+                                       xr.where(ds[col+'_deviation'] < 0, -1, np.nan))
 
     return ds
 

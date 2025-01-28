@@ -81,16 +81,26 @@
     },
   "climate_indicator": {
     "tasAdjust": {
-      "T moy.": {
+      "T moy. seas": {
         "units": "°C",
-        "label": "de la T moy.",
+        "label": "de la T moy. saisonnière",
         "timestep": "ME",
         "plot_type": "difference",
         "plot_function": "season",
         "palette": "RdBu_r",
         "cbar_values": 1,
         "vmin": 0,
-        "vmax": 6.4
+        "vmax": 6
+      },
+      "T moy.": {
+        "units": "°C",
+        "label": "de la T moy.",
+        "timestep": "ME",
+        "plot_type": "difference",
+        "palette": "RdBu_r",
+        "cbar_values": 1,
+        "vmin": 0,
+        "vmax": 6
       },
       "NJ<0": {
         "units": "",
@@ -98,7 +108,8 @@
         "extract_function": "inf0",
         "plot_type": "difference",
         "palette": "RdBu",
-        "cbar_values": 0,
+        "start_cbar_ticks": "sign",
+        "discretize": 5,
         "vmax": 0
       },
       "NJ>30": {
@@ -107,7 +118,8 @@
         "extract_function": "sup30",
         "plot_type": "difference",
         "palette": "RdBu_r",
-        "cbar_values": 0,
+        "start_cbar_ticks": "sign",
+        "discretize": 5,
         "vmin": 0
       }
     },
@@ -119,9 +131,7 @@
         "timestep": "ME",
         "plot_type": "deviation",
         "plot_function": "season",
-        "palette": "RdBu",
-        "vmax": 35,
-        "vmin": -35
+        "palette": "RdBu"
       },
       "RRa": {
         "units": "mm",
@@ -129,9 +139,7 @@
         "extract_function": "sum",
         "timestep": "YE",
         "plot_type": "deviation",
-        "palette": "RdBu",
-        "vmin": -12,
-        "vmax": 6
+        "palette": "RdBu"
       }
     },
     "evspsblpotAdjust": {
@@ -142,7 +150,9 @@
         "timestep": "ME",
         "plot_type": "deviation",
         "plot_function": "season",
-        "palette": "RdBu"
+        "palette": "RdBu_r",
+        "vmin": 0,
+        "vmax": 30
       },
       "ETPa": {
         "units": "mm",
@@ -150,7 +160,10 @@
         "extract_function": "sum",
         "timestep": "YE",
         "plot_type": "deviation",
-        "palette": "RdBu"
+        "palette": "RdBu_r",
+        "cbar_values": 1,
+        "vmin": 0,
+        "vmax": 25
       }
     }
   },

@@ -225,11 +225,11 @@ def plot_boxplot_station_narrative(ds, simulations, station_references, narrativ
     boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=True,
              title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=1)
 
-def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, percent, bounds,
+def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds,
                           variables, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,
                           vmin=None, vmax=None, edgecolor='k', cbar_midpoint=None, markersize=50):
 
-    mean_by_hm = [s for sublist in variables['hydro-model_deviation'].values() for s in sublist if "mean" in s]
+    mean_by_hm = [s for sublist in variables['hydro-model_deviation'].values() for s in sublist if "median" in s]
     # Dictionnary sim by HM
     hm_names = [name.split('_')[-1] for name in variables['simulation_cols']]
     hm_dict_deviation = {i: [] for i in np.unique(hm_names)}
@@ -247,14 +247,15 @@ def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, per
             path_result=path_result,
             cols=cols, rows=rows,
             cbar_title=cbar_title, title=title, dict_shapefiles=dict_shapefiles, cbar_midpoint=cbar_midpoint,
-            percent=percent, bounds=bounds,
+            bounds=bounds,
             discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
             font=font, vmax=vmax, vmin=vmin, markersize=markersize)
 
-def plot_map_indicator_climate(gdf, ds, path_result, cbar_title, dict_shapefiles, percent, bounds,
-                                    indicator_plot, cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,
-                                    font='sans-serif', title=None, vmin=None, vmax=None, edgecolor='k',
-                                    cbar_midpoint=None, markersize=50,cbar_values=None):
+def plot_map_indicator_climate(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds,
+                               indicator_plot, cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,
+                               font='sans-serif', title=None, vmin=None, vmax=None, edgecolor='k',
+                               cbar_midpoint=None, markersize=50,cbar_values=None,
+                               start_cbar_ticks='', end_cbar_ticks=''):
 
     cols = {
             'names_coord': 'horizon',
@@ -276,10 +277,41 @@ def plot_map_indicator_climate(gdf, ds, path_result, cbar_title, dict_shapefiles
             path_result=path_result,
             cols=cols, rows=rows, cbar_ticks=cbar_ticks,
             cbar_title=cbar_title, title=title, dict_shapefiles=dict_shapefiles, cbar_midpoint=cbar_midpoint,
-            percent=percent, bounds=bounds, cbar_values=cbar_values,
+            bounds=bounds, cbar_values=cbar_values,
             discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
-            font=font, vmax=vmax, vmin=vmin, markersize=markersize)
+            font=font, vmax=vmax, vmin=vmin, markersize=markersize,
+            start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks)
 
+def plot_map_matching_sim(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds,
+                               indicator_plot, cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,
+                               font='sans-serif', title=None, vmin=None, vmax=None, edgecolor='k',
+                               cbar_midpoint=None, markersize=50,cbar_values=None,
+                               start_cbar_ticks='', end_cbar_ticks=''):
+
+    cols = {
+        'names_coord': 'horizon',
+        'values_var': ['horizon1', 'horizon2', 'horizon3'],
+        'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2099)']
+    }
+
+    used_coords = [dim for dim in ds[indicator_plot].dims if dim in ds.coords]
+    if 'season' in used_coords:
+        rows = {
+            'names_coord': 'season',
+            'values_var': ['Hiver', 'Printemps', 'Été', 'Automne'],
+            'names_plot': ['Hiver', 'Printemps', 'Été', 'Automne']
+        }
+    else:
+        rows = 1
+
+    mapplot(gdf=gdf, ds=ds, indicator_plot=indicator_plot,
+            path_result=path_result,
+            cols=cols, rows=rows, cbar_ticks=cbar_ticks,
+            cbar_title=cbar_title, title=title, dict_shapefiles=dict_shapefiles, cbar_midpoint=cbar_midpoint,
+            bounds=bounds, cbar_values=cbar_values,
+            discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
+            font=font, vmax=vmax, vmin=vmin, markersize=markersize,
+            start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks)
 
 def plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bounds, path_global_figures,
                            fontsize=14):

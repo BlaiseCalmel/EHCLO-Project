@@ -12,5 +12,8 @@
   "vmin": "None",
   "vmax": "None",
   "discretize": 10,
-  "cbar_values": "None"
+  "cbar_values": "None",
+  "cbar_ticks": "border",
+  "start_cbar_ticks": "",
+  "end_cbar_ticks": ""
 }
