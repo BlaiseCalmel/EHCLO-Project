@@ -108,8 +108,7 @@
         "extract_function": "inf0",
         "plot_type": "difference",
         "palette": "RdBu",
-        "start_cbar_ticks": "sign",
-        "discretize": 5,
+        "discretize": 8,
         "vmax": 0
       },
       "NJ>30": {
@@ -119,7 +118,7 @@
         "plot_type": "difference",
         "palette": "RdBu_r",
         "start_cbar_ticks": "sign",
-        "discretize": 5,
+        "discretize": 10,
         "vmin": 0
       }
     },

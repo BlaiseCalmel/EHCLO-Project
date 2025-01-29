@@ -27,6 +27,16 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         subplot_titles = rows['names_plot']
         rows_plot['names_plot'] = [None]
 
+    if vmax is None:
+        specified_vmax = False
+    else:
+        specified_vmax = True
+
+    if vmin is None:
+        specified_vmin = False
+    else:
+        specified_vmin = True
+
     if '%' in cbar_title:
         if vmax is None:
             if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
@@ -69,7 +79,19 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     step = np.round(n, -exponent+1)
     if step == 0:
         step = n
-    levels = np.arange(vmin, vmax+0.2*step, step)
+    if cbar_values is None:
+        cbar_values = np.floor(np.log10(step))
+    start_value = vmin
+    stop_value = vmax
+    if specified_vmax and not specified_vmin:
+        start_value = vmax
+        stop_value = vmin
+        step = -step
+
+    levels = np.arange(start=start_value, stop=stop_value+0.01*exponent*step, step=step)
+    if levels[0] > levels[-1]:
+        levels = levels[::-1]
+    # levels = np.arange(vmin, vmax+0.2*step, -step)
     if levels[0] > vmin:
         extend_vmin = True
     else:
