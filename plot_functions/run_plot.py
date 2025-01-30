@@ -168,43 +168,28 @@ def plot_linear_time(ds, simulations, path_result, station_references, narrative
              title=title, percent=percent, legend_items=legend_items, fontsize=fontsize, font=font, ymax=None)
 
 
-def plot_boxplot_station_narrative(ds, simulations, station_references, narratives, references, path_result, name_y_axis='', percent=False,
+def plot_boxplot_station_narrative(ds, station_references, narratives, references, path_result, name_y_axis='', percent=False,
                                    title=None, fontsize=14, font='sans-serif'):
 
-    # narratives_bp = {
-    #     "HadGEM2-ES_ALADIN63_ADAMONT": {'boxprops':dict(facecolor='#569A71', alpha=0.9),
-    #                                     'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
-    #                                     'label': 'Vert [HadGEM2-ES_ALADIN63_ADAMONT]'},
-    #     "CNRM-CM5_ALADIN63_ADAMONT": {'boxprops':dict(facecolor='#EECC66', alpha=0.9),
-    #                                   'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
-    #                                   'label': 'Jaune [CNRM-CM5_ALADIN63_ADAMONT]'},
-    #     "EC-EARTH_HadREM3-GA7_ADAMONT": {'boxprops':dict(facecolor='#E09B2F', alpha=0.9),
-    #                                      'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
-    #                                      'label': 'Orange [EC-EARTH_HadREM3-GA7_ADAMONT]'},
-    #     "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'boxprops':dict(facecolor='#791F5D', alpha=0.9),
-    #                                       'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
-    #                                       'label': 'Violet [HadGEM2-ES_CCLM4-8-17_ADAMONT]'},
-    # }
+    simulations = list(ds.data_vars)
 
     narratives_bp = {key: {'boxprops':dict(facecolor=value['color'], alpha=0.9),
     'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
     'label': value['label']} for key, value in narratives.items()}
 
-
     dict_sims = {}
     dict_sims['simulations'] = {'values': simulations, 'kwargs': {'boxprops':dict(facecolor='lightgray', alpha=0.6),
-                                                                  'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
-                                                                  'label': 'Simulations'}}
-
+                                                                  'medianprops': dict(color="black"), 'widths': 0.9,
+                                                                  'patch_artist':True, 'label': 'Simulations'}}
     for narr_name, kwargs in narratives_bp.items():
         dict_sims[narr_name] = {'values': [], 'kwargs': kwargs}
         for sim_name in simulations:
             if narr_name in sim_name:
                 dict_sims[narr_name]['values'].append(sim_name)
 
-    indicator_plot = [dict_sims]
+    # indicator_plot = [dict_sims]
     y_axis = {'names_coord': 'indicator',
-              'values_var': indicator_plot,
+              'values_var': dict_sims, #indicator_plot
               'names_plot': list(dict_sims.keys()),
               'name_axis': name_y_axis
               }
@@ -225,9 +210,41 @@ def plot_boxplot_station_narrative(ds, simulations, station_references, narrativ
     boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=True,
              title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=1)
 
+def plot_boxplot_station_month_horizon(ds, station_references, narratives, path_result, name_y_axis='', percent=False,
+                                   title=None, fontsize=14, font='sans-serif', common_yaxes=False, normalized=False):
+
+    narratives_bp = {key: {'kwargs': {'boxprops': dict(facecolor=value['color'], alpha=0.9),
+                            'medianprops': dict(color="black"), 'widths': 0.8, 'patch_artist': True,
+                            'label': value['label']}} for key, value in narratives.items()}
+
+    if normalized:
+        ds = ds / ds.sel(horizon='historical').mean(dim=['month'])
+
+    y_axis = {'names_coord': 'horizon',
+              'values_var': narratives_bp,
+              'names_plot': list(narratives_bp.keys()),
+              'name_axis': name_y_axis
+              }
+
+    x_axis = {
+        'names_coord': 'month',
+        'values_var': list(ds.month.values),
+        'names_plot': [i[0] for i in list(ds.month.values)]
+    }
+
+    cols = 2
+    rows = {
+        'names_coord': 'gid',
+        'values_var': list(station_references.keys()),
+        'names_plot': list(station_references.values())
+    }
+
+    boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=True, common_yaxes=common_yaxes,
+            title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=1)
+
 def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds,
                           variables, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,
-                          vmin=None, vmax=None, edgecolor='k', cbar_midpoint=None, markersize=50):
+                          vmin=None, vmax=None, edgecolor='k', cbar_midpoint=None, markersize=50, alpha=1):
 
     mean_by_hm = [s for sublist in variables['hydro-model_deviation'].values() for s in sublist if "median" in s]
     # Dictionnary sim by HM
@@ -249,12 +266,12 @@ def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, bou
             cbar_title=cbar_title, title=title, dict_shapefiles=dict_shapefiles, cbar_midpoint=cbar_midpoint,
             bounds=bounds,
             discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
-            font=font, vmax=vmax, vmin=vmin, markersize=markersize)
+            font=font, vmax=vmax, vmin=vmin, markersize=markersize, alpha=alpha)
 
 def plot_map_indicator_climate(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds,
                                indicator_plot, cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,
                                font='sans-serif', title=None, vmin=None, vmax=None, edgecolor='k',
-                               cbar_midpoint=None, markersize=50,cbar_values=None,
+                               cbar_midpoint=None, markersize=50, alpha=1, cbar_values=None,
                                start_cbar_ticks='', end_cbar_ticks=''):
 
     cols = {
@@ -279,13 +296,13 @@ def plot_map_indicator_climate(gdf, ds, path_result, cbar_title, dict_shapefiles
             cbar_title=cbar_title, title=title, dict_shapefiles=dict_shapefiles, cbar_midpoint=cbar_midpoint,
             bounds=bounds, cbar_values=cbar_values,
             discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
-            font=font, vmax=vmax, vmin=vmin, markersize=markersize,
+            font=font, vmax=vmax, vmin=vmin, markersize=markersize, alpha=alpha,
             start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks)
 
 def plot_map_matching_sim(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds,
                                indicator_plot, cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,
                                font='sans-serif', title=None, vmin=None, vmax=None, edgecolor='k',
-                               cbar_midpoint=None, markersize=50,cbar_values=None,
+                               cbar_midpoint=None, markersize=50, alpha=1, cbar_values=None,
                                start_cbar_ticks='', end_cbar_ticks=''):
 
     cols = {
@@ -310,7 +327,7 @@ def plot_map_matching_sim(gdf, ds, path_result, cbar_title, dict_shapefiles, bou
             cbar_title=cbar_title, title=title, dict_shapefiles=dict_shapefiles, cbar_midpoint=cbar_midpoint,
             bounds=bounds, cbar_values=cbar_values,
             discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
-            font=font, vmax=vmax, vmin=vmin, markersize=markersize,
+            font=font, vmax=vmax, vmin=vmin, markersize=markersize, alpha=alpha,
             start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks)
 
 def plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bounds, path_global_figures,

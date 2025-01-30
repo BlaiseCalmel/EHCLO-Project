@@ -127,6 +127,8 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
                     vlines['annotate'] = 0.02
                 if 'alpha' not in vlines.columns:
                     vlines['alpha'] = 1
+                if 'fontsize' not in vlines.columns:
+                    vlines['fontsize'] = fontsize
 
                 for i in range(len(vlines)):
                     ax.vlines(x=vlines.iloc[i][x_axis['names_coord']],
@@ -135,7 +137,7 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
 
                     ax.text(vlines.iloc[i][x_axis['names_coord']], ymax - vlines.iloc[i]['annotate']*(ymax-ymin),
                             vlines.iloc[i]['label'], rotation=90, verticalalignment='top', horizontalalignment='center',
-                            alpha=vlines.iloc[i]['alpha'])
+                            alpha=vlines.iloc[i]['alpha'], fontsize=vlines.iloc[i]['fontsize'])
 
             # Plot data as line
             ax.plot([xmin, xmax], [0, 0], color='k', linestyle='--', linewidth=0.5, dashes=(10,10),
@@ -164,12 +166,13 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
             [0], [0],  # Ligne fictive
             color=item.get('color', 'k'),
             linestyle=item.get('linestyle', '-'),
+            linewidth=4,
             alpha=item.get('alpha', 1),
             label=item['label']
         )
         legend_handles.append(handle)
 
-    fig.legend(handles=legend_handles, loc='upper center', bbox_to_anchor=(0.5, 0), fancybox=False, shadow=False,
+    fig.legend(handles=legend_handles, loc='upper center', bbox_to_anchor=(0.5, 0), fancybox=True, shadow=False,
                ncol=min((len(legend_handles), len_cols)))
 
     plt.savefig(path_result, bbox_inches='tight')

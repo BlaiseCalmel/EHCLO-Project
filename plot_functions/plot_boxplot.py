@@ -5,7 +5,7 @@ import matplotlib.ticker as mtick
 from plot_functions.plot_common import *
 
 def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ymax=None, vlines=None,
-             title=None, percent=False, fontsize=14, font='sans-serif', blank_space=1):
+             title=None, percent=False, fontsize=14, font='sans-serif', blank_space=1, common_yaxes=True):
 
     ds_plot = copy.deepcopy(ds)
     len_cols, cols_plot, ds_plot = init_grid(cols, ds_plot)
@@ -45,16 +45,20 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     else:
         y_title = None
 
-    list_of_sims = [subdict['values'] for subdict in y_axis['values_var'][0].values()]
-    all_sims = set([i for j in list_of_sims for i in j])
-    ymax = ds[all_sims].to_array().max()
-    ymin = ds[all_sims].to_array().min()
+    if ymin is None:
+        ymin = ds.to_array().quantile(0.01).item()
+    if ymax is None:
+        ymax = ds.to_array().quantile(0.99).item()
+
+    # if y_axis['names_coord'] == 'indicator':
+    #     list_of_sims = [subdict['values'] for subdict in y_axis['values_var'].values()]
+    #     all_sims = set([i for j in list_of_sims for i in j])
+    #     ymax = ds[all_sims].to_array().max()
+    #     ymin = ds[all_sims].to_array().min()
+
     xmin = - blank_space / 2 - 1
     xmax = (len(x_axis['names_plot']) * len(y_axis['names_plot']) + 2 * blank_space * (len(x_axis['names_plot'])) -
             2 * blank_space)
-    # -3-2-1 0123 456
-    # 789 10111213 141516
-    # 171819 202122223 242526
 
     legend_items = []
     legend_labels = []
@@ -63,7 +67,7 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     centers = [init_center + k * (2 * blank_space + len(y_axis['names_plot'])) for k in
                range(len(x_axis['names_plot']))]
 
-    if vlines:
+    if vlines is not None:
         vlines = [(centers[i] + centers[i + 1]) / 2 for i in range(len(centers) - 1)]
 
     # Font parameters
@@ -71,6 +75,8 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     plt.rcParams['font.size'] = fontsize
 
     fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 10 * len_cols, len_rows * 4), constrained_layout=True)
+    max_values = []
+    min_values = []
     if del_axes:
         for i in range(del_axes):
             fig.delaxes(fig.axes[-1])
@@ -108,42 +114,59 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
                 subplot_title = subplot_titles[idx]
 
             i = -1
-            for y_idx, y_values in enumerate(y_axis['values_var']):
-                for name, value in y_values.items():
-                    name_sims = value['values']
-                    kwargs = value['kwargs']
+            # for y_idx, y_values in enumerate(y_axis['values_var']):
+            #     print(y_values)
+            #     for name, value in y_values.items():
+            #         print(name)
+            y_temp_max = []
+            y_temp_min = []
+            for name, y_var in y_axis['values_var'].items():
+                if y_axis['names_coord'] == 'indicator':
+                    name_sims = y_var['values']
                     cell_data = plot_selection(ds_selection, y_axis['names_coord'], name_sims)
+                else:
+                    cell_data = plot_selection(ds_selection, y_axis['names_coord'], name)
 
-                    cell_boxplots = []
-                    for x_var in x_axis['values_var']:
-                        boxplot_values = plot_selection(cell_data, x_axis['names_coord'], x_var)
-                        data_list = []
-                        for data_name in boxplot_values.data_vars:
-                            data_list.append(boxplot_values[data_name].values.flatten())
-                        all_values = np.concatenate(data_list).flatten()
-                        mask = ~np.isnan(all_values)
+                if 'kwargs' in  y_var.keys():
+                    kwargs = y_var['kwargs']
+                else:
+                    kwargs = {}
+
+                cell_boxplots = []
+                for x_var in x_axis['values_var']:
+                    boxplot_values = plot_selection(ds_selection=cell_data, names_var=x_axis['names_coord'], value=x_var)
+                    data_list = []
+                    for data_name in boxplot_values.data_vars:
+                        data_list.append(boxplot_values[data_name].values.flatten())
+                    all_values = np.concatenate(data_list).flatten()
+                    mask = ~np.isnan(all_values)
+                    if any(mask):
                         cell_boxplots.append(all_values[mask])
-                    i += 1
-                    current_position = [i + (len(y_axis['names_plot']) + 2 * blank_space) * j for j in
-                                        range(len(x_axis['names_plot']))]
-
-                    # Plot by sub box categories
-                    bp = ax.boxplot(cell_boxplots, positions=current_position,
-                                    **kwargs)
-
-                    if 'label' in kwargs:
-                        label = kwargs['label']
                     else:
-                        label = y_axis['names_plot'][i]
+                        cell_boxplots.append([np.nan])
+                i += 1
+                current_position = [i + (len(y_axis['names_plot']) + 2 * blank_space) * j for j in
+                                    range(len(x_axis['names_plot']))]
+
+                # Plot by sub box categories
+                bp = ax.boxplot(cell_boxplots, positions=current_position, vert=True,
+                                **kwargs)
+                y_temp_max.append(np.nanmax(cell_boxplots))
+                y_temp_min.append(np.nanmin(cell_boxplots))
+
+                if 'label' in kwargs:
+                    label = kwargs['label']
+                else:
+                    label = y_axis['names_plot'][i]
 
 
-                    if label not in legend_labels:
-                        legend_items.append(bp["boxes"][0])
-                        legend_labels.append(label)
-                        # if 'label' in kwargs:
-                        #     legend_labels.append(kwargs['label'])
-                        # else:
-                        #     legend_labels.append(y_axis['names_plot'][i])
+                if label not in legend_labels:
+                    legend_items.append(bp["boxes"][0])
+                    legend_labels.append(label)
+                    # if 'label' in kwargs:
+                    #     legend_labels.append(kwargs['label'])
+                    # else:
+                    #     legend_labels.append(y_axis['names_plot'][i])
 
             # Set ticks
             ax.set_xticks(centers)
@@ -157,8 +180,9 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
                           ymin=ymin, ymax=ymax,
                           color='lightgray', linewidth=1, alpha=0.5)
 
-            # plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.1, alpha=0.4)
+            plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.8, alpha=0.8)
             # ax.grid(True)
+            ax.yaxis.grid(True)
 
             ax.spines[['right', 'top']].set_visible(False)
 
@@ -170,12 +194,29 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
 
             # Headers and axes label
             add_header(ax, rows_plot, cols_plot, ylabel=y_title, xlabel=x_title)
-
             ax.set_xlim(xmin, xmax)
-            ax.set_ylim(ymin, ymax)
+            max_values.append(np.nanmax(y_temp_max))
+            min_values.append(np.nanmin(y_temp_min))
 
-    fig.legend(legend_items, legend_labels, loc='upper center', bbox_to_anchor=(0.5, 0), fancybox=False, shadow=False,
-               ncol=2, fontsize=fontsize-2)
+    if common_yaxes:
+        if ymin is None:
+            ymin = np.nanmin(min_values)
+        if ymax is None:
+            ymax = np.nanmax(max_values)
+        for ax in axes_flatten:
+            ax.set_ylim(ymin, ymax)
+    else:
+        for ax_idx, ax in enumerate(axes_flatten):
+            ax.set_ylim(min_values[ax_idx], max_values[ax_idx])
+
+    imported_labels = [y_axis['values_var'][i]['kwargs']['label'] for i in y_axis['names_plot']]
+    if set(imported_labels) == set(legend_labels):
+        imported_order = [imported_labels.index(x) for x in legend_labels]
+    else:
+        imported_order = np.arange(len(legend_labels))
+
+    fig.legend(np.array(legend_items)[imported_order], np.array(legend_labels)[imported_order], loc='upper center', bbox_to_anchor=(0.5, 0),
+               fancybox=False, shadow=False, ncol=2, fontsize=fontsize-2)
 
     plt.savefig(path_result, bbox_inches='tight')
 

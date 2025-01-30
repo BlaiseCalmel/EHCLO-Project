@@ -217,7 +217,10 @@ def flatten_to_strings(input_list):
 
 def plot_selection(ds_selection, names_var, value):
     if names_var == 'month':
-        ds_selection = ds_selection.sel(time = ds_selection.time.dt.month == value)
+        if 'month' in ds_selection._coord_names:
+            ds_selection = ds_selection.sel({names_var: value})
+        else:
+            ds_selection = ds_selection.sel(time=ds_selection.time.dt.month == value)
     elif names_var == 'indicator':
         ds_selection = ds_selection[value]
     else:

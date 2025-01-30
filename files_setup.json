@@ -65,14 +65,16 @@
         "QMN5": {
           "units": "m3/s",
           "label": "du QMN5",
-          "plot_function": "month",
           "additional_coordinates": "month",
+          "additional_plot_folders": "month",
           "return_period": 5,
           "timestep": "ME"
         },
         "Qm": {
           "units": "m3/s",
-          "label": "du Qm"
+          "label": "du Qm",
+          "additional_coordinates": "month",
+          "timestep": "ME"
         }
       },
       "debit": {

@@ -142,7 +142,7 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     text_kwargs ={'weight': 'bold', 'fontsize': fontsize}
 
     fig_dim = 4
-    # fig_dim = 6
+    ratio = fontsize / 18
     if bounds is not None:
         x_y_ratio = abs((bounds[2] - bounds[0]) / (bounds[3] - bounds[1]))
         if x_y_ratio > 1:
@@ -153,11 +153,11 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         figsize = (fig_dim * len_cols, len_rows * fig_dim)
 
     fig, axes = plt.subplots(len_rows, len_cols, figsize=figsize) #, constrained_layout=True
-    hspace = 0.03
-    top = 1
+    hspace = 0.03 * ratio
+    top = 1 * ratio
     if subplot_titles:
-        hspace += 0.09
-        top -= 0.03
+        hspace += 0.09 * ratio
+        top -= 0.03 * ratio
 
     # Main title
     if title is not None:
