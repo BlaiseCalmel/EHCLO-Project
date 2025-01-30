@@ -69,6 +69,10 @@
           "additional_coordinates": "month",
           "return_period": 5,
           "timestep": "ME"
+        },
+        "Qm": {
+          "units": "m3/s",
+          "label": "du Qm"
         }
       },
       "debit": {
@@ -89,8 +93,7 @@
         "plot_function": "season",
         "palette": "RdBu_r",
         "cbar_values": 1,
-        "vmin": 0,
-        "vmax": 6
+        "vmin": 0
       },
       "T moy.": {
         "units": "°C",
@@ -99,8 +102,7 @@
         "plot_type": "difference",
         "palette": "RdBu_r",
         "cbar_values": 1,
-        "vmin": 0,
-        "vmax": 6
+        "vmin": 0
       },
       "NJ<0": {
         "units": "",
@@ -125,44 +127,42 @@
     "prtotAdjust": {
       "RRm": {
         "units": "mm",
-        "label": "des RR mensuelles.",
+        "label": "des précipitations mensuelles.",
         "extract_function": "sum",
         "timestep": "ME",
         "plot_type": "deviation",
         "plot_function": "season",
-        "palette": "RdBu"
+        "palette": "BrBG"
       },
       "RRa": {
         "units": "mm",
-        "label": "des RR annuelles",
+        "label": "des précipitations annuelles",
         "extract_function": "sum",
         "timestep": "YE",
         "plot_type": "deviation",
-        "palette": "RdBu"
+        "palette": "BrBG"
       }
     },
     "evspsblpotAdjust": {
       "ETPm": {
         "units": "mm",
-        "label": "de l'ETP mensuelle",
+        "label": "de l'évapotranspiration mensuelle",
         "extract_function": "sum",
         "timestep": "ME",
         "plot_type": "deviation",
         "plot_function": "season",
-        "palette": "RdBu_r",
-        "vmin": 0,
-        "vmax": 30
+        "palette": "BrBG_r",
+        "vmin": 0
       },
       "ETPa": {
         "units": "mm",
-        "label": "de l'ETP annuelle",
+        "label": "de l'évapotranspiration annuelle",
         "extract_function": "sum",
         "timestep": "YE",
         "plot_type": "deviation",
-        "palette": "RdBu_r",
+        "palette": "BrBG_r",
         "cbar_values": 1,
-        "vmin": 0,
-        "vmax": 25
+        "vmin": 0
       }
     }
   },

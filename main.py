@@ -144,14 +144,14 @@ for data_type, subdict in path_files.items():
                 else:
                     print(f'> {path_ncdf} already exists', end='\n')
 
-name = 'tasAdjust'
-data_to_plot = {name: files_setup['climate_indicator'][name]}
-# data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
+name = 'QA_yr'
+data_to_plot = {name: files_setup['hydro_indicator'][name]}
+data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
 overwrite = True
 for indicator, subdicts in data_to_plot.items():
     for name_indicator, indicator_setup in subdicts.items():
         print(f'################################ STATS {name_indicator.upper()} ################################', end='\n')
-        # if name_indicator.upper() == "NJ<0":
+        # if name_indicator.upper() == "RRM":
         #     break
         if overwrite:
             write_fig = True
@@ -255,7 +255,8 @@ for indicator, subdicts in data_to_plot.items():
                     print(f">> {plot_type_name.title()} matching map plot {indicator}")
                     plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_matching',
                                                path_result=path_indicator_figures+f'{title_join}_map_matching_sims.pdf',
-                                               cbar_title=f"{title_join} Accord des modèles sur le sens d'évolution (%)", cbar_ticks=None, title=coordinate_value, dict_shapefiles=dict_shapefiles,
+                                               cbar_title=f"{title_join} Accord des modèles sur le sens d'évolution (%)", cbar_ticks=None,
+                                               title=coordinate_value, dict_shapefiles=dict_shapefiles,
                                                bounds=bounds, palette='PuOr', cbar_midpoint='zero', cbar_values=settings['cbar_values'],
                                                start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
                                                fontsize=settings['fontsize'],
@@ -298,8 +299,8 @@ for indicator, subdicts in data_to_plot.items():
                                                   path_result=path_indicator_figures+f'{title_join}_map_{plot_type}_median_{key}.pdf',
                                                   cbar_title=f"{plot_type_name.title()} médiane {title}{units}", title=map_title, cbar_midpoint='zero',
                                                   dict_shapefiles=dict_shapefiles, bounds=bounds, edgecolor=edgecolor,
-                                                  markersize=75, discretize=settings['discretize'], palette=settings['palette'], fontsize=settings['fontsize'],
-                                                  font=settings['font'],
+                                                  markersize=120, discretize=settings['discretize'], palette=settings['palette'], fontsize=settings['fontsize'],
+                                                  font=settings['font'], alpha=settings['alpha'],
                                                   vmin=settings['vmin'], vmax=vmax)
 
                         # Sim by PK + quantile

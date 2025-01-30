@@ -52,7 +52,7 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
         bottom = axes_flatten[-1].get_position().y0 - 0.05
         height = axes_flatten[-1].get_position().y1 - axes_flatten[-1].get_position().y0 + 0.025
     elif len_rows < 4:
-        bottom = 0.15
+        bottom = 0.12
         height = 0.7
     else:
         middle = int(len_rows * len_cols / 2)
@@ -67,7 +67,7 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
         # bottom = axes_flatten[middle].get_position().y0 - 0.2
         # height = axes_flatten[middle].get_position().y1 + 0.2
 
-    cbar_ax = fig.add_axes([axes_flatten[len_cols - 1].get_position().x1 + 0.05, bottom, 0.02, height])
+    cbar_ax = fig.add_axes([axes_flatten[len_cols - 1].get_position().x1 + 0.025, bottom, 0.02, height])
 
     sm._A = []
     # if percent:
@@ -98,12 +98,11 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
 
     cbar.set_ticklabels(format_significant(tick_values, cbar_values, start_cbar_ticks, end_cbar_ticks))
 
-
     if cbar_title:
         # label_ax = fig.add_axes([cbar_ax.get_position().x1 + 0.045, cbar_ax.get_position().y0, 0.15, height])
         # label_ax.annotate(cbar_title, xy=(0, 0.45), wrap=True, **text_kwargs)
         # label_ax.axis('off')
-        wrapped_label = "\n".join(wrap(cbar_title, width=15))
+        wrapped_label = "\n".join(wrap(cbar_title, width=10))
         cbar.set_label(wrapped_label, rotation=0, ha='left', va='center', **text_kwargs)
         # cbar.ax.yaxis.label.set_horizontalalignment('center')
 

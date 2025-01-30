@@ -7,12 +7,18 @@ from plot_functions.plot_common import *
 import matplotlib.cm as cm
 # from adjustText import adjust_text
 
+def decimal_places(x):
+    x_str = str(x).rstrip("0")
+    if "." in x_str:
+        return len(x_str.split(".")[1])
+    return 0
 
 def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             cbar_title=None, title=None, dict_shapefiles=None, bounds=None, discretize=7,
             vmin=None, vmax=None, palette='BrBG', cbar_midpoint=None,
             fontsize=14, edgecolor='k', cbar_values=None, cbar_ticks='border',
-            font='sans-serif', references=None, markersize=50, start_cbar_ticks='', end_cbar_ticks=''):
+            font='sans-serif', references=None, markersize=50, start_cbar_ticks='', end_cbar_ticks='',
+            alpha=1):
 
     ds_plot = copy.deepcopy(ds)
     len_cols, cols_plot, ds_plot = init_grid(cols, ds_plot)
@@ -80,7 +86,8 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     if step == 0:
         step = n
     if cbar_values is None:
-        cbar_values = np.floor(np.log10(step))
+        # cbar_values = int(np.floor(np.log10(step)))
+        cbar_values = decimal_places(step)
     start_value = vmin
     stop_value = vmax
     if specified_vmax and not specified_vmin:
@@ -117,9 +124,9 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         elif extend_vmin:
             cmap, norm = from_levels_and_colors(levels, np.vstack([colors[0], colors]), extend='min')
         else:
-            extended_levels = levels
-            extended_levels[0] -= vmin * 0.00001
-            extended_levels[-1] += vmax * 0.00001
+            extended_levels = copy.deepcopy(levels)
+            extended_levels[0] -= 0.01*exponent*step
+            extended_levels[-1] += 0.01*exponent*step
             cmap, norm = from_levels_and_colors(extended_levels, colors)
 
         # cmap_temp = plt.get_cmap(palette, 256)
@@ -145,10 +152,19 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     else:
         figsize = (fig_dim * len_cols, len_rows * fig_dim)
 
-    fig, axes = plt.subplots(len_rows, len_cols, figsize=figsize, constrained_layout=True)
+    fig, axes = plt.subplots(len_rows, len_cols, figsize=figsize) #, constrained_layout=True
+    hspace = 0.03
+    top = 1
+    if subplot_titles:
+        hspace += 0.09
+        top -= 0.03
+
     # Main title
     if title is not None:
+        top -= 0.05
         fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2, weight='bold')
+
+    plt.subplots_adjust(left=0, bottom=0.01, right=1, top=top, wspace=-0.3, hspace=hspace)
 
     if len_rows > 1 or len_cols > 1:
         axes_flatten = axes.flatten()
@@ -200,7 +216,7 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
 
             # Plot
             gdf_plot.plot(column=current_indicator, cmap=cmap, norm=norm, ax=ax, legend=False, markersize=markersize,
-                          edgecolor=edgecolor, alpha=0.9, zorder=10, )
+                          edgecolor=edgecolor, alpha=alpha, zorder=10, )
 
 
             if references is not None:
