@@ -3,9 +3,9 @@ import math
 import matplotlib.pyplot as plt
 import geopandas.geodataframe as gpd
 import matplotlib as mpl
-from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
-from textwrap import wrap
+import textwrap
+import re
 
 
 def init_grid(grid_dict, ds_plot):
@@ -49,8 +49,8 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
     sm = mpl.cm.ScalarMappable(cmap=cmap, norm=mpl.colors.BoundaryNorm(bounds_cmap, cmap.N))
 
     if len_rows == 1:
-        bottom = axes_flatten[-1].get_position().y0 - 0.05
-        height = axes_flatten[-1].get_position().y1 - axes_flatten[-1].get_position().y0 + 0.025
+        bottom = axes_flatten[-1].get_position().y0
+        height = axes_flatten[-1].get_position().y1 - axes_flatten[-1].get_position().y0
     elif len_rows < 4:
         bottom = 0.12
         height = 0.7
@@ -102,8 +102,11 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
         # label_ax = fig.add_axes([cbar_ax.get_position().x1 + 0.045, cbar_ax.get_position().y0, 0.15, height])
         # label_ax.annotate(cbar_title, xy=(0, 0.45), wrap=True, **text_kwargs)
         # label_ax.axis('off')
-        wrapped_label = "\n".join(wrap(cbar_title, width=10))
-        cbar.set_label(wrapped_label, rotation=0, ha='left', va='center', **text_kwargs)
+        # wrapped_label = "\n".join(wrap(cbar_title, width=10))
+        label_length = max([10, len(max(re.split(r"[ -]", cbar_title), key=len))])
+        wrapper = textwrap.TextWrapper(width=label_length, break_long_words=False, break_on_hyphens=True)
+        wrapped_label = wrapper.wrap(cbar_title)
+        cbar.set_label("\n".join(wrapped_label), rotation=0, ha='left', va='center', **text_kwargs)
         # cbar.ax.yaxis.label.set_horizontalalignment('center')
 
         # cbar.set_label(cbar_title, rotation=0, wrap=True, labelpad=25, **text_kwargs)

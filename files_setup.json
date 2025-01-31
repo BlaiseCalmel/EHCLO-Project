@@ -92,7 +92,7 @@
         "label": "de la T moy. saisonnière",
         "timestep": "ME",
         "plot_type": "difference",
-        "plot_function": "season",
+        "additional_coordinates": "season",
         "palette": "RdBu_r",
         "cbar_values": 1,
         "vmin": 0
@@ -122,7 +122,7 @@
         "plot_type": "difference",
         "palette": "RdBu_r",
         "start_cbar_ticks": "sign",
-        "discretize": 10,
+        "discretize": 11,
         "vmin": 0
       }
     },
@@ -133,7 +133,7 @@
         "extract_function": "sum",
         "timestep": "ME",
         "plot_type": "deviation",
-        "plot_function": "season",
+        "additional_coordinates": "season",
         "palette": "BrBG"
       },
       "RRa": {
@@ -148,17 +148,17 @@
     "evspsblpotAdjust": {
       "ETPm": {
         "units": "mm",
-        "label": "de l'évapotranspiration mensuelle",
+        "label": "de l'évapo-transpiration mensuelle",
         "extract_function": "sum",
         "timestep": "ME",
         "plot_type": "deviation",
-        "plot_function": "season",
+        "additional_coordinates": "season",
         "palette": "BrBG_r",
         "vmin": 0
       },
       "ETPa": {
         "units": "mm",
-        "label": "de l'évapotranspiration annuelle",
+        "label": "de l'évapo-transpiration annuelle",
         "extract_function": "sum",
         "timestep": "YE",
         "plot_type": "deviation",

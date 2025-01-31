@@ -46,9 +46,11 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
         y_title = None
 
     if ymin is None:
-        ymin = ds.to_array().quantile(0.01).item()
+        # ymin = ds.to_array().quantile(0.01).item()
+        ymin = ds.to_array().min().item()
     if ymax is None:
-        ymax = ds.to_array().quantile(0.99).item()
+        # ymax = ds.to_array().quantile(0.99).item()
+        ymax = ds.to_array().max().item()
 
     # if y_axis['names_coord'] == 'indicator':
     #     list_of_sims = [subdict['values'] for subdict in y_axis['values_var'].values()]

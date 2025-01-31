@@ -142,7 +142,7 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     text_kwargs ={'weight': 'bold', 'fontsize': fontsize}
 
     fig_dim = 4
-    ratio = fontsize / 18
+    # ratio = fontsize / 18
     if bounds is not None:
         x_y_ratio = abs((bounds[2] - bounds[0]) / (bounds[3] - bounds[1]))
         if x_y_ratio > 1:
@@ -152,19 +152,27 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     else:
         figsize = (fig_dim * len_cols, len_rows * fig_dim)
 
-    fig, axes = plt.subplots(len_rows, len_cols, figsize=figsize) #, constrained_layout=True
-    hspace = 0.03 * ratio
-    top = 1 * ratio
+    if title:
+        figsize = (figsize[0], figsize[1] * 1.02)
     if subplot_titles:
-        hspace += 0.09 * ratio
-        top -= 0.03 * ratio
+        figsize= (figsize[0], figsize[1] * (1 + 0.02 * len_rows))
+
+    fig, axes = plt.subplots(len_rows, len_cols, figsize=figsize, constrained_layout=True)
+    # hspace = 0.03
+    # wspace = 0.01
+    # # wspace = -0.3
+    # top = 1
+    # if subplot_titles:
+    #     hspace += 0.05 * (fontsize - 18)
+    #     top -= 0.03 * (fontsize - 18)
+    #     wspace += 0.18 * (fontsize - 18)
 
     # Main title
     if title is not None:
-        top -= 0.05
+        # top -= 0.04 * (fontsize - 18)
         fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2, weight='bold')
 
-    plt.subplots_adjust(left=0, bottom=0.01, right=1, top=top, wspace=-0.3, hspace=hspace)
+    # plt.subplots_adjust(left=0, bottom=0.01, right=1, top=top, wspace=wspace, hspace=hspace)
 
     if len_rows > 1 or len_cols > 1:
         axes_flatten = axes.flatten()
@@ -248,7 +256,10 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
                                     fontsize=plt.rcParams['font.size'] - 2, **text_kwarg)
 
             if subplot_title:
-                ax.set_title(subplot_title)
+                if title:
+                    ax.set_title(subplot_title, fontsize=plt.rcParams['font.size'] - 2)
+                else:
+                    ax.set_title(subplot_title, weight='bold')
 
             # Headers and axes label
             add_header(ax, rows_plot, cols_plot, ylabel='', xlabel='')
