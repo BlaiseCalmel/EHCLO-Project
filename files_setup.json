@@ -74,6 +74,7 @@
           "units": "m3/s",
           "label": "du Qm",
           "additional_coordinates": "month",
+          "additional_plot_folders": "month",
           "timestep": "ME"
         }
       },

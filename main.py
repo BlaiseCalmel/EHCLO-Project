@@ -145,7 +145,6 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                     else:
                         print(f'> {path_ncdf} already exists', end='\n')
 
-
 run_all = input("Run all ? (y/hydro/climate/[n])")
 if run_all.lower().replace(" ", "") in ['y', 'yes']:
     data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
@@ -173,10 +172,11 @@ else:
 # data_to_plot = {name: files_setup['hydro_indicator'][name]}
 # data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
 overwrite = True
+rcp = 'rcp85'
 for indicator, subdicts in data_to_plot.items():
     for name_indicator, indicator_setup in subdicts.items():
         print(f'################################ STATS {name_indicator.upper()} ################################', end='\n')
-        # if name_indicator.upper() == "NJ>30":
+        # if name_indicator.upper() == "QMN5":
         #     break
         if overwrite:
             write_fig = True
@@ -274,7 +274,7 @@ for indicator, subdicts in data_to_plot.items():
 
             for coordinate, unique_value in additional_plot_folders.items():
                 for coordinate_value in unique_value:
-                    print(f'################################ PLOT {name_indicator.upper()}{coordinate_value if coordinate_value is not None else ""} '
+                    print(f'################################ PLOT {name_indicator.upper()} {coordinate_value if coordinate_value is not None else ""} '
                           f'################################', end='\n')
                     # Selection from the current coordinate value
                     if coordinate_value is not None:
@@ -340,45 +340,7 @@ for indicator, subdicts in data_to_plot.items():
                                                   font=settings['font'], alpha=settings['alpha'],
                                                   vmin=settings['vmin'], vmax=settings['vmax'])
 
-                        if settings['additional_coordinates'] == 'month':
-                            horizon_boxes = {
-                                "historical": {'color': '#f5f5f5', 'zorder': 10, 'label': 'Historique (1991-2020)',
-                                               'linewidth': 1},
-                                "horizon1": {'color': '#80cdc1', 'zorder': 10, 'label': 'Horizon 1 (2021-2050)',
-                                             'linewidth': 1},
-                                "horizon2": {'color': '#dfc27d', 'zorder': 10, 'label': 'Horizon 2 (2041-2070)',
-                                             'linewidth': 1},
-                                "horizon3": {'color': '#a6611a', 'zorder': 10, 'label': 'Horizon 3 (2070-2099)',
-                                             'linewidth': 1},
-                            }
-
-                            for river, river_stations in reference_stations.items():
-                                print(f"> Box plot...")
-                                print(f">> Boxplot normalized discharge by month and horizon")
-                                plot_boxplot_station_month_horizon(ds=ds[variables['simulation_horizon']],
-                                                                   station_references={key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()},
-                                                                   narratives=horizon_boxes,
-                                                                   title=None,
-                                                                   name_y_axis=f"{title_join} normalisé",
-                                                                   normalized=True,
-                                                                   percent=False,
-                                                                   common_yaxes=True,
-                                                                   fontsize=settings['fontsize'],
-                                                                   font=settings['font'],
-                                                                   path_result=path_indicator+f'{title_join}_boxplot_normalized-discharge_{river}_month.pdf')
-                                print(f">> Boxplot deviation by month and horizon")
-                                plot_boxplot_station_month_horizon(ds=ds[variables['simulation-horizon_by-sims_deviation']],
-                                                                   station_references={key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()},
-                                                                   narratives={key: value for key, value in narratives.items() if key!='historical'},
-                                                                   title=None,
-                                                                   name_y_axis=f'{plot_type_name.title()} {title}{units}',
-                                                                   percent=True,
-                                                                   common_yaxes=False,
-                                                                   fontsize=settings['fontsize'],
-                                                                   font=settings['font'],
-                                                                   path_result=path_indicator+f'{title_join}_boxplot_{plot_type}_{river}_month.pdf')
-
-                        else:
+                        if settings['additional_coordinates'] != 'month':
                             print(f"> Linear plot...")
                             if 'PK' in sim_points_gdf_simplified.columns:
                                 ds = ds.assign(PK=("gid", sim_points_gdf_simplified.loc[ds.gid.values, "PK"]))
@@ -390,7 +352,7 @@ for indicator, subdicts in data_to_plot.items():
                                 cities = [i.split(' A ')[-1].split(' [')[0] for i in vlines['Suggesti_2']]
                                 vlines.insert(loc=0, column='label', value=cities)
                                 vlines['annotate'] = 0.02
-                                vlines['fontsize'] = 14
+                                vlines['fontsize'] = settings['fontsize'] - 2
 
                                 print(f">> Linear deviation - x: PK, y: {indicator}, row: HM, col: Horizon")
                                 plot_linear_pk_hm(ds,
@@ -461,6 +423,46 @@ for indicator, subdicts in data_to_plot.items():
                                                                fontsize=settings['fontsize'],
                                                                font=settings['font'],
                                                                path_result=path_indicator_figures+f'{title_join}_boxplot_{plot_type}_{river}_narratives.pdf',)
+            if settings['additional_coordinates'] == 'month':
+                print(f'################################ PLOT {name_indicator.upper()} Monthly variation ################################', end='\n')
+                label_df = sim_points_gdf_simplified['S_HYDRO'].astype(int).astype(str) + 'km² [' + sim_points_gdf_simplified['n'].astype(str) + 'HM]'
+                horizon_boxes = {
+                    "historical": {'color': '#f5f5f5', 'zorder': 10, 'label': 'Historique (1991-2020)',
+                                   'linewidth': 1},
+                    "horizon1": {'color': '#80cdc1', 'zorder': 10, 'label': 'Horizon 1 (2021-2050)',
+                                 'linewidth': 1},
+                    "horizon2": {'color': '#dfc27d', 'zorder': 10, 'label': 'Horizon 2 (2041-2070)',
+                                 'linewidth': 1},
+                    "horizon3": {'color': '#a6611a', 'zorder': 10, 'label': 'Horizon 3 (2070-2099)',
+                                 'linewidth': 1},
+                }
+
+                for river, river_stations in reference_stations.items():
+                    print(f"> Box plot...")
+                    print(f">> Boxplot normalized {title_join} by month and horizon")
+                    plot_boxplot_station_month_horizon(ds=ds_stats[variables['simulation_horizon']],
+                                                       station_references={key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()},
+                                                       narratives=horizon_boxes,
+                                                       title=None,
+                                                       name_y_axis=f"{title_join} normalisé",
+                                                       normalized=True,
+                                                       percent=False,
+                                                       common_yaxes=True,
+                                                       fontsize=settings['fontsize'],
+                                                       font=settings['font'],
+                                                       path_result=path_indicator+f'{title_join}_boxplot_normalized-discharge_{river}_month.pdf')
+                    print(f">> Boxplot deviation by month and horizon")
+                    plot_boxplot_station_month_horizon(ds=ds_stats[variables['simulation-horizon_by-sims_deviation']],
+                                                       station_references={key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()},
+                                                       narratives={key: value for key, value in horizon_boxes.items() if key!='historical'},
+                                                       title=None,
+                                                       name_y_axis=f'{plot_type_name.title()} {title}{units}',
+                                                       percent=True,
+                                                       common_yaxes=False,
+                                                       fontsize=settings['fontsize'],
+                                                       font=settings['font'],
+                                                       path_result=path_indicator+f'{title_join}_boxplot_{plot_type}_{river}_month.pdf')
+
 
 # print(f'################################ PLOT GLOBAL ################################', end='\n')
 # path_global_figures = dict_paths['folder_study_figures'] + 'global' + os.sep
@@ -474,105 +476,6 @@ for indicator, subdicts in data_to_plot.items():
 # print(f"> Plot #HM by station and Ref station...")
 # plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles, path_global_figures, bounds,
 #                           station_references=flatten_reference_stations, fontsize=settings['fontsize'])
-
-
-########################################################################################################################
-#
-# # Cols  and rows of subplots
-# cols = {'names_var': 'id_geometry', 'values_var': ['K001872200', 'M850301010'], 'names_plot': ['Station 1', 'Station 2']}
-# rows = {
-#     'names_var': row_name,
-#     'values_var': list(value.keys()),
-#     'names_plot': list(value.values())
-# }
-#
-# y_axis = {
-#     'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
-#                    'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
-#                    'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
-#     'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']
-# }
-# x_axis = {
-#     'names_var': 'horizon',
-#     'values_var': ['horizon1', 'horizon2', 'horizon3'],
-#     'names_plot': ['H1', 'H2', 'H3']
-# }
-#
-# # TEST 1
-# cols = {
-#     'names_var': 'id_geometry',
-#     'values_var': ['K001872200', 'M850301010'],
-#     'names_plot': ['K001872200', 'M850301010'],
-# }
-# rows = {
-#     'names_var': row_name,
-#     'values_var': list(value.keys()),
-#     'names_plot': list(value.values())
-# }
-# x_axis = {
-#     'names_var': 'horizon',
-#     'values_var': ['horizon1', 'horizon2', 'horizon3'],
-#     'names_plot': ['H1', 'H2', 'H3']
-# }
-# y_axis = {
-#     'names_var': 'indicator',
-#     'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
-#                    'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
-#                    'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
-#     'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']
-# }
-#
-# # TEST 2
-# cols = {'names_var': 'horizon',
-#         'values_var': ['horizon1', 'horizon2', 'horizon3'],
-#         'names_plot': ['H1', 'H2', 'H3']}
-# rows = {
-#     'names_var': 'indicator',
-#     'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
-#                    'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
-#                    'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
-#     'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']
-# }
-# x_axis = {
-#     'names_var': row_name,
-#     'values_var': list(value.keys()),
-#     'names_plot': list(value.values())
-# }
-# y_axis = {
-#     'names_var': 'id_geometry',
-#     'values_var': ['K001872200', 'M850301010'],
-#     'names_plot': ['K001872200', 'M850301010'],
-# }
-#
-# # TEST 3
-# cols = {'names_var': 'indicator',
-#         'values_var': ['QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_CTRIP',
-#                        'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_EROS',
-#                        'QA_historical-rcp85_CNRM-CM5_ALADIN63_ADAMONT_GRSD'],
-#         'names_plot': ['QA CTRIP', 'QA EROS', 'QA GRSD']}
-# rows = {
-#     'names_var': 'horizon',
-#     'values_var': ['horizon1', 'horizon2', 'horizon3'],
-#     'names_plot': ['H1', 'H2', 'H3']
-# }
-# x_axis = {
-#     'names_var': 'id_geometry',
-#     'values_var': ['K001872200', 'M850301010'],
-#     'names_plot': ['K001872200', 'M850301010'],
-#     'name_axis': 'Stations'
-#
-# }
-# y_axis = {
-#     'names_var': row_name,
-#     'values_var': list(value.keys()),
-#     'names_plot': list(value.values()),
-#     'name_axis': indicator + ' (m3/s)'
-# }
-#
-# boxplot(ds, x_axis, y_axis, path_result=path_indicator_figures+'boxplot.pdf', cols=cols, rows=rows,
-#         title=None, percent=False, palette='BrBG', fontsize=14, font='sans-serif', ymax=None)
-
-
 
 print(f'################################ END ################################', end='\n')
 input("Press Enter to close")

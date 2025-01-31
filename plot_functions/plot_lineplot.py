@@ -1,6 +1,6 @@
 import matplotlib.ticker as mtick
 from matplotlib.lines import Line2D
-
+import textwrap
 from plot_functions.plot_common import *
 
 def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines=None, legend_items= None,
@@ -50,7 +50,7 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
 
-    fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 6 * len_cols, len_rows * 4), constrained_layout=True)
+    fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 8 * len_cols, len_rows * 4), constrained_layout=True)
     # fig, axes = plt.subplots(len_rows, len_cols, figsize=(19, 6), constrained_layout=True)
 
     if del_axes:
@@ -162,18 +162,29 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
     # Legend
     legend_handles = []
     for item in legend_items:
+        # label_length = 28
+        # wrapper = textwrap.TextWrapper(width=label_length, break_long_words=True, break_on_hyphens=True)
+        # wrapped_label = wrapper.wrap(item['label'])
+
         handle = Line2D(
             [0], [0],  # Ligne fictive
             color=item.get('color', 'k'),
             linestyle=item.get('linestyle', '-'),
-            linewidth=4,
+            linewidth=5,
             alpha=item.get('alpha', 1),
             label=item['label']
         )
         legend_handles.append(handle)
 
+    # Estimate necessary width for each legend's column
+    fig_width = fig.get_size_inches()[0]
+    avg_label_length = np.median([len(handle.get_label()) for handle in legend_handles ])  # Longueur moyenne des labels
+
+    # Déterminer dynamiquement le nombre de colonnes
+    ncol = max(1, int(fig_width * 4 / avg_label_length))
+
     fig.legend(handles=legend_handles, loc='upper center', bbox_to_anchor=(0.5, 0), fancybox=True, shadow=False,
-               ncol=min((len(legend_handles), len_cols)))
+                   ncol=ncol)
 
     plt.savefig(path_result, bbox_inches='tight')
 

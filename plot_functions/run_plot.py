@@ -112,6 +112,9 @@ def plot_linear_pk(ds, simulations, path_result, narratives=None,
         'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2099)']
     }
 
+    legend_items = [{'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation'}]
+    legend_items += [value for value in narratives.values()]
+
     rows = {
         'names_coord': 'indicator',
         'values_var': indicator_plot,
@@ -119,7 +122,7 @@ def plot_linear_pk(ds, simulations, path_result, narratives=None,
     }
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
-             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None)
+             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, legend_items=legend_items)
 
 
 def plot_linear_time(ds, simulations, path_result, station_references, narratives=None,
@@ -287,6 +290,16 @@ def plot_map_indicator_climate(gdf, ds, path_result, cbar_title, dict_shapefiles
             'values_var': ['Hiver', 'Printemps', 'Été', 'Automne'],
             'names_plot': ['Hiver', 'Printemps', 'Été', 'Automne']
         }
+    # elif 'month' in used_coords:
+    #
+    #     rows = {
+    #         'names_coord': 'month',
+    #         'values_var': list(ds.month.values),
+    #         'names_plot': ['Janv.', 'Fev.', 'Mars',
+    #                        'Avril.', 'Mai', 'Juin.',
+    #                        'Juill.', 'Août', 'Sept.',
+    #                        'Oct.', 'Nov.', 'Déc.']
+    #     }
     else:
         rows = 1
 

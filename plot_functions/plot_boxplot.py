@@ -217,8 +217,15 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     else:
         imported_order = np.arange(len(legend_labels))
 
+    # Estimate necessary width for each legend's column
+    fig_width = fig.get_size_inches()[0]
+    avg_label_length = np.median([len(l) for l in legend_labels])  # Longueur moyenne des labels
+
+    # Déterminer dynamiquement le nombre de colonnes
+    ncol = max(1, int(fig_width * 5 / avg_label_length))
+
     fig.legend(np.array(legend_items)[imported_order], np.array(legend_labels)[imported_order], loc='upper center', bbox_to_anchor=(0.5, 0),
-               fancybox=False, shadow=False, ncol=2, fontsize=fontsize-2)
+               fancybox=False, shadow=False, ncol=ncol, fontsize=fontsize-2)
 
     plt.savefig(path_result, bbox_inches='tight')
 
