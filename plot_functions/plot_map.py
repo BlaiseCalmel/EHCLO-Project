@@ -42,16 +42,16 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         len_rows = int(len_rows / len_cols)
         subplot_titles = rows['names_plot']
         rows_plot['names_plot'] = [None]
-    #
-    # if vmax is None:
-    #     specified_vmax = False
-    # else:
-    #     specified_vmax = True
-    #
-    # if vmin is None:
-    #     specified_vmin = False
-    # else:
-    #     specified_vmin = True
+
+    if vmax is None:
+        specified_vmax = False
+    else:
+        specified_vmax = True
+
+    if vmin is None:
+        specified_vmin = False
+    else:
+        specified_vmin = True
 
     if '%' in cbar_title:
         if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
@@ -92,37 +92,44 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         midpoint = vmin
     elif cbar_midpoint == 'zero':
         midpoint = 0
-        plot_vmin = -vmax
+        # plot_vmin = -vmax
     else:
         midpoint = None
 
     abs_max = max([-vmin, vmax])
-    if midpoint is None:
-        n = (vmax - vmin) / discretize
+    if midpoint is not None:
+        selected_min = min([vmin, midpoint])
     else:
-        n = (abs_max - midpoint) / discretize
+        selected_min = vmin
+    if midpoint is None:
+        n = (vmax - selected_min) / discretize
+    else:
+        n = (abs_max - selected_min) / discretize
     exponent = round(math.log10(n))
     step = np.round(n, -exponent+1)
     if step == 0:
         step = n
+
+    if specified_vmax:
+        if vmax % step != 0:
+            step = vmax / (vmax // step)
+    if specified_vmin:
+        if vmin < 0:
+            check_vmin = -vmin
+        else:
+            check_vmin = vmin
+        if check_vmin % step != 0:
+            step = check_vmin / (check_vmin // step)
+
     if cbar_values is None:
-        # cbar_values = int(np.floor(np.log10(step)))
         cbar_values = decimal_places(step)
 
     start_value = vmin
     stop_value = vmax
-    # if specified_vmax and not specified_vmin:
-    #     start_value = vmax
-    #     stop_value = vmin
-    #     step = -step
-
-    # def my_ceil(a, precision=0):
-    #     return np.round(a + 0.5 * 10**(-precision), precision)
-    #
-    # def my_floor(a, precision=0):
-    #     return np.round(a - 0.5 * 10**(-precision), precision)
-
-    # levels = np.arange(start=start_value, stop=stop_value+0.01*exponent*step, step=step)
+    if specified_vmax and not specified_vmin:
+        start_value = vmax
+        stop_value = vmin
+        step = -step
 
     if midpoint is not None:
         levels = mirrored(maxval=abs_max, inc=step, val_center=midpoint)
@@ -145,13 +152,21 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         colors = colormap(vals)
 
         # Limit values to extrema
-        extended_indices = np.where((levels >= vmin) & (levels <= vmax))[0]
-        extended_levels[extended_indices]
+        extended_indices = np.where((levels >= selected_min) & (levels <= vmax))[0]
 
         # extended_indices = np.unique(np.concatenate([indices - 1, indices, indices + 1]))
         # extended_indices = extended_indices[(extended_indices >= 0) & (extended_indices < len(levels))]
         extended_colors = colors[extended_indices[:-1]]
         extended_levels = extended_levels[extended_indices]
+        if extended_levels[-1] < plot_vmax:
+            if extended_indices[-1] < len(levels):
+                extended_levels = np.append(extended_levels, levels[extended_indices[-1] + 1])
+                extended_colors = np.vstack([extended_colors, colors[extended_indices[:-1][-1] + 1]])
+
+        if extended_levels[0] > plot_vmin:
+            if extended_indices[0] > 0:
+                extended_levels = np.insert(extended_levels, 0, levels[extended_indices[0] - 1])
+                extended_colors = np.vstack([colors[extended_indices[0] - 1], extended_colors])
 
         if extended_levels[-1] < plot_vmax and extended_levels[0] > plot_vmin:
             cmap, norm = from_levels_and_colors(extended_levels, np.vstack([

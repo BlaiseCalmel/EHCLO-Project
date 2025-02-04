@@ -179,7 +179,7 @@ while run_plot:
         for indicator, subdicts in data_to_plot.items():
             for name_indicator, indicator_setup in subdicts.items():
                 print(f'################################ STATS {name_indicator.upper()} ################################', end='\n')
-                # if name_indicator.upper() == "QMN5":
+                # if name_indicator.upper() == "T MOY. SEAS":
                 #     break
                 if overwrite:
                     write_fig = True
