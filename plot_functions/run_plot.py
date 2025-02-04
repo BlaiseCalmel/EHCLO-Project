@@ -214,7 +214,8 @@ def plot_boxplot_station_narrative(ds, station_references, narratives, reference
              title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=1)
 
 def plot_boxplot_station_month_horizon(ds, station_references, narratives, path_result, name_y_axis='', percent=False,
-                                   title=None, fontsize=14, font='sans-serif', common_yaxes=False, normalized=False):
+                                   title=None, fontsize=14, font='sans-serif', common_yaxes=False, normalized=False,
+                                    ymin=None, ymax=None):
 
     narratives_bp = {key: {'kwargs': {'boxprops': dict(facecolor=value['color'], alpha=0.9),
                             'medianprops': dict(color="black"), 'widths': 0.8, 'patch_artist': True,
@@ -243,7 +244,7 @@ def plot_boxplot_station_month_horizon(ds, station_references, narratives, path_
     }
 
     boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=True, common_yaxes=common_yaxes,
-            title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=1)
+            title=title, percent=percent, fontsize=fontsize, font=font, ymin=ymin, ymax=ymax, blank_space=1)
 
 def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds,
                           variables, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,

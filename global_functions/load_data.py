@@ -38,9 +38,10 @@ def apply_function_to_ds(ds, function, file_name, timestep):
     string_function = 'mean'
     int_value = None
     if function is not None:
+        # function = 'sup0cons'
         match = re.match(r"([a-zA-Z]+)(\d+)?", function)
         if match:
-            string_function = match.group(1).lower()  # Partie avec les lettres
+            string_function = match.group(1).lower()
             int_value = int(match.group(2)) if match.group(2) else None
 
             if string_function == 'quantile':
@@ -158,7 +159,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                     ds = ds.rename({'name': 'gid'})
 
                 else:
-                     # Use station code as coordinate
+                    # Use station code as coordinate
                     ds = ds.set_coords('code')
                     ds = ds.swap_dims({'station': 'code'})
                     if 'station' in ds.data_vars:

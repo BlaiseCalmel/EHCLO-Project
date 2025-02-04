@@ -100,13 +100,13 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
     print(f'> Load ncdf data paths...', end='\n')
     path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 
-    # # Run among data type climate/hydro
-    # data_type='hydro'
-    # subdict=path_files[data_type]
-    # rcp='rcp85'
-    # subdict2=subdict[rcp]
-    # indicator = "QA_mon"
-    # paths = subdict2[indicator]
+    # Run among data type climate/hydro
+    data_type='hydro'
+    subdict=path_files[data_type]
+    rcp='rcp85'
+    subdict2=subdict[rcp]
+    indicator = "startLF_yr"
+    paths = subdict2[indicator]
     for data_type, subdict in path_files.items():
         # Load simulation points for current data type
         # sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim'][data_type])
@@ -154,7 +154,7 @@ elif run_all.lower().replace(" ", "") == 'climate':
     data_to_plot = (files_setup['climate_indicator'])
 else:
     data_input = input('What should I run ?')
-    data_input_list = re.split(r"[ -]", data_input)
+    data_input_list = re.split(r"[ ]", data_input)
     data_to_plot = {}
     for name in data_input_list:
         name = name.replace(",", "").replace(" ", "")
@@ -202,8 +202,10 @@ for indicator, subdicts in data_to_plot.items():
         end_cbar_ticks = ''
         if plot_type == 'difference':
             plot_type_name = 'difference'
+            percent = False
         else:
             plot_type_name = 'variation'
+            percent = True
             units = " (%)"
 
         if settings['start_cbar_ticks'] != '':
@@ -321,10 +323,10 @@ for indicator, subdicts in data_to_plot.items():
                                     }
                         mean_by_hm = [s for sublist in variables['hydro-model_deviation'].values() for s in sublist if "mean" in s]
                         label_df = sim_points_gdf_simplified['S_HYDRO'].astype(int).astype(str) + 'km² [' + sim_points_gdf_simplified['n'].astype(str) + 'HM]'
-                        # if settings['vmax'] is None:
-                        #     vmax = math.ceil(abs(ds[mean_by_hm].to_array()).max() / 5) * 5
-                        # else:
-                        #     vmax = settings['vmax']
+                        if settings['vmax'] is None:
+                            vmax = math.ceil(abs(ds[mean_by_hm].to_array()).max() / 5) * 5
+                        else:
+                            vmax = settings['vmax']
 
                         for key, value in horizons.items():
                             print(f">>> Map {value}")
@@ -338,7 +340,7 @@ for indicator, subdicts in data_to_plot.items():
                                                   dict_shapefiles=dict_shapefiles, bounds=bounds, edgecolor=edgecolor,
                                                   markersize=120, discretize=settings['discretize'], palette=settings['palette'], fontsize=settings['fontsize'],
                                                   font=settings['font'], alpha=settings['alpha'],
-                                                  vmin=settings['vmin'], vmax=settings['vmax'])
+                                                  vmin=settings['vmin'], vmax=vmax)
 
                         if settings['additional_coordinates'] != 'month':
                             print(f"> Linear plot...")
@@ -354,14 +356,21 @@ for indicator, subdicts in data_to_plot.items():
                                 vlines['annotate'] = 0.02
                                 vlines['fontsize'] = settings['fontsize'] - 2
 
+                                # Limit size of y axis label
+                                name_y_axis = f'{plot_type_name.title()} {title}{units}'
+                                label_length = max([26, len(max(re.split(r"[ ]", name_y_axis), key=len))])
+                                wrapper = textwrap.TextWrapper(width=label_length, break_long_words=False, break_on_hyphens=True)
+                                wrapped_label = wrapper.wrap(name_y_axis)
+                                name_y_axis = "\n".join(wrapped_label)
+
                                 print(f">> Linear deviation - x: PK, y: {indicator}, row: HM, col: Horizon")
                                 plot_linear_pk_hm(ds,
                                                   simulations=variables['hydro-model_sim-horizon_deviation'],
                                                   narratives=narratives,
                                                   title=coordinate_value,
                                                   name_x_axis=f'PK (km)',
-                                                  name_y_axis=f'{plot_type_name.title()} {title}{units}',
-                                                  percent=True,
+                                                  name_y_axis=name_y_axis,
+                                                  percent=percent,
                                                   vlines=vlines,
                                                   fontsize=settings['fontsize'],
                                                   font=settings['font'],
@@ -374,8 +383,8 @@ for indicator, subdicts in data_to_plot.items():
                                                          narratives=narratives,
                                                          title=coordinate_value,
                                                          name_x_axis=f'PK (km)',
-                                                         name_y_axis=f'{plot_type_name.title()} {title}{units}',
-                                                         percent=True,
+                                                         name_y_axis=name_y_axis,
+                                                         percent=percent,
                                                          vlines=vlines,
                                                          fontsize=settings['fontsize'],
                                                          font=settings['font'],
@@ -388,8 +397,8 @@ for indicator, subdicts in data_to_plot.items():
                                                narratives=narratives,
                                                title=coordinate_value,
                                                name_x_axis=f'PK (km)',
-                                               name_y_axis=f'{plot_type_name.title()} {title}{units}',
-                                               percent=True,
+                                               name_y_axis=name_y_axis,
+                                               percent=percent,
                                                vlines=vlines,
                                                fontsize=settings['fontsize'],
                                                font=settings['font'],
@@ -403,13 +412,12 @@ for indicator, subdicts in data_to_plot.items():
                                                  narratives=narratives,
                                                  title=coordinate_value,
                                                  name_x_axis='Date',
-                                                 name_y_axis=f'{plot_type_name.title()} {title}{units}',
-                                                 percent=True,
+                                                 name_y_axis=name_y_axis,
+                                                 percent=percent,
                                                  vlines=None,
                                                  fontsize=settings['fontsize'],
                                                  font=settings['font'],
                                                  path_result=path_indicator_figures+f'lineplot_{plot_type}_{river}_x-time_y-{title_join}_row-col-stations-ref.pdf',)
-
 
                                 print(f"> Box plot...")
                                 print(f">> Boxplot deviation by horizon and selected stations")
@@ -418,8 +426,8 @@ for indicator, subdicts in data_to_plot.items():
                                                                narratives=narratives,
                                                                title=coordinate_value,
                                                                references=None,
-                                                               name_y_axis=f'{plot_type_name.title()} {title}{units}',
-                                                               percent=True,
+                                                               name_y_axis=name_y_axis,
+                                                               percent=percent,
                                                                fontsize=settings['fontsize'],
                                                                font=settings['font'],
                                                                path_result=path_indicator_figures+f'{title_join}_boxplot_{plot_type}_{river}_narratives.pdf',)
@@ -446,7 +454,7 @@ for indicator, subdicts in data_to_plot.items():
                                                        title=None,
                                                        name_y_axis=f"{title_join} normalisé",
                                                        normalized=True,
-                                                       percent=False,
+                                                       percent=percent,
                                                        common_yaxes=True,
                                                        fontsize=settings['fontsize'],
                                                        font=settings['font'],
@@ -457,8 +465,10 @@ for indicator, subdicts in data_to_plot.items():
                                                        narratives={key: value for key, value in horizon_boxes.items() if key!='historical'},
                                                        title=None,
                                                        name_y_axis=f'{plot_type_name.title()} {title}{units}',
-                                                       percent=True,
-                                                       common_yaxes=False,
+                                                       percent=percent,
+                                                       common_yaxes=True,
+                                                       ymin=settings['vmin'],
+                                                       ymax=settings['vmax'],
                                                        fontsize=settings['fontsize'],
                                                        font=settings['font'],
                                                        path_result=path_indicator+f'{title_join}_boxplot_{plot_type}_{river}_month.pdf')

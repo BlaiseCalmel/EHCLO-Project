@@ -41,6 +41,11 @@
         "VCN10": {
           "units": "m3/s",
           "label": "du VCN10"
+        },
+        "VCN10-5": {
+          "units": "m3/s",
+          "label": "du VCN10-5",
+          "return_period": 5
         }
       },
       "Q10A": {
@@ -68,7 +73,9 @@
           "additional_coordinates": "month",
           "additional_plot_folders": "month",
           "return_period": 5,
-          "timestep": "ME"
+          "timestep": "ME",
+          "vmin": -75,
+          "vmax": 100
         },
         "Qm": {
           "units": "m3/s",
@@ -78,6 +85,25 @@
           "timestep": "ME"
         }
       },
+      "dtLF_yr": {
+        "LF-duration": {
+          "units": "en jours",
+          "label": "de durée des basses eaux",
+          "plot_type": "difference",
+          "palette": "BrBG_r",
+          "vmin": -10,
+          "vmax": 90
+        }
+      },
+    "startLF_yr": {
+      "LF-start": {
+        "units": "en jours",
+        "label": "de date de début des basses eaux",
+        "plot_type": "difference",
+        "vmin": -16,
+        "vmax": 4
+      }
+    },
       "debit": {
         "Q2": {
           "units": "m3/s",

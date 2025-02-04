@@ -44,41 +44,39 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         specified_vmin = True
 
     if '%' in cbar_title:
-        if vmax is None:
-            if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
-                vmax = math.ceil(abs(gdf[indicator_plot]).max() / 5) * 5
+        if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
+            plot_vmax = math.ceil(abs(gdf[indicator_plot]).max() / 5) * 5
+        else:
+            if np.logical_not(isinstance(indicator_plot, list)):
+                plot_vmax = math.ceil(abs(ds[indicator_plot]).max() / 5) * 5
             else:
-                if np.logical_not(isinstance(indicator_plot, list)):
-                    vmax = math.ceil(abs(ds[indicator_plot]).max() / 5) * 5
-                else:
-                    vmax = math.ceil(abs(ds[indicator_plot].to_array()).max() / 5) * 5
+                plot_vmax = math.ceil(abs(ds[indicator_plot].to_array()).max() / 5) * 5
+        if vmax is None:
+            vmax = plot_vmax
 
+        plot_vmin = -plot_vmax
         if vmin is None:
             vmin = -vmax
     else:
+        if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
+            plot_vmax = gdf[indicator_plot].max().values
+        else:
+            if np.logical_not(isinstance(indicator_plot, list)):
+                plot_vmax = ds[indicator_plot].max().values
+            else:
+                plot_vmax = ds[indicator_plot].to_array().max().values
         if vmax is None:
-            if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
-                vmax = gdf[indicator_plot].max().values
-            else:
-                if np.logical_not(isinstance(indicator_plot, list)):
-                    vmax = ds[indicator_plot].max().values
-                else:
-                    vmax = ds[indicator_plot].to_array().max().values
-        if vmin is None:
-            if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
-                vmin = gdf[indicator_plot].min().values
-            else:
-                if np.logical_not(isinstance(indicator_plot, list)):
-                    vmin = ds[indicator_plot].min().values
-                else:
-                    vmin = ds[indicator_plot].to_array().min().values
+            vmax = plot_vmax
 
-    if cbar_midpoint == 'min':
-        midpoint = vmin
-    elif cbar_midpoint == 'zero':
-        midpoint = 0
-    else:
-        midpoint = None
+        if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
+            plot_vmin = gdf[indicator_plot].min().values
+        else:
+            if np.logical_not(isinstance(indicator_plot, list)):
+                plot_vmin = ds[indicator_plot].min().values
+            else:
+                plot_vmin = ds[indicator_plot].to_array().min().values
+        if vmin is None:
+            vmin = plot_vmin
 
     n = (vmax - vmin) / discretize
     exponent = round(math.log10(n))
@@ -95,15 +93,30 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         stop_value = vmin
         step = -step
 
-    levels = np.arange(start=start_value, stop=stop_value+0.01*exponent*step, step=step)
+    # def my_ceil(a, precision=0):
+    #     return np.round(a + 0.5 * 10**(-precision), precision)
+    #
+    # def my_floor(a, precision=0):
+    #     return np.round(a - 0.5 * 10**(-precision), precision)
+
+    levels = np.arange(start=start_value, stop=stop_value+0.01*exponent*step, step=step)  #
+
+    if cbar_midpoint == 'min':
+        midpoint = vmin
+    elif cbar_midpoint == 'zero':
+        midpoint = 0
+        plot_vmin = -vmax
+    else:
+        midpoint = None
+
     if levels[0] > levels[-1]:
         levels = levels[::-1]
     # levels = np.arange(vmin, vmax+0.2*step, -step)
-    if levels[0] > vmin:
+    if levels[0] > plot_vmin:
         extend_vmin = True
     else:
         extend_vmin = False
-    if levels[-1] < vmax:
+    if levels[-1] < plot_vmax:
         extend_vmax = True
     else:
         extend_vmax = False
@@ -114,7 +127,8 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     # levels = np.linspace(vmin, vmax, discretize+1)
     if midpoint is not None:
         midp = np.mean(np.c_[levels[:-1], levels[1:]], axis=1)
-        vals = np.interp(midp, [vmin, midpoint, vmax], [0, 0.5, 1])
+        vals = np.interp(midp, [midpoint-max(abs(vmin), abs(vmax)), midpoint, midpoint+max(abs(vmin), abs(vmax))],
+                         [0, 0.5, 1])
         colormap = getattr(plt.cm, palette)
         colors = colormap(vals)
         if extend_vmax and extend_vmin:
