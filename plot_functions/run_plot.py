@@ -247,10 +247,13 @@ def plot_boxplot_station_month_horizon(ds, station_references, narratives, path_
             title=title, percent=percent, fontsize=fontsize, font=font, ymin=ymin, ymax=ymax, blank_space=1)
 
 def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds,
-                          variables, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,
-                          vmin=None, vmax=None, edgecolor='k', cbar_midpoint=None, markersize=50, alpha=1):
+                          variables, plot_type, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,
+                          vmin=None, vmax=None, edgecolor='k', cbar_midpoint=None, markersize=50, alpha=1, selected_stats='median'):
 
-    mean_by_hm = [s for sublist in variables['hydro-model_deviation'].values() for s in sublist if "median" in s]
+    # mean_by_hm = [s for sublist in variables['hydro-model_deviation'].values() for s in sublist if "median" in s]
+
+    stats_by_hm = [s for sublist in variables[f'hydro-model_{plot_type}'].values() for s in sublist if selected_stats in s]
+
     # Dictionnary sim by HM
     hm_names = [name.split('_')[-1] for name in variables['simulation_cols']]
     hm_dict_deviation = {i: [] for i in np.unique(hm_names)}
@@ -259,12 +262,12 @@ def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, bou
 
     rows = {
         'names_coord': 'indicator',
-        'values_var': mean_by_hm,
+        'values_var': stats_by_hm,
         'names_plot': list(variables['hydro-model_deviation'].keys())
     }
     cols = 3
 
-    mapplot(gdf=gdf, ds=ds, indicator_plot=mean_by_hm,
+    mapplot(gdf=gdf, ds=ds, indicator_plot=stats_by_hm,
             path_result=path_result,
             cols=cols, rows=rows,
             cbar_title=cbar_title, title=title, dict_shapefiles=dict_shapefiles, cbar_midpoint=cbar_midpoint,

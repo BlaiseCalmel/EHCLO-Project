@@ -13,6 +13,16 @@ def decimal_places(x):
         return len(x_str.split(".")[1])
     return 0
 
+def mirrored(maxval, inc=1, val_center=0):
+    x = np.arange(val_center, maxval+inc, inc)
+    if x[-1] < maxval:
+        x = np.r_[x, maxval]
+    minval = val_center - (x[-1] - val_center)
+    y = np.arange(val_center, minval-inc, -inc)
+    if y[-1] > minval:
+        y = np.r_[y, minval]
+    return np.r_[y[::-1], x[1:]]
+
 def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             cbar_title=None, title=None, dict_shapefiles=None, bounds=None, discretize=7,
             vmin=None, vmax=None, palette='BrBG', cbar_midpoint=None,
@@ -32,16 +42,16 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         len_rows = int(len_rows / len_cols)
         subplot_titles = rows['names_plot']
         rows_plot['names_plot'] = [None]
-
-    if vmax is None:
-        specified_vmax = False
-    else:
-        specified_vmax = True
-
-    if vmin is None:
-        specified_vmin = False
-    else:
-        specified_vmin = True
+    #
+    # if vmax is None:
+    #     specified_vmax = False
+    # else:
+    #     specified_vmax = True
+    #
+    # if vmin is None:
+    #     specified_vmin = False
+    # else:
+    #     specified_vmin = True
 
     if '%' in cbar_title:
         if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
@@ -78,29 +88,6 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         if vmin is None:
             vmin = plot_vmin
 
-    n = (vmax - vmin) / discretize
-    exponent = round(math.log10(n))
-    step = np.round(n, -exponent+1)
-    if step == 0:
-        step = n
-    if cbar_values is None:
-        # cbar_values = int(np.floor(np.log10(step)))
-        cbar_values = decimal_places(step)
-    start_value = vmin
-    stop_value = vmax
-    if specified_vmax and not specified_vmin:
-        start_value = vmax
-        stop_value = vmin
-        step = -step
-
-    # def my_ceil(a, precision=0):
-    #     return np.round(a + 0.5 * 10**(-precision), precision)
-    #
-    # def my_floor(a, precision=0):
-    #     return np.round(a - 0.5 * 10**(-precision), precision)
-
-    levels = np.arange(start=start_value, stop=stop_value+0.01*exponent*step, step=step)  #
-
     if cbar_midpoint == 'min':
         midpoint = vmin
     elif cbar_midpoint == 'zero':
@@ -109,47 +96,89 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     else:
         midpoint = None
 
+    abs_max = max([-vmin, vmax])
+    if midpoint is None:
+        n = (vmax - vmin) / discretize
+    else:
+        n = (abs_max - midpoint) / discretize
+    exponent = round(math.log10(n))
+    step = np.round(n, -exponent+1)
+    if step == 0:
+        step = n
+    if cbar_values is None:
+        # cbar_values = int(np.floor(np.log10(step)))
+        cbar_values = decimal_places(step)
+
+    start_value = vmin
+    stop_value = vmax
+    # if specified_vmax and not specified_vmin:
+    #     start_value = vmax
+    #     stop_value = vmin
+    #     step = -step
+
+    # def my_ceil(a, precision=0):
+    #     return np.round(a + 0.5 * 10**(-precision), precision)
+    #
+    # def my_floor(a, precision=0):
+    #     return np.round(a - 0.5 * 10**(-precision), precision)
+
+    # levels = np.arange(start=start_value, stop=stop_value+0.01*exponent*step, step=step)
+
+    if midpoint is not None:
+        levels = mirrored(maxval=abs_max, inc=step, val_center=midpoint)
+    else:
+        levels = np.arange(start=start_value, stop=stop_value+0.01*exponent*step, step=step)
+
     if levels[0] > levels[-1]:
         levels = levels[::-1]
-    # levels = np.arange(vmin, vmax+0.2*step, -step)
-    if levels[0] > plot_vmin:
-        extend_vmin = True
-    else:
-        extend_vmin = False
-    if levels[-1] < plot_vmax:
-        extend_vmax = True
-    else:
-        extend_vmax = False
 
     if cbar_ticks == 'mid':
         levels = [levels[0] - step/2] + [i + step/2 for i in levels]
 
     # levels = np.linspace(vmin, vmax, discretize+1)
+    extended_levels = copy.deepcopy(levels)
     if midpoint is not None:
         midp = np.mean(np.c_[levels[:-1], levels[1:]], axis=1)
         vals = np.interp(midp, [midpoint-max(abs(vmin), abs(vmax)), midpoint, midpoint+max(abs(vmin), abs(vmax))],
                          [0, 0.5, 1])
         colormap = getattr(plt.cm, palette)
         colors = colormap(vals)
-        if extend_vmax and extend_vmin:
-            cmap, norm = from_levels_and_colors(levels, np.vstack([colors[0], colors, colors[-1]]), extend='both')
-        elif extend_vmax:
-            cmap, norm = from_levels_and_colors(levels, np.vstack([colors, colors[-1]]), extend='max')
-        elif extend_vmin:
-            cmap, norm = from_levels_and_colors(levels, np.vstack([colors[0], colors]), extend='min')
-        else:
-            extended_levels = copy.deepcopy(levels)
-            extended_levels[0] -= 0.01*exponent*step
-            extended_levels[-1] += 0.01*exponent*step
-            cmap, norm = from_levels_and_colors(extended_levels, colors)
 
-        # cmap_temp = plt.get_cmap(palette, 256)
-        # cmap = mpl.colors.LinearSegmentedColormap.from_list(palette, cmap_temp(np.linspace(0.5, 1, 128)),
-        #                                                     N=discretize)
+        # Limit values to extrema
+        extended_indices = np.where((levels >= vmin) & (levels <= vmax))[0]
+        extended_levels[extended_indices]
+
+        # extended_indices = np.unique(np.concatenate([indices - 1, indices, indices + 1]))
+        # extended_indices = extended_indices[(extended_indices >= 0) & (extended_indices < len(levels))]
+        extended_colors = colors[extended_indices[:-1]]
+        extended_levels = extended_levels[extended_indices]
+
+        if extended_levels[-1] < plot_vmax and extended_levels[0] > plot_vmin:
+            cmap, norm = from_levels_and_colors(extended_levels, np.vstack([
+                colors[max([extended_indices[0]-1, 0])],
+                extended_colors,
+                colors[min([extended_indices[-1]+1, len(colors)-1])]
+            ]), extend='both')
+        elif extended_levels[-1] < plot_vmax:
+            cmap, norm = from_levels_and_colors(extended_levels, np.vstack([
+                extended_colors,
+                colors[min([extended_indices[-1]+1, len(colors)-1])]
+            ]), extend='max')
+        elif extended_levels[0] > plot_vmin:
+            cmap, norm = from_levels_and_colors(extended_levels, np.vstack([
+                colors[max([extended_indices[0]-1, 0])],
+                extended_colors
+            ]), extend='min')
+        else:
+            temp_levels = copy.deepcopy(extended_levels)
+            temp_levels[0] -= 0.01*exponent*step
+            temp_levels[-1] += 0.01*exponent*step
+            cmap, norm = from_levels_and_colors(temp_levels, extended_colors)
+
     else:
         # levels = np.linspace(vmin, vmax, discretize+1)
-        cmap = plt.get_cmap(palette, len(levels)-1)
-        norm = mpl.colors.BoundaryNorm(boundaries=levels, ncolors=len(levels)-1, clip=True)
+        cmap = plt.get_cmap(palette, len(extended_levels)-1)
+        norm = mpl.colors.BoundaryNorm(boundaries=extended_levels, ncolors=len(extended_levels)-1, clip=True)
 
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
@@ -287,7 +316,7 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             plt.setp(ax.spines.values(), color=None)
 
     # Colorbar
-    cbar = define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap=levels,
+    cbar = define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap=extended_levels,
                        cbar_title=cbar_title, cbar_values=cbar_values, cbar_ticks=cbar_ticks,
                        start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks,
                        **text_kwargs)

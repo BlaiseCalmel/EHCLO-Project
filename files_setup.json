@@ -90,9 +90,7 @@
           "units": "en jours",
           "label": "de durée des basses eaux",
           "plot_type": "difference",
-          "palette": "BrBG_r",
-          "vmin": -10,
-          "vmax": 90
+          "palette": "BrBG_r"
         }
       },
     "startLF_yr": {
@@ -100,8 +98,8 @@
         "units": "en jours",
         "label": "de date de début des basses eaux",
         "plot_type": "difference",
-        "vmin": -16,
-        "vmax": 4
+        "vmin": -30,
+        "vmax": 20
       }
     },
       "debit": {

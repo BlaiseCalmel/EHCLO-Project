@@ -145,333 +145,342 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                     else:
                         print(f'> {path_ncdf} already exists', end='\n')
 
-run_all = input("Run all ? (y/hydro/climate/[n])")
-if run_all.lower().replace(" ", "") in ['y', 'yes']:
-    data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
-elif run_all.lower().replace(" ", "") == 'hydro':
-    data_to_plot = (files_setup['hydro_indicator'])
-elif run_all.lower().replace(" ", "") == 'climate':
-    data_to_plot = (files_setup['climate_indicator'])
-else:
-    data_input = input('What should I run ?')
-    data_input_list = re.split(r"[ ]", data_input)
+run_plot = True
+while run_plot:
+    run_all = input("Run all ? (y/hydro/climate/[n])")
     data_to_plot = {}
-    for name in data_input_list:
-        name = name.replace(",", "").replace(" ", "")
-        if len(name) > 0:
-            if name in files_setup['climate_indicator'].keys():
-                data_to_plot |= {name: files_setup['climate_indicator'][name]}
-            elif name in files_setup['hydro_indicator'].keys():
-                data_to_plot |= {name: files_setup['hydro_indicator'][name]}
-            else:
-                keep_going = input(f"Invalid data name '{name}', ignore and keep running ? (y/n)")
-                if keep_going.lower().replace(" ", "") in ['n', 'no', 'non']:
-                    break
+    if run_all.lower().replace(" ", "") in ['y', 'yes']:
+        data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
+    elif run_all.lower().replace(" ", "") == 'hydro':
+        data_to_plot = (files_setup['hydro_indicator'])
+    elif run_all.lower().replace(" ", "") == 'climate':
+        data_to_plot = (files_setup['climate_indicator'])
+    else:
+        data_input = input('What should I run ?')
+        data_input_list = re.split(r"[ ]", data_input)
+        for name in data_input_list:
+            name = name.replace(",", "").replace(" ", "")
+            if len(name) > 0:
+                if name in files_setup['climate_indicator'].keys():
+                    data_to_plot |= {name: files_setup['climate_indicator'][name]}
+                elif name in files_setup['hydro_indicator'].keys():
+                    data_to_plot |= {name: files_setup['hydro_indicator'][name]}
+                else:
+                    keep_going = input(f"Invalid data name '{name}', ignore and keep running ? (y/n)")
+                    if keep_going.lower().replace(" ", "") in ['n', 'no', 'non']:
+                        break
 
-# name = 'QA_yr'
-# data_to_plot = {name: files_setup['hydro_indicator'][name]}
-# data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
-overwrite = True
-rcp = 'rcp85'
-for indicator, subdicts in data_to_plot.items():
-    for name_indicator, indicator_setup in subdicts.items():
-        print(f'################################ STATS {name_indicator.upper()} ################################', end='\n')
-        # if name_indicator.upper() == "QMN5":
-        #     break
-        if overwrite:
-            write_fig = True
-        else:
-            write_fig = False
+    # name = 'QA_yr'
+    # data_to_plot = {name: files_setup['hydro_indicator'][name]}
+    # data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
+    if len(data_to_plot) > 0:
+        overwrite = True
+        rcp = 'rcp85'
+        for indicator, subdicts in data_to_plot.items():
+            for name_indicator, indicator_setup in subdicts.items():
+                print(f'################################ STATS {name_indicator.upper()} ################################', end='\n')
+                # if name_indicator.upper() == "QMN5":
+                #     break
+                if overwrite:
+                    write_fig = True
+                else:
+                    write_fig = False
 
-        # Get plot settings
-        settings = load_settings(indicator_setup)
+                # Get plot settings
+                settings = load_settings(indicator_setup)
 
-        # Define variable name for axis
-        if settings['label'] is None:
-            title = name_indicator
-        else:
-            title = settings['label']
+                # Define variable name for axis
+                if settings['label'] is None:
+                    title = name_indicator
+                else:
+                    title = settings['label']
 
-        if settings['units'] != '':
-            units = f" ({settings['units']})"
-        else:
-            units = ''
+                if settings['units'] != '':
+                    units = f" ({settings['units']})"
+                else:
+                    units = ''
 
-        plot_type = settings['plot_type']
-        start_cbar_ticks = ''
-        end_cbar_ticks = ''
-        if plot_type == 'difference':
-            plot_type_name = 'difference'
-            percent = False
-        else:
-            plot_type_name = 'variation'
-            percent = True
-            units = " (%)"
+                plot_type = settings['plot_type']
+                start_cbar_ticks = ''
+                end_cbar_ticks = ''
+                if plot_type == 'difference':
+                    plot_type_name = 'difference'
+                    percent = False
+                else:
+                    plot_type_name = 'variation'
+                    percent = True
+                    units = " (%)"
 
-        if settings['start_cbar_ticks'] != '':
-            start_cbar_ticks = f" {settings['start_cbar_ticks']}"
-        if settings['end_cbar_ticks'] != '':
-            end_cbar_ticks = f" {settings['end_cbar_ticks']}"
+                if settings['start_cbar_ticks'] != '':
+                    start_cbar_ticks = f" {settings['start_cbar_ticks']}"
+                if settings['end_cbar_ticks'] != '':
+                    end_cbar_ticks = f" {settings['end_cbar_ticks']}"
 
-        # Create folder
-        title_join = name_indicator.replace(" ", "-").replace(".", "")
-        path_indicator = dict_paths['folder_study_figures'] + title_join + os.sep
-        if not os.path.isdir(path_indicator):
-            os.makedirs(path_indicator)
-            write_fig = True
+                # Create folder
+                title_join = name_indicator.replace(" ", "-").replace(".", "")
+                path_indicator = dict_paths['folder_study_figures'] + title_join + os.sep
+                if not os.path.isdir(path_indicator):
+                    os.makedirs(path_indicator)
+                    write_fig = True
 
-        if write_fig:
-            path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}.nc"
+                if write_fig:
+                    path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}.nc"
 
-            # Compute PK
-            if indicator in files_setup['hydro_indicator']:
-                data_type = 'hydro'
-                sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
-                # loire = sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7]
-                loire = sim_points_gdf_simplified[(sim_points_gdf_simplified['Suggesti_2'].str.contains('LA LOIRE ', case=False, na=False))]
-                value = compute_river_distance(rivers_shp, loire, river_name='loire',
-                                               start_from='last')
-                hydro_sim_points_gdf_simplified["PK"] = value
-                # sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7, 'PK'] = value
-                edgecolor = 'k'
-            else:
-                data_type = 'climate'
-                sim_points_gdf_simplified = climate_sim_points_gdf_simplified
-                sim_points_gdf_simplified = sim_points_gdf_simplified.set_index('name')
-                edgecolor = None
-
-            # Open ncdf dataset
-            ds_stats = xr.open_dataset(path_ncdf)
-
-            # Compute stats
-            ds_stats, variables = format_dataset(ds=ds_stats, data_type=data_type, files_setup=files_setup,
-                                                 plot_function=settings['additional_coordinates'],
-                                                 return_period=settings['return_period'])
-
-            # Geodataframe
-            sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds_stats.gid]
-            dict_shapefiles = define_plot_shapefiles(regions_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified,
-                                   indicator, files_setup)
-
-            narratives = {
-                "HadGEM2-ES_ALADIN63_ADAMONT": {'color': '#569A71', 'zorder': 10, 'label': 'Vert [HadGEM2-ES_ALADIN63_ADAMONT]',
-                                                'linewidth': 1},
-                "CNRM-CM5_ALADIN63_ADAMONT": {'color': '#EECC66', 'zorder': 10, 'label': 'Jaune [CNRM-CM5_ALADIN63_ADAMONT]',
-                                              'linewidth': 1},
-                "EC-EARTH_HadREM3-GA7_ADAMONT": {'color': '#E09B2F', 'zorder': 10, 'label': 'Orange [EC-EARTH_HadREM3-GA7_ADAMONT]',
-                                                 'linewidth': 1},
-                "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'color': '#791F5D', 'zorder': 10, 'label': 'Violet [HadGEM2-ES_CCLM4-8-17_ADAMONT]',
-                                                  'linewidth': 1},
-            }
-
-            # Check for additional coordinates
-            used_coords = set()
-            for var in ds_stats.data_vars:
-                used_coords.update(ds_stats[var].dims)
-
-            # Use another dimension to create different plots (ex: one plot per month)
-            additional_plot_folders = {'': [None]}
-            if settings['additional_plot_folders'] is not None:
-                additional_plot_folders = {settings['additional_plot_folders']: ds_stats[settings['additional_plot_folders']].values}
-
-            for coordinate, unique_value in additional_plot_folders.items():
-                for coordinate_value in unique_value:
-                    print(f'################################ PLOT {name_indicator.upper()} {coordinate_value if coordinate_value is not None else ""} '
-                          f'################################', end='\n')
-                    # Selection from the current coordinate value
-                    if coordinate_value is not None:
-                        ds = ds_stats.sel({coordinate: coordinate_value})
-
-                        path_indicator_figures = path_indicator + coordinate_value + os.sep
-                        if not os.path.isdir(path_indicator_figures):
-                            os.makedirs(path_indicator_figures)
+                    # Compute PK
+                    if indicator in files_setup['hydro_indicator']:
+                        data_type = 'hydro'
+                        sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
+                        # loire = sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7]
+                        loire = sim_points_gdf_simplified[(sim_points_gdf_simplified['Suggesti_2'].str.contains('LA LOIRE ', case=False, na=False))]
+                        value = compute_river_distance(rivers_shp, loire, river_name='loire',
+                                                       start_from='last')
+                        hydro_sim_points_gdf_simplified["PK"] = value
+                        # sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7, 'PK'] = value
+                        edgecolor = 'k'
                     else:
-                        ds = copy.deepcopy(ds_stats)
-                        path_indicator_figures = path_indicator
+                        data_type = 'climate'
+                        sim_points_gdf_simplified = climate_sim_points_gdf_simplified
+                        sim_points_gdf_simplified = sim_points_gdf_simplified.set_index('name')
+                        edgecolor = None
 
-                    print(f"> Map plot...")
-                    print(f">> {plot_type_name.title()} matching map plot {indicator}")
-                    plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_matching',
-                                               path_result=path_indicator_figures+f'{title_join}_map_matching_sims.pdf',
-                                               cbar_title=f"{title_join} Accord des modèles sur le sens d'évolution (%)", cbar_ticks=None,
-                                               title=coordinate_value, dict_shapefiles=dict_shapefiles,
-                                               bounds=bounds, palette='PuOr', cbar_midpoint='zero', cbar_values=settings['cbar_values'],
-                                               start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
-                                               fontsize=settings['fontsize']-2, alpha=1,
-                                               font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75,
-                                               vmin=-100, vmax=100)
-                    # Climate difference map
-                    if indicator in files_setup['climate_indicator']:
-                        print(f">> {plot_type_name.title()} map plot {indicator}")
-                        plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=f'horizon_{plot_type}-median',
-                                      path_result=path_indicator_figures+f'{title_join}_map_{plot_type}.pdf',
-                                      cbar_title=f"{plot_type_name.title()} médiane {title}{units}", cbar_ticks=settings['cbar_ticks'],
-                                                   title=coordinate_value, dict_shapefiles=dict_shapefiles,
-                                      bounds=bounds, palette=settings['palette'], cbar_midpoint='zero', cbar_values=settings['cbar_values'],
-                                      start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
-                                      fontsize=settings['fontsize']-2, alpha=0.8,
-                                      font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75,
-                                      vmin=settings['vmin'], vmax=settings['vmax'])
+                    # Open ncdf dataset
+                    ds_stats = xr.open_dataset(path_ncdf)
 
-                        # Histogramme Différence par moyenne multi-modèle annuelle par rapport à la période de référence
-                        # timeline_difference_mean mais pour l'ensemble du territoire
-                    elif indicator in files_setup['hydro_indicator']:
-                        print(f">> {plot_type_name.title()} map plot by HM")
-                        horizons = {'horizon1': 'Horizon 1 (2021-2050)',
-                                    'horizon2': 'Horizon 2 (2041-2070)',
-                                    'horizon3': 'Horizon 3 (2070-2099)',
-                                    }
-                        mean_by_hm = [s for sublist in variables['hydro-model_deviation'].values() for s in sublist if "mean" in s]
-                        label_df = sim_points_gdf_simplified['S_HYDRO'].astype(int).astype(str) + 'km² [' + sim_points_gdf_simplified['n'].astype(str) + 'HM]'
-                        if settings['vmax'] is None:
-                            vmax = math.ceil(abs(ds[mean_by_hm].to_array()).max() / 5) * 5
-                        else:
-                            vmax = settings['vmax']
+                    # Compute stats
+                    ds_stats, variables = format_dataset(ds=ds_stats, data_type=data_type, files_setup=files_setup,
+                                                         plot_function=settings['additional_coordinates'],
+                                                         return_period=settings['return_period'])
 
-                        for key, value in horizons.items():
-                            print(f">>> Map {value}")
+                    # Geodataframe
+                    sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds_stats.gid]
+                    dict_shapefiles = define_plot_shapefiles(regions_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified,
+                                           indicator, files_setup)
+
+                    narratives = {
+                        "HadGEM2-ES_ALADIN63_ADAMONT": {'color': '#569A71', 'zorder': 10, 'label': 'Vert [HadGEM2-ES_ALADIN63_ADAMONT]',
+                                                        'linewidth': 1},
+                        "CNRM-CM5_ALADIN63_ADAMONT": {'color': '#EECC66', 'zorder': 10, 'label': 'Jaune [CNRM-CM5_ALADIN63_ADAMONT]',
+                                                      'linewidth': 1},
+                        "EC-EARTH_HadREM3-GA7_ADAMONT": {'color': '#E09B2F', 'zorder': 10, 'label': 'Orange [EC-EARTH_HadREM3-GA7_ADAMONT]',
+                                                         'linewidth': 1},
+                        "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'color': '#791F5D', 'zorder': 10, 'label': 'Violet [HadGEM2-ES_CCLM4-8-17_ADAMONT]',
+                                                          'linewidth': 1},
+                    }
+
+                    # Check for additional coordinates
+                    used_coords = set()
+                    for var in ds_stats.data_vars:
+                        used_coords.update(ds_stats[var].dims)
+
+                    # Use another dimension to create different plots (ex: one plot per month)
+                    additional_plot_folders = {'': [None]}
+                    if settings['additional_plot_folders'] is not None:
+                        additional_plot_folders = {settings['additional_plot_folders']: ds_stats[settings['additional_plot_folders']].values}
+
+                    for coordinate, unique_value in additional_plot_folders.items():
+                        for coordinate_value in unique_value:
+                            print(f'################################ PLOT {name_indicator.upper()} {coordinate_value if coordinate_value is not None else ""} '
+                                  f'################################', end='\n')
+                            # Selection from the current coordinate value
                             if coordinate_value is not None:
-                                map_title = f"{value}: {coordinate_value} "
+                                ds = ds_stats.sel({coordinate: coordinate_value})
+
+                                path_indicator_figures = path_indicator + coordinate_value + os.sep
+                                if not os.path.isdir(path_indicator_figures):
+                                    os.makedirs(path_indicator_figures)
                             else:
-                                map_title = f"{value}"
-                            plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), variables=variables,
-                                                  path_result=path_indicator_figures+f'{title_join}_map_{plot_type}_median_{key}.pdf',
-                                                  cbar_title=f"{plot_type_name.title()} médiane {title}{units}", title=map_title, cbar_midpoint='zero',
-                                                  dict_shapefiles=dict_shapefiles, bounds=bounds, edgecolor=edgecolor,
-                                                  markersize=120, discretize=settings['discretize'], palette=settings['palette'], fontsize=settings['fontsize'],
-                                                  font=settings['font'], alpha=settings['alpha'],
-                                                  vmin=settings['vmin'], vmax=vmax)
+                                ds = copy.deepcopy(ds_stats)
+                                path_indicator_figures = path_indicator
 
-                        if settings['additional_coordinates'] != 'month':
-                            print(f"> Linear plot...")
-                            if 'PK' in sim_points_gdf_simplified.columns:
-                                ds = ds.assign(PK=("gid", sim_points_gdf_simplified.loc[ds.gid.values, "PK"]))
+                            print(f"> Map plot...")
+                            print(f">> {plot_type_name.title()} matching map plot {indicator}")
+                            plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_matching',
+                                                       path_result=path_indicator_figures+f'{title_join}_map_matching_sims.pdf',
+                                                       cbar_title=f"{title_join} Accord des modèles sur le sens d'évolution (%)", cbar_ticks=None,
+                                                       title=coordinate_value, dict_shapefiles=dict_shapefiles,
+                                                       bounds=bounds, palette='PuOr', cbar_midpoint='zero', cbar_values=settings['cbar_values'],
+                                                       start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
+                                                       fontsize=settings['fontsize']-2, alpha=1,
+                                                       font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75,
+                                                       vmin=-100, vmax=100)
+                            # Climate difference map
+                            if indicator in files_setup['climate_indicator']:
+                                print(f">> {plot_type_name.title()} map plot {indicator}")
+                                plot_map_indicator_climate(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=f'horizon_{plot_type}-median',
+                                              path_result=path_indicator_figures+f'{title_join}_map_{plot_type}.pdf',
+                                              cbar_title=f"{plot_type_name.title()} médiane {title}{units}", cbar_ticks=settings['cbar_ticks'],
+                                                           title=coordinate_value, dict_shapefiles=dict_shapefiles,
+                                              bounds=bounds, palette=settings['palette'], cbar_midpoint='zero', cbar_values=settings['cbar_values'],
+                                              start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
+                                              fontsize=settings['fontsize']-2, alpha=0.8,
+                                              font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75,
+                                              vmin=settings['vmin'], vmax=settings['vmax'])
 
-                                villes = ['Villerest', 'Nevers', 'Orleans', 'Tours', 'Saumur', 'Nantes'] #'Blois',
-                                regex = "|".join(villes)
-                                vlines = sim_points_gdf_simplified[sim_points_gdf_simplified['Suggesti_2'].str.contains(regex, case=False, na=False)]
-                                vlines.loc[: ,'color'] = 'none'
-                                cities = [i.split(' A ')[-1].split(' [')[0] for i in vlines['Suggesti_2']]
-                                vlines.insert(loc=0, column='label', value=cities)
-                                vlines['annotate'] = 0.02
-                                vlines['fontsize'] = settings['fontsize'] - 2
+                                # Histogramme Différence par moyenne multi-modèle annuelle par rapport à la période de référence
+                                # timeline_difference_mean mais pour l'ensemble du territoire
+                            elif indicator in files_setup['hydro_indicator']:
+                                print(f">> {plot_type_name.title()} map plot by HM")
+                                horizons = {'horizon1': 'Horizon 1 (2021-2050)',
+                                            'horizon2': 'Horizon 2 (2041-2070)',
+                                            'horizon3': 'Horizon 3 (2070-2099)',
+                                            }
+                                median_by_hm = [s for sublist in variables[f'hydro-model_{plot_type}'].values() for s in sublist if "median" in s]
+                                label_df = sim_points_gdf_simplified['S_HYDRO'].astype(int).astype(str) + 'km² [' + sim_points_gdf_simplified['n'].astype(str) + 'HM]'
+                                if settings['vmax'] is None:
+                                    vmax = math.ceil(abs(ds[median_by_hm].to_array()).max() / 5) * 5
+                                else:
+                                    vmax = settings['vmax']
 
-                                # Limit size of y axis label
-                                name_y_axis = f'{plot_type_name.title()} {title}{units}'
-                                label_length = max([26, len(max(re.split(r"[ ]", name_y_axis), key=len))])
-                                wrapper = textwrap.TextWrapper(width=label_length, break_long_words=False, break_on_hyphens=True)
-                                wrapped_label = wrapper.wrap(name_y_axis)
-                                name_y_axis = "\n".join(wrapped_label)
+                                for key, value in horizons.items():
+                                    print(f">>> Map {value}")
+                                    if coordinate_value is not None:
+                                        map_title = f"{value}: {coordinate_value} "
+                                    else:
+                                        map_title = f"{value}"
+                                    plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key),
+                                                          variables=variables, plot_type=plot_type,
+                                                          path_result=path_indicator_figures+f'{title_join}_map_{plot_type}_median_{key}.pdf',
+                                                          cbar_title=f"{plot_type_name.title()} médiane {title}{units}", title=map_title, cbar_midpoint='zero',
+                                                          dict_shapefiles=dict_shapefiles, bounds=bounds, edgecolor=edgecolor,
+                                                          markersize=120, discretize=settings['discretize'], palette=settings['palette'], fontsize=settings['fontsize'],
+                                                          font=settings['font'], alpha=settings['alpha'],
+                                                          vmin=settings['vmin'], vmax=vmax)
 
-                                print(f">> Linear deviation - x: PK, y: {indicator}, row: HM, col: Horizon")
-                                plot_linear_pk_hm(ds,
-                                                  simulations=variables['hydro-model_sim-horizon_deviation'],
-                                                  narratives=narratives,
-                                                  title=coordinate_value,
-                                                  name_x_axis=f'PK (km)',
-                                                  name_y_axis=name_y_axis,
-                                                  percent=percent,
-                                                  vlines=vlines,
-                                                  fontsize=settings['fontsize'],
-                                                  font=settings['font'],
-                                                  path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_row-HM_col-horizon.pdf')
+                                if settings['additional_coordinates'] != 'month':
+                                    print(f"> Linear plot...")
+                                    if 'PK' in sim_points_gdf_simplified.columns:
+                                        ds = ds.assign(PK=("gid", sim_points_gdf_simplified.loc[ds.gid.values, "PK"]))
+
+                                        villes = ['Villerest', 'Nevers', 'Orleans', 'Tours', 'Saumur', 'Nantes'] #'Blois',
+                                        regex = "|".join(villes)
+                                        vlines = sim_points_gdf_simplified[sim_points_gdf_simplified['Suggesti_2'].str.contains(regex, case=False, na=False)]
+                                        vlines.loc[: ,'color'] = 'none'
+                                        cities = [i.split(' A ')[-1].split(' [')[0] for i in vlines['Suggesti_2']]
+                                        vlines.insert(loc=0, column='label', value=cities)
+                                        vlines['annotate'] = 0.02
+                                        vlines['fontsize'] = settings['fontsize'] - 2
+
+                                        # Limit size of y axis label
+                                        name_y_axis = f'{plot_type_name.title()} {title}{units}'
+                                        label_length = max([26, len(max(re.split(r"[ ]", name_y_axis), key=len))])
+                                        wrapper = textwrap.TextWrapper(width=label_length, break_long_words=False, break_on_hyphens=True)
+                                        wrapped_label = wrapper.wrap(name_y_axis)
+                                        name_y_axis = "\n".join(wrapped_label)
+
+                                        print(f">> Linear {plot_type} - x: PK, y: {indicator}, row: HM, col: Horizon")
+                                        plot_linear_pk_hm(ds,
+                                                          simulations=variables[f'hydro-model_sim-horizon_{plot_type}'],
+                                                          narratives=narratives,
+                                                          title=coordinate_value,
+                                                          name_x_axis=f'PK (km)',
+                                                          name_y_axis=name_y_axis,
+                                                          percent=percent,
+                                                          vlines=vlines,
+                                                          fontsize=settings['fontsize'],
+                                                          font=settings['font'],
+                                                          path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_row-HM_col-horizon.pdf')
 
 
-                                print(f">> Linear deviation - x: PK, y: {indicator}, row: Narratif, col: Horizon")
-                                plot_linear_pk_narrative(ds,
-                                                         simulations=variables['simulation-horizon_by-sims_deviation'],
+                                        print(f">> Linear {plot_type} - x: PK, y: {indicator}, row: Narratif, col: Horizon")
+                                        plot_linear_pk_narrative(ds,
+                                                                 simulations=variables[f'simulation-horizon_by-sims_{plot_type}'],
+                                                                 narratives=narratives,
+                                                                 title=coordinate_value,
+                                                                 name_x_axis=f'PK (km)',
+                                                                 name_y_axis=name_y_axis,
+                                                                 percent=percent,
+                                                                 vlines=vlines,
+                                                                 fontsize=settings['fontsize'],
+                                                                 font=settings['font'],
+                                                                 path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_row-narrative_col-horizon.pdf')
+
+
+                                        print(f">> Linear {plot_type} - x: PK, y: {indicator}, col: Horizon")
+                                        plot_linear_pk(ds,
+                                                       simulations=variables[f'simulation-horizon_by-sims_{plot_type}'],
+                                                       narratives=narratives,
+                                                       title=coordinate_value,
+                                                       name_x_axis=f'PK (km)',
+                                                       name_y_axis=name_y_axis,
+                                                       percent=percent,
+                                                       vlines=vlines,
+                                                       fontsize=settings['fontsize'],
+                                                       font=settings['font'],
+                                                       path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_col-horizon.pdf')
+                                    for river, river_stations in reference_stations.items():
+                                        extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
+                                        print(f">> Linear timeline {plot_type} - x: time, y: {indicator}, row/col: Stations ref {river}")
+                                        plot_linear_time(ds,
+                                                         simulations=variables[f'simulation_{plot_type}'],
+                                                         station_references=extended_station_name,
                                                          narratives=narratives,
                                                          title=coordinate_value,
-                                                         name_x_axis=f'PK (km)',
+                                                         name_x_axis='Date',
                                                          name_y_axis=name_y_axis,
                                                          percent=percent,
-                                                         vlines=vlines,
+                                                         vlines=None,
                                                          fontsize=settings['fontsize'],
                                                          font=settings['font'],
-                                                         path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_row-narrative_col-horizon.pdf')
+                                                         path_result=path_indicator_figures+f'lineplot_{plot_type}_{river}_x-time_y-{title_join}_row-col-stations-ref.pdf',)
 
+                                        print(f"> Box plot...")
+                                        print(f">> Boxplot {plot_type} by horizon and selected stations")
+                                        plot_boxplot_station_narrative(ds=ds[variables[f'simulation-horizon_by-sims_{plot_type}']],
+                                                                       station_references=extended_station_name,
+                                                                       narratives=narratives,
+                                                                       title=coordinate_value,
+                                                                       references=None,
+                                                                       name_y_axis=name_y_axis,
+                                                                       percent=percent,
+                                                                       fontsize=settings['fontsize'],
+                                                                       font=settings['font'],
+                                                                       path_result=path_indicator_figures+f'{title_join}_boxplot_{plot_type}_{river}_narratives.pdf',)
+                    if settings['additional_coordinates'] == 'month':
+                        print(f'################################ PLOT {name_indicator.upper()} Monthly variation ################################', end='\n')
+                        label_df = sim_points_gdf_simplified['S_HYDRO'].astype(int).astype(str) + 'km² [' + sim_points_gdf_simplified['n'].astype(str) + 'HM]'
+                        horizon_boxes = {
+                            "historical": {'color': '#f5f5f5', 'zorder': 10, 'label': 'Historique (1991-2020)',
+                                           'linewidth': 1},
+                            "horizon1": {'color': '#80cdc1', 'zorder': 10, 'label': 'Horizon 1 (2021-2050)',
+                                         'linewidth': 1},
+                            "horizon2": {'color': '#dfc27d', 'zorder': 10, 'label': 'Horizon 2 (2041-2070)',
+                                         'linewidth': 1},
+                            "horizon3": {'color': '#a6611a', 'zorder': 10, 'label': 'Horizon 3 (2070-2099)',
+                                         'linewidth': 1},
+                        }
 
-                                print(f">> Linear deviation - x: PK, y: {indicator}, col: Horizon")
-                                plot_linear_pk(ds,
-                                               simulations=variables['simulation-horizon_by-sims_deviation'],
-                                               narratives=narratives,
-                                               title=coordinate_value,
-                                               name_x_axis=f'PK (km)',
-                                               name_y_axis=name_y_axis,
-                                               percent=percent,
-                                               vlines=vlines,
-                                               fontsize=settings['fontsize'],
-                                               font=settings['font'],
-                                               path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_col-horizon.pdf')
-                            for river, river_stations in reference_stations.items():
-                                extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
-                                print(f">> Linear timeline deviation - x: time, y: {indicator}, row/col: Stations ref {river}")
-                                plot_linear_time(ds,
-                                                 simulations=variables['simulation_deviation'],
-                                                 station_references=extended_station_name,
-                                                 narratives=narratives,
-                                                 title=coordinate_value,
-                                                 name_x_axis='Date',
-                                                 name_y_axis=name_y_axis,
-                                                 percent=percent,
-                                                 vlines=None,
-                                                 fontsize=settings['fontsize'],
-                                                 font=settings['font'],
-                                                 path_result=path_indicator_figures+f'lineplot_{plot_type}_{river}_x-time_y-{title_join}_row-col-stations-ref.pdf',)
-
-                                print(f"> Box plot...")
-                                print(f">> Boxplot deviation by horizon and selected stations")
-                                plot_boxplot_station_narrative(ds=ds[variables['simulation-horizon_by-sims_deviation']],
-                                                               station_references=extended_station_name,
-                                                               narratives=narratives,
-                                                               title=coordinate_value,
-                                                               references=None,
-                                                               name_y_axis=name_y_axis,
+                        for river, river_stations in reference_stations.items():
+                            print(f"> Box plot...")
+                            print(f">> Boxplot normalized {title_join} by month and horizon")
+                            plot_boxplot_station_month_horizon(ds=ds_stats[variables['simulation_horizon']],
+                                                               station_references={key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()},
+                                                               narratives=horizon_boxes,
+                                                               title=None,
+                                                               name_y_axis=f"{title_join} normalisé",
+                                                               normalized=True,
                                                                percent=percent,
+                                                               common_yaxes=True,
                                                                fontsize=settings['fontsize'],
                                                                font=settings['font'],
-                                                               path_result=path_indicator_figures+f'{title_join}_boxplot_{plot_type}_{river}_narratives.pdf',)
-            if settings['additional_coordinates'] == 'month':
-                print(f'################################ PLOT {name_indicator.upper()} Monthly variation ################################', end='\n')
-                label_df = sim_points_gdf_simplified['S_HYDRO'].astype(int).astype(str) + 'km² [' + sim_points_gdf_simplified['n'].astype(str) + 'HM]'
-                horizon_boxes = {
-                    "historical": {'color': '#f5f5f5', 'zorder': 10, 'label': 'Historique (1991-2020)',
-                                   'linewidth': 1},
-                    "horizon1": {'color': '#80cdc1', 'zorder': 10, 'label': 'Horizon 1 (2021-2050)',
-                                 'linewidth': 1},
-                    "horizon2": {'color': '#dfc27d', 'zorder': 10, 'label': 'Horizon 2 (2041-2070)',
-                                 'linewidth': 1},
-                    "horizon3": {'color': '#a6611a', 'zorder': 10, 'label': 'Horizon 3 (2070-2099)',
-                                 'linewidth': 1},
-                }
+                                                               path_result=path_indicator+f'{title_join}_boxplot_normalized-discharge_{river}_month.pdf')
+                            print(f">> Boxplot {plot_type} by month and horizon")
+                            plot_boxplot_station_month_horizon(ds=ds_stats[variables[f'simulation-horizon_by-sims_{plot_type}']],
+                                                               station_references={key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()},
+                                                               narratives={key: value for key, value in horizon_boxes.items() if key!='historical'},
+                                                               title=None,
+                                                               name_y_axis=f'{plot_type_name.title()} {title}{units}',
+                                                               percent=percent,
+                                                               common_yaxes=True,
+                                                               ymin=settings['vmin'],
+                                                               ymax=settings['vmax'],
+                                                               fontsize=settings['fontsize'],
+                                                               font=settings['font'],
+                                                               path_result=path_indicator+f'{title_join}_boxplot_{plot_type}_{river}_month.pdf')
 
-                for river, river_stations in reference_stations.items():
-                    print(f"> Box plot...")
-                    print(f">> Boxplot normalized {title_join} by month and horizon")
-                    plot_boxplot_station_month_horizon(ds=ds_stats[variables['simulation_horizon']],
-                                                       station_references={key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()},
-                                                       narratives=horizon_boxes,
-                                                       title=None,
-                                                       name_y_axis=f"{title_join} normalisé",
-                                                       normalized=True,
-                                                       percent=percent,
-                                                       common_yaxes=True,
-                                                       fontsize=settings['fontsize'],
-                                                       font=settings['font'],
-                                                       path_result=path_indicator+f'{title_join}_boxplot_normalized-discharge_{river}_month.pdf')
-                    print(f">> Boxplot deviation by month and horizon")
-                    plot_boxplot_station_month_horizon(ds=ds_stats[variables['simulation-horizon_by-sims_deviation']],
-                                                       station_references={key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()},
-                                                       narratives={key: value for key, value in horizon_boxes.items() if key!='historical'},
-                                                       title=None,
-                                                       name_y_axis=f'{plot_type_name.title()} {title}{units}',
-                                                       percent=percent,
-                                                       common_yaxes=True,
-                                                       ymin=settings['vmin'],
-                                                       ymax=settings['vmax'],
-                                                       fontsize=settings['fontsize'],
-                                                       font=settings['font'],
-                                                       path_result=path_indicator+f'{title_join}_boxplot_{plot_type}_{river}_month.pdf')
+    keep_plotting = input("Plot again ? ([y]/n)")
+    if run_all.lower().replace(" ", "") in ['n', 'no']:
+        run_plot = False
+
 
 
 # print(f'################################ PLOT GLOBAL ################################', end='\n')
