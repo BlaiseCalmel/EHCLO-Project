@@ -242,11 +242,11 @@ def simplify_shapefiles(study_ug_shp, study_ug_bv_shp, rivers_shp, regions_shp, 
             regions_shp_simplified, bounds)
 
 def define_plot_shapefiles(regions_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified,
-                           indicator, files_setup):
+                           indicator_type, files_setup):
     dict_shapefiles = {'background_shp': {'shp': regions_shp_simplified, 'color': 'whitesmoke',
                                           'edgecolor': 'darkgrey', 'zorder': 0, 'alpha': 0.2},
                        }
-    if indicator in files_setup['hydro_indicator']:
+    if indicator_type == 'hydro_indicator':
         dict_shapefiles |= {'study_shp': {'shp': study_climate_shp_simplified, 'color': 'whitesmoke',
                                           'edgecolor': 'dimgray', 'zorder': 1, 'linewidth': 1.2},
                             'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'navy',
