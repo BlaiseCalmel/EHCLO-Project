@@ -28,10 +28,10 @@ plt.switch_backend('agg')
 
 # Load environments variables
 print(f'> Load json inputs...', end='\n')
-with open('config-perso.json') as config_file:
+with open('config.json') as config_file:
     config = json.load(config_file)
 
-with open('files_setup.json') as files_setup:
+with open('files_setup-perso.json') as files_setup:
     files_setup = json.load(files_setup)
 
 settings_flatten = {}
@@ -91,8 +91,8 @@ print(f'> Simplify shapefiles...', end='\n')
 study_hydro_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified, regions_shp_simplified, bounds = (
     simplify_shapefiles(study_hydro_shp, study_climate_shp, rivers_shp, regions_shp, tolerance=1000, zoom=1000))
 
-hydro_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
-hydro_sim_points_gdf_simplified = hydro_sim_points_gdf[hydro_sim_points_gdf['n'] >= 4]
+hydro_sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
+# hydro_sim_points_gdf_simplified = hydro_sim_points_gdf[hydro_sim_points_gdf['n'] >= 4]
 hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified.reset_index(drop=True).set_index('Suggestion')
 hydro_sim_points_gdf_simplified.index.names = ['name']
 
@@ -112,7 +112,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
     subdict=path_files[data_type]
     rcp='rcp85'
     subdict2=subdict[rcp]
-    indicator = "startLF_yr"
+    indicator = "debit"
     paths = subdict2[indicator]
     for data_type, subdict in path_files.items():
         # Load simulation points for current data type
@@ -142,10 +142,15 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                     if not os.path.isfile(path_ncdf):
                         print(f'> Create {indicator} export...', end='\n')
                         if len(paths) > 0 :
+                            paths = [
+                                '/media/bcalmel/Explore2/hydrological-projection_daily-time-series_by-chain_merged-netcdf/historical-rcp85/HadGEM2-ES/ALADIN63/ADAMONT/SMASH/debit_France_MOHC-HadGEM2-ES_historical-rcp85_r1i1p1_CNRM-ALADIN63_v3_MF-ADAMONT-SAFRAN-1980-2011_INRAE-SMASH_day_20050801-20990731.nc'
+                            ]
                             extract_ncdf_indicator(
                                 paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
                                 indicator=indicator, function=function, timestep=timestep,
-                                start=files_setup['historical'][0], path_result=path_ncdf,
+                                start=files_setup['historical'][0],
+                                end=2005,
+                                path_result=path_ncdf,
                             )
                         else:
                             print(f'> Invalid {indicator} name', end='\n')
@@ -157,11 +162,16 @@ while run_plot:
     run_all = input("Run all ? (y/hydro/climate/[n])")
     data_to_plot = {}
     if run_all.lower().replace(" ", "") in ['y', 'yes']:
-        data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
+        for key, value in settings_flatten.items():
+            data_to_plot |= {key: value}
     elif run_all.lower().replace(" ", "") == 'hydro':
-        data_to_plot = (files_setup['hydro_indicator'])
+        for key, value in settings_flatten.items():
+            if value['type'] == 'hydro':
+                data_to_plot |= {key: value}
     elif run_all.lower().replace(" ", "") == 'climate':
-        data_to_plot = (files_setup['climate_indicator'])
+        for key, value in settings_flatten.items():
+            if value['type'] == 'climate':
+                data_to_plot |= {key: value}
     else:
         data_input = input('What should I run ?')
         data_input_list = re.split(r"[ ]", data_input)
@@ -188,8 +198,24 @@ while run_plot:
     if len(data_to_plot) > 0:
         overwrite = True
         rcp = 'rcp85'
+        runned_data = []
+        # runned_data['QA',
+        #  'QJXA',
+        #  'Q[JJA]',
+        #  'Q[DJF]',
+        #  'Q[MAM]',
+        #  'Q[SON]',
+        #  'VCN10',
+        #  'VCN10-5',
+        #  'Q10',
+        #  'Q90',
+        #  'QMNA5',
+        #  'QMN5',
+        #  'Qm']
         # for indicator, subdicts in data_to_plot.items():
         for name_indicator, indicator_setup in data_to_plot.items():
+            if name_indicator in runned_data:
+                continue
             print(f'################################ STATS {name_indicator.upper()} ################################', end='\n')
             # if name_indicator.upper() == "T MOY. SEAS":
             #     break
@@ -374,26 +400,26 @@ while run_plot:
 
                                     # Limit size of y axis label
                                     name_y_axis = f'{plot_type_name.title()} {title}{units}'
-                                    label_length = max([26, len(max(re.split(r"[ ]", name_y_axis), key=len))])
+                                    label_length = max([24, len(max(re.split(r"[ ]", name_y_axis), key=len))])
                                     wrapper = textwrap.TextWrapper(width=label_length, break_long_words=False, break_on_hyphens=True)
                                     wrapped_label = wrapper.wrap(name_y_axis)
                                     name_y_axis = "\n".join(wrapped_label)
 
-                                    print(f">> Linear {plot_type} - x: PK, y: {indicator}, row: HM, col: Horizon")
-                                    plot_linear_pk_hm(ds,
-                                                      simulations=variables[f'hydro-model_sim-horizon_{plot_type}'],
-                                                      narratives=narratives,
-                                                      title=coordinate_value,
-                                                      name_x_axis=f'PK (km)',
-                                                      name_y_axis=name_y_axis,
-                                                      percent=percent,
-                                                      vlines=vlines,
-                                                      fontsize=settings['fontsize'],
-                                                      font=settings['font'],
-                                                      path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_row-HM_col-horizon.pdf')
+                                    # print(f">> Linear {plot_type} - x: PK, y: {name_indicator}, row: HM, col: Horizon")
+                                    # plot_linear_pk_hm(ds,
+                                    #                   simulations=variables[f'hydro-model_sim-horizon_{plot_type}'],
+                                    #                   narratives=narratives,
+                                    #                   title=coordinate_value,
+                                    #                   name_x_axis=f'PK (km)',
+                                    #                   name_y_axis=name_y_axis,
+                                    #                   percent=percent,
+                                    #                   vlines=vlines,
+                                    #                   fontsize=settings['fontsize'],
+                                    #                   font=settings['font'],
+                                    #                   path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_row-HM_col-horizon.pdf')
 
 
-                                    print(f">> Linear {plot_type} - x: PK, y: {indicator}, row: Narratif, col: Horizon")
+                                    print(f">> Linear {plot_type} - x: PK, y: {name_indicator}, row: Narratif, col: Horizon")
                                     plot_linear_pk_narrative(ds,
                                                              simulations=variables[f'simulation-horizon_by-sims_{plot_type}'],
                                                              narratives=narratives,
@@ -407,21 +433,21 @@ while run_plot:
                                                              path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_row-narrative_col-horizon.pdf')
 
 
-                                    print(f">> Linear {plot_type} - x: PK, y: {indicator}, col: Horizon")
-                                    plot_linear_pk(ds,
-                                                   simulations=variables[f'simulation-horizon_by-sims_{plot_type}'],
-                                                   narratives=narratives,
-                                                   title=coordinate_value,
-                                                   name_x_axis=f'PK (km)',
-                                                   name_y_axis=name_y_axis,
-                                                   percent=percent,
-                                                   vlines=vlines,
-                                                   fontsize=settings['fontsize'],
-                                                   font=settings['font'],
-                                                   path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_col-horizon.pdf')
+                                    # print(f">> Linear {plot_type} - x: PK, y: {name_indicator}, col: Horizon")
+                                    # plot_linear_pk(ds,
+                                    #                simulations=variables[f'simulation-horizon_by-sims_{plot_type}'],
+                                    #                narratives=narratives,
+                                    #                title=coordinate_value,
+                                    #                name_x_axis=f'PK (km)',
+                                    #                name_y_axis=name_y_axis,
+                                    #                percent=percent,
+                                    #                vlines=vlines,
+                                    #                fontsize=settings['fontsize'],
+                                    #                font=settings['font'],
+                                    #                path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_col-horizon.pdf')
                                 for river, river_stations in reference_stations.items():
                                     extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
-                                    print(f">> Linear timeline {plot_type} - x: time, y: {indicator}, row/col: Stations ref {river}")
+                                    print(f">> Linear timeline {plot_type} - x: time, y: {name_indicator}, row/col: Stations ref {river}")
                                     plot_linear_time(ds,
                                                      simulations=variables[f'simulation_{plot_type}'],
                                                      station_references=extended_station_name,
@@ -488,6 +514,8 @@ while run_plot:
                                                            fontsize=settings['fontsize'],
                                                            font=settings['font'],
                                                            path_result=path_indicator+f'{title_join}_boxplot_{plot_type}_{river}_month.pdf')
+            # Save name indicator
+            runned_data.append(name_indicator)
 
     keep_plotting = input("Plot again ? ([y]/n)")
     if run_all.lower().replace(" ", "") in ['n', 'no']:

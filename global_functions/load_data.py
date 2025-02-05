@@ -18,18 +18,22 @@ def resample_ds(ds, var, timestep, operation='mean', q=None):
         ds = ds.sel(time=ds['time'].dt.month.isin([1, 2, 12]))
         timestep = 'YE'
 
-    if operation == 'mean':
-        return ds[var].resample(time=timestep).mean()
-    elif operation == 'sum':
-        return ds[var].resample(time=timestep).sum()
-    elif operation == 'max':
-        return ds[var].resample(time=timestep).max()
-    elif operation == 'min':
-        return ds[var].resample(time=timestep).min()
-    elif operation == 'quantile':
-        return ds[var].resample(time=timestep).quantile(q)
+    if timestep == 'all':
+        return ds[var].chunk({"gid" : 1}).quantile(q, dim="time")
+
     else:
-        raise ValueError(f"Operation '{operation}' is not supported.")
+        if operation == 'mean':
+            return ds[var].chunk({"gid" : 1}).resample(time=timestep).mean()
+        elif operation == 'sum':
+            return ds[var].resample(time=timestep).sum()
+        elif operation == 'max':
+            return ds[var].resample(time=timestep).max()
+        elif operation == 'min':
+            return ds[var].resample(time=timestep).min()
+        elif operation == 'quantile':
+            return ds[var].resample(time=timestep).quantile(q)
+        else:
+            raise ValueError(f"Operation '{operation}' is not supported.")
 
 def rename_variables(dataset, suffix, var_name):
     return dataset.rename({var: suffix for var in dataset.data_vars if var.lower().find(var_name.lower()) != -1})
@@ -65,7 +69,7 @@ def apply_function_to_ds(ds, function, file_name, timestep):
     return resampled_var
 
 def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, timestep=None, function=None,
-                           start=None, path_result=None):
+                           start=None, end=None, path_result=None):
 
     # Create temporary directory
     temp_dir = os.path.dirname(path_result) + os.sep + '_temp'
@@ -102,7 +106,11 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
     temp_paths = []
     with (tqdm(total=total_iterations, desc=f"Create {title} file") as pbar):
+        # i=0
+        # files=paths_data[0]
+        # files=['/home/bcalmel/Documents/3_results/Antoine/data/_temp/debit_HadGEM2-ES_RegCM4-6_ADAMONT_SMASH.nc']
         for i, files in enumerate(paths_data):
+
             if param_type == "climate":
                 split_name = files[0].split(os.sep)[-4:-1]
             else:
@@ -111,9 +119,14 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             file_name = '_'.join(split_name)
             var = indicator+'_'+file_name
 
+            if os.path.isfile(f"{temp_dir}{os.sep}{var}.nc"):
+                if f"{temp_dir}{os.sep}{var}.nc" not in temp_paths:
+                    temp_paths.append(f"{temp_dir}{os.sep}{var}.nc")
+                continue
+
             datasets = []
             for file in files:
-                ds = xr.open_dataset(file)
+                ds = xr.open_dataset(file, autoclose=True)
 
                 # Check for coordinates without dimension
                 dims_without_coords = [dim for dim in ds.dims if dim not in ds.coords]
@@ -136,6 +149,9 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                 if start is not None:
                     ds = ds.sel(time=slice(dt.datetime(
                         start, 1, 1), None))
+                if end is not None:
+                    ds = ds.sel(time=slice(None, dt.datetime(
+                        end, 1, 10)))
 
                 # LII generates bug
                 if 'LII' in ds.variables:
@@ -173,39 +189,54 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                     if len(codes_to_select) > 0:
                         ds = ds.sel(gid=codes_to_select)
 
-                        # Compute quantile
-                        # if function is not None:
-                        resampled_var = apply_function_to_ds(ds, function, file_name, timestep)
-                        # Create a new dataset
-                        coordinates = {'gid': ds.gid.values, 'time': resampled_var['time'].values}
-
-                        ds = xr.Dataset({
-                            file_name: (('time', 'gid'), resampled_var.values),
-                            'L93_X': (('gid'), ds.L93_X.values),
-                            'L93_Y': (('gid'), ds.L93_Y.values)
-                        }, coords=coordinates
-                        )
-
-                        ds['gid'] = ds['gid'].astype(str)
-
-                        # Clean dataset
-                        ds = xr.Dataset({
-                            file_name: (('time', 'gid'), ds[file_name].values),
-                            'x': (('gid'), ds['L93_X'].values),
-                            'y': (('gid'), ds['L93_Y'].values),
-                        }, coords={i: ds[i] for i in ds._coord_names}
-                        )
-                        ds = ds.set_coords('x')
-                        ds = ds.set_coords('y')
-                    else:
-                        continue
-
-                datasets.append(ds)
+                ds.attrs = {}
+                ds[file_name].attrs = {}
+                if len(files) > 1:
+                    datasets.append(ds)
 
             if len(datasets) > 1:
-                ds = xr.concat(datasets, dim="time").sortby("time")
+                print(f"Combine datasets")
+                # ds = xr.concat(datasets, dim="time").sortby("time")
+                ds = xr.combine_by_coords([temp_ds[[file_name, 'L93_X', 'L93_Y']] for temp_ds in datasets])
+
+            # Compute quantile
+            # if function is not None:
+            print(f"Resample")
+            resampled_var = apply_function_to_ds(ds, function, file_name, timestep)
+            # Create a new dataset
+            coordinates = {}
+            for dim in resampled_var.dims:
+                coordinates |= {dim: resampled_var[dim].values}
+            print(f"Create")
+            ds = xr.Dataset({
+                file_name: (resampled_var.dims, resampled_var.values),
+                'x': (ds.L93_X.dims, ds.L93_X.values),
+                'y': (ds.L93_Y.dims, ds.L93_Y.values)
+            }, coords=coordinates
+            )
+
+            # coordinates = {'gid': ds.gid.values, 'time': resampled_var['time'].values}
+            # ds = xr.Dataset({
+            #     file_name: (('time', 'gid'), resampled_var.values),
+            #     'L93_X': (('gid'), ds.L93_X.values),
+            #     'L93_Y': (('gid'), ds.L93_Y.values)
+            # }, coords=coordinates
+            # )
+
+            ds['gid'] = ds['gid'].astype(str)
+
+            # Clean dataset
+            # ds = xr.Dataset({
+            #     file_name: (ds[file_name].dims, ds[file_name].values),
+            #     'x': (('gid'), ds['L93_X'].values),
+            #     'y': (('gid'), ds['L93_Y'].values),
+            # }, coords={i: ds[i] for i in ds._coord_names}
+            # )
+            ds = ds.set_coords('x')
+            ds = ds.set_coords('y')
 
             # datasets.append(ds[var])
+            print(f"Save")
             ds.to_netcdf(path=f"{temp_dir}{os.sep}{var}.nc")
             temp_paths.append(f"{temp_dir}{os.sep}{var}.nc")
 

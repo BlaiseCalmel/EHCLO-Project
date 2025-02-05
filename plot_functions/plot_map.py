@@ -101,10 +101,8 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         selected_min = min([vmin, midpoint])
     else:
         selected_min = vmin
-    if midpoint is None:
-        n = (vmax - selected_min) / discretize
-    else:
-        n = (abs_max - selected_min) / discretize
+
+    n = abs(vmax - selected_min) / discretize
     exponent = round(math.log10(n))
     step = np.round(n, -exponent+1)
     if step == 0:
@@ -126,14 +124,14 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
 
     start_value = vmin
     stop_value = vmax
-    if specified_vmax and not specified_vmin:
-        start_value = vmax
-        stop_value = vmin
-        step = -step
 
     if midpoint is not None:
         levels = mirrored(maxval=abs_max, inc=step, val_center=midpoint)
     else:
+        if specified_vmax and not specified_vmin:
+            start_value = vmax
+            stop_value = vmin
+            step = -step
         levels = np.arange(start=start_value, stop=stop_value+0.01*exponent*step, step=step)
 
     if levels[0] > levels[-1]:

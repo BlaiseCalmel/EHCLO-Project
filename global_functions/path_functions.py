@@ -64,6 +64,9 @@ def get_files_path(dict_paths, setup, extension='.nc'):
                data_files = [s for s in data_files if any(word in s for word in setup[key])]
 
         # Run on selected rcp
+        if len(setup['select_rcp']) == 0:
+            setup['select_rcp'] = ["rcp26", "rcp45", "rcp85"]
+
         for rcp in setup['select_rcp']:
             dict_path[data_type][rcp] = {}
 
