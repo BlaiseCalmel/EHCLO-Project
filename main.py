@@ -143,7 +143,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                         print(f'> Create {indicator} export...', end='\n')
                         if len(paths) > 0 :
                             paths = [
-                                '/media/bcalmel/Explore2/hydrological-projection_daily-time-series_by-chain_merged-netcdf/historical-rcp85/HadGEM2-ES/ALADIN63/ADAMONT/SMASH/debit_France_MOHC-HadGEM2-ES_historical-rcp85_r1i1p1_CNRM-ALADIN63_v3_MF-ADAMONT-SAFRAN-1980-2011_INRAE-SMASH_day_20050801-20990731.nc'
+                                '/home/bcalmel/Documents/2_data/historical-rcp85/HadGEM2-ES/ALADIN63/ADAMONT/SMASH/debit_France_MOHC-HadGEM2-ES_historical-rcp85_r1i1p1_CNRM-ALADIN63_v3_MF-ADAMONT-SAFRAN-1980-2011_INRAE-SMASH_day_20050801-20990731.nc'
                             ]
                             extract_ncdf_indicator(
                                 paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,

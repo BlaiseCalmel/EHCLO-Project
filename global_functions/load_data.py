@@ -19,11 +19,12 @@ def resample_ds(ds, var, timestep, operation='mean', q=None):
         timestep = 'YE'
 
     if timestep == 'all':
+        ds[var].chunk({"gid": 1}).quantile(q, dim="time").compute()
         return ds[var].chunk({"gid" : 1}).quantile(q, dim="time")
-
+        # return ds[var].quantile(q, dim="time")
     else:
         if operation == 'mean':
-            return ds[var].chunk({"gid" : 1}).resample(time=timestep).mean()
+            return ds[var].resample(time=timestep).mean()
         elif operation == 'sum':
             return ds[var].resample(time=timestep).sum()
         elif operation == 'max':
@@ -106,11 +107,10 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
     temp_paths = []
     with (tqdm(total=total_iterations, desc=f"Create {title} file") as pbar):
-        # i=0
-        # files=paths_data[0]
+        # i=3
+        # files=paths_data[i]
         # files=['/home/bcalmel/Documents/3_results/Antoine/data/_temp/debit_HadGEM2-ES_RegCM4-6_ADAMONT_SMASH.nc']
-        for i, files in enumerate(paths_data):
-
+        for i, files in enumerate(paths_data[6:]):
             if param_type == "climate":
                 split_name = files[0].split(os.sep)[-4:-1]
             else:
@@ -126,7 +126,8 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
             datasets = []
             for file in files:
-                ds = xr.open_dataset(file, autoclose=True)
+                print(file)
+                ds = xr.open_dataset(file)
 
                 # Check for coordinates without dimension
                 dims_without_coords = [dim for dim in ds.dims if dim not in ds.coords]
@@ -151,7 +152,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                         start, 1, 1), None))
                 if end is not None:
                     ds = ds.sel(time=slice(None, dt.datetime(
-                        end, 1, 10)))
+                        end, 12, 31)))
 
                 # LII generates bug
                 if 'LII' in ds.variables:
@@ -195,19 +196,22 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                     datasets.append(ds)
 
             if len(datasets) > 1:
-                print(f"Combine datasets")
                 # ds = xr.concat(datasets, dim="time").sortby("time")
                 ds = xr.combine_by_coords([temp_ds[[file_name, 'L93_X', 'L93_Y']] for temp_ds in datasets])
 
             # Compute quantile
             # if function is not None:
-            print(f"Resample")
+            print('resample')
             resampled_var = apply_function_to_ds(ds, function, file_name, timestep)
             # Create a new dataset
             coordinates = {}
             for dim in resampled_var.dims:
                 coordinates |= {dim: resampled_var[dim].values}
             print(f"Create")
+            # da = copy.deepcopy(resampled_var)
+            # da = da.assign_coords({'x': ds['L93_X'], 'y': ds['L93_Y']})
+            # ds = da.to_dataset()
+
             ds = xr.Dataset({
                 file_name: (resampled_var.dims, resampled_var.values),
                 'x': (ds.L93_X.dims, ds.L93_X.values),
@@ -238,6 +242,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             # datasets.append(ds[var])
             print(f"Save")
             ds.to_netcdf(path=f"{temp_dir}{os.sep}{var}.nc")
+            print('Saved')
             temp_paths.append(f"{temp_dir}{os.sep}{var}.nc")
 
             # Update progress bar
