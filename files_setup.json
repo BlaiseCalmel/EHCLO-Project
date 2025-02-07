@@ -121,6 +121,7 @@
         "additional_coordinates": "season",
         "palette": "RdBu_r",
         "cbar_values": 1,
+        "discretize": 12,
         "vmin": 0
       },
       "T moy.": {
@@ -130,6 +131,7 @@
         "plot_type": "difference",
         "palette": "RdBu_r",
         "cbar_values": 1,
+        "discretize": 12,
         "vmin": 0
       },
       "NJ<0": {
@@ -137,7 +139,7 @@
         "label": "du nombre de j/an T<0°C",
         "extract_function": "inf0",
         "plot_type": "difference",
-        "palette": "RdBu",
+        "palette": "PuOr",
         "discretize": 8,
         "vmax": 0
       },
@@ -146,7 +148,7 @@
         "label": "du nombre de j/an T>30°C",
         "extract_function": "sup30",
         "plot_type": "difference",
-        "palette": "RdBu_r",
+        "palette": "PuOr_r",
         "start_cbar_ticks": "sign",
         "discretize": 11,
         "vmin": 0
@@ -155,7 +157,7 @@
     "prtotAdjust": {
       "RRm": {
         "units": "mm",
-        "label": "des précipitations mensuelles.",
+        "label": "des précipitations mensuelles",
         "extract_function": "sum",
         "timestep": "ME",
         "plot_type": "deviation",

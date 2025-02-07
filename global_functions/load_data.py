@@ -19,9 +19,7 @@ def resample_ds(ds, var, timestep, operation='mean', q=None):
         timestep = 'YE'
 
     if timestep == 'all':
-        ds[var].chunk({"gid": 1}).quantile(q, dim="time").compute()
-        return ds[var].chunk({"gid" : 1}).quantile(q, dim="time")
-        # return ds[var].quantile(q, dim="time")
+        return ds[var].quantile(q, dim="time")
     else:
         if operation == 'mean':
             return ds[var].resample(time=timestep).mean()
@@ -62,7 +60,7 @@ def apply_function_to_ds(ds, function, file_name, timestep):
                 string_function = 'sum'
 
     if int_value is not None:
-        resampled_var = resample_ds(ds, file_name, timestep, operation=string_function,
+        resampled_var = resample_ds(ds, var=file_name, timestep=timestep, operation=string_function,
                                     q=int_value)
     else:
         resampled_var = resample_ds(ds, file_name, timestep, operation=string_function)
@@ -107,10 +105,28 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
     temp_paths = []
     with (tqdm(total=total_iterations, desc=f"Create {title} file") as pbar):
-        # i=3
+        # i=2
         # files=paths_data[i]
-        # files=['/home/bcalmel/Documents/3_results/Antoine/data/_temp/debit_HadGEM2-ES_RegCM4-6_ADAMONT_SMASH.nc']
-        for i, files in enumerate(paths_data[6:]):
+        # file1 = [
+        #         '/home/bcalmel/Documents/2_data/historical-rcp85/HadGEM2-ES/ALADIN63/ADAMONT/SMASH/debit_France_MOHC-HadGEM2-ES_historical-rcp85_r1i1p1_CNRM-ALADIN63_v3_MF-ADAMONT-SAFRAN-1980-2011_INRAE-SMASH_day_20050801-20990731.nc'
+        #     ]
+        # file2=['/home/bcalmel/Documents/2_data/historical-rcp85/IPSL-CM5A-MR/RCA4/ADAMONT/J2000/debit_Rhone-Loire_IPSL-IPSL-CM5A-MR_historical-rcp85_r1i1p1_SMHI-RCA4_v3_MF-ADAMONT-SAFRAN-France-1980-2011_INRAE-J2000_day_20050801-21000731.nc']
+        # paths_data = [file1, file2]
+        #
+        # ds1 = test[0]
+        # file_name1 = 'HadGEM2-ES_ALADIN63_ADAMONT_SMASH'
+        # ds2 = test[1]
+        # file_name2 = 'IPSL-CM5A-MR_RCA4_ADAMONT_J2000'
+        #
+        # ds1[file_name1].quantile(0.9, dim='time')
+        # ds2[file_name2].quantile(0.9, dim='time')
+        # ds[file_name].quantile(0.9, dim='time')
+        #
+        # ds2 = xr.open_dataset(file2[0])
+        # ds2.debit.quantile(0.9)
+        #
+        # test = []
+        for i, files in enumerate(paths_data):
             if param_type == "climate":
                 split_name = files[0].split(os.sep)[-4:-1]
             else:
@@ -119,10 +135,10 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             file_name = '_'.join(split_name)
             var = indicator+'_'+file_name
 
-            if os.path.isfile(f"{temp_dir}{os.sep}{var}.nc"):
-                if f"{temp_dir}{os.sep}{var}.nc" not in temp_paths:
-                    temp_paths.append(f"{temp_dir}{os.sep}{var}.nc")
-                continue
+            # if os.path.isfile(f"{temp_dir}{os.sep}{var}.nc"):
+            #     if f"{temp_dir}{os.sep}{var}.nc" not in temp_paths:
+            #         temp_paths.append(f"{temp_dir}{os.sep}{var}.nc")
+            #     continue
 
             datasets = []
             for file in files:
@@ -158,46 +174,19 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                 if 'LII' in ds.variables:
                     del ds['LII']
 
-                if param_type == "climate":
-                    if ds[file_name].attrs.get("units") == 'kg.m-2.s-1':
-                        ds[file_name] = ds[file_name] * 86400
-                    resampled_var = apply_function_to_ds(ds, function, file_name, timestep)
-                    # if timestep is not None:
-                        # resampled_var = resample_ds(ds, file_name, timestep)
-                    coordinates = {i: ds[i] for i in ds._coord_names if i != 'time'}
-                    coordinates['time'] = resampled_var['time']
-                    ds = xr.Dataset({
-                        file_name: (('time', 'y', 'x'), resampled_var.values)
-                    }, coords=coordinates
-                    )
-
-                    ds = ds.sel(x=xr.DataArray(sim_points_gdf['x']), y=xr.DataArray(sim_points_gdf['y']))
-                    ds = ds.assign_coords(dim_0=sim_points_gdf['name']).rename(dim_0='name')
-                    ds = ds.rename({'name': 'gid'})
-
-                else:
-                    # Use station code as coordinate
-                    ds = ds.set_coords('code')
-                    ds = ds.swap_dims({'station': 'code'})
-                    if 'station' in ds.data_vars:
-                        del ds['station']
-                    ds = ds.sel(code=ds["code"] != b'----------')
-
-                    ds = ds.rename({'code': 'gid'})
-                    ds['gid'] = ds['gid'].astype(str)
-                    gid_values = np.unique(sim_points_gdf.index.values)
-                    codes_to_select = [code for code in gid_values if code in ds['gid'].values]
-                    if len(codes_to_select) > 0:
-                        ds = ds.sel(gid=codes_to_select)
-
+                # Remove attribute and define code as coordinates
                 ds.attrs = {}
                 ds[file_name].attrs = {}
+                if 'code' in ds.data_vars:
+                    ds = ds.set_coords("code")
+                    ds = ds.swap_dims({'station': 'code'})
                 if len(files) > 1:
                     datasets.append(ds)
 
             if len(datasets) > 1:
                 # ds = xr.concat(datasets, dim="time").sortby("time")
-                ds = xr.combine_by_coords([temp_ds[[file_name, 'L93_X', 'L93_Y']] for temp_ds in datasets])
+                merge_dim = [file_name, 'L93_X', 'L93_Y']
+                ds = xr.combine_by_coords([temp_ds[merge_dim] for temp_ds in datasets])
 
             # Compute quantile
             # if function is not None:
@@ -208,16 +197,59 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             for dim in resampled_var.dims:
                 coordinates |= {dim: resampled_var[dim].values}
             print(f"Create")
-            # da = copy.deepcopy(resampled_var)
-            # da = da.assign_coords({'x': ds['L93_X'], 'y': ds['L93_Y']})
-            # ds = da.to_dataset()
+            if param_type == "climate":
+                if ds[file_name].attrs.get("units") == 'kg.m-2.s-1':
+                    ds[file_name] = ds[file_name] * 86400
+                resampled_var = apply_function_to_ds(ds, function, file_name, timestep)
+                # if timestep is not None:
+                # resampled_var = resample_ds(ds, file_name, timestep)
+                coordinates = {i: ds[i] for i in ds._coord_names if i != 'time'}
+                coordinates['time'] = resampled_var['time']
+                ds = xr.Dataset({
+                    file_name: (('time', 'y', 'x'), resampled_var.values)
+                }, coords=coordinates
+                )
 
-            ds = xr.Dataset({
-                file_name: (resampled_var.dims, resampled_var.values),
-                'x': (ds.L93_X.dims, ds.L93_X.values),
-                'y': (ds.L93_Y.dims, ds.L93_Y.values)
-            }, coords=coordinates
-            )
+                ds = ds.sel(x=xr.DataArray(sim_points_gdf['x']), y=xr.DataArray(sim_points_gdf['y']))
+                ds = ds.assign_coords(dim_0=sim_points_gdf['name']).rename(dim_0='name')
+                ds = ds.rename({'name': 'gid'})
+
+            else:
+                # Use station code as coordinate
+                # ds = ds.set_coords('code')
+                # ds = ds.swap_dims({'station': 'code'})
+                # if 'station' in ds.data_vars:
+                #     del ds['station']
+                #
+                # ds = ds.sel(code=ds["code"] != b'----------')
+                # test.append(ds)
+
+                ds = xr.Dataset({
+                    file_name: (resampled_var.dims, resampled_var.values),
+                    # 'x': (ds.L93_X.dims, ds.L93_X.values),
+                    # 'y': (ds.L93_Y.dims, ds.L93_Y.values)
+                }, coords=coordinates
+                )
+                ds = ds.sel(code=ds["code"] != b'----------')
+                gid_values = np.unique([code.encode() for code in sim_points_gdf.index.values])
+                codes_to_select = [code for code in gid_values if code in ds['code'].values]
+                if len(codes_to_select) > 0:
+                    ds = ds.sel(code=codes_to_select)
+                # station_to_select = ds.station.isel(station=ds.code.isin(codes_to_select))
+                # if len(station_to_select) > 0:
+                #     ds = ds.sel(station=station_to_select)
+
+                # ds = ds.set_coords('code')
+                # ds = ds.swap_dims({'station': 'code'})
+                # if 'station' in ds.data_vars:
+                # del ds['station']
+
+                # ds = ds.rename({'code': 'gid'})
+                # ds['gid'] = ds['gid'].astype(str)
+                # gid_values = np.unique(sim_points_gdf.index.values)
+                # codes_to_select = [code for code in gid_values if code in ds['gid'].values]
+                # if len(codes_to_select) > 0:
+                #     ds = ds.sel(gid=codes_to_select)
 
             # coordinates = {'gid': ds.gid.values, 'time': resampled_var['time'].values}
             # ds = xr.Dataset({
@@ -227,7 +259,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             # }, coords=coordinates
             # )
 
-            ds['gid'] = ds['gid'].astype(str)
+            # ds['gid'] = ds['gid'].astype(str)
 
             # Clean dataset
             # ds = xr.Dataset({
@@ -236,8 +268,8 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             #     'y': (('gid'), ds['L93_Y'].values),
             # }, coords={i: ds[i] for i in ds._coord_names}
             # )
-            ds = ds.set_coords('x')
-            ds = ds.set_coords('y')
+            # ds = ds.set_coords('x')
+            # ds = ds.set_coords('y')
 
             # datasets.append(ds[var])
             print(f"Save")
@@ -253,14 +285,18 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
     # Save as ncdf
     if path_result is not None:
-        combined_dataset.to_netcdf(path=f"{path_result}")
-        del combined_dataset
-        del ds
-        # Delete temporary directory
-        for path in temp_paths:
-            if os.path.isfile(path):
-                os.unlink(path)
-        os.removedirs(temp_dir)
+        if path_result[-2:] == 'nc':
+            combined_dataset.to_netcdf(path=f"{path_result}")
+            del combined_dataset
+            del ds
+            # Delete temporary directory
+            for path in temp_paths:
+                if os.path.isfile(path):
+                    os.unlink(path)
+            os.removedirs(temp_dir)
+        else:
+            df = combined_dataset.to_dataframe().reset_index()
+            df.to_csv(f"{path_result}", index=False, sep=";")
     else:
          return combined_dataset
 

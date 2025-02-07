@@ -5,18 +5,23 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from format_data import compute_mean_by_horizon
+from main import data_to_plot
 
-def compute_narratives(ds, sim_points_gdf, data_type, variables, plot_type, title_join,plot_type_name):
 
+def compute_narratives(datasets, sim_points_gdf, data_type, variables, plot_type, title_join,plot_type_name):
     # ds = ds_stats
     # sim_points_gdf = sim_points_gdf_simplified
 
     stations = list(sim_points_gdf.index)
-    # stations = ['M842001000']
 
-    # x = ds[indicator_horizon_deviation_sims].sel(season='DJF', horizon='horizon3', id_geometry=stations)
-    # y = ds[indicator_horizon_deviation_sims].sel(season = 'JJA', horizon='horizon3', id_geometry=stations)
+    # Selected stations
+    stations = reference_stations['La Loire']
+    data = [ds[variables[f'simulation-horizon_by-sims_{plot_type}']].sel(gid=list(stations.keys()),
+                                                                         horizon='horizon3') for ds in datasets]
 
+    any(~np.isnan(data[0][var].values))
+
+    # NARRATIVES BY SEASON
     x = ds[variables[f'simulation_horizon_{plot_type}_by_sims']].sel(season='Hiver', horizon='horizon3')
     y = ds[variables[f'simulation_horizon_{plot_type}_by_sims']].sel(season='Été', horizon='horizon3')
     x_list = []

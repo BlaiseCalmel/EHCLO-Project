@@ -31,7 +31,7 @@ print(f'> Load json inputs...', end='\n')
 with open('config.json') as config_file:
     config = json.load(config_file)
 
-with open('files_setup-perso.json') as files_setup:
+with open('files_setup.json') as files_setup:
     files_setup = json.load(files_setup)
 
 settings_flatten = {}
@@ -91,8 +91,8 @@ print(f'> Simplify shapefiles...', end='\n')
 study_hydro_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified, regions_shp_simplified, bounds = (
     simplify_shapefiles(study_hydro_shp, study_climate_shp, rivers_shp, regions_shp, tolerance=1000, zoom=1000))
 
-hydro_sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
-# hydro_sim_points_gdf_simplified = hydro_sim_points_gdf[hydro_sim_points_gdf['n'] >= 4]
+hydro_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
+hydro_sim_points_gdf_simplified = hydro_sim_points_gdf[hydro_sim_points_gdf['n'] >= 4]
 hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified.reset_index(drop=True).set_index('Suggestion')
 hydro_sim_points_gdf_simplified.index.names = ['name']
 
@@ -142,9 +142,15 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                     if not os.path.isfile(path_ncdf):
                         print(f'> Create {indicator} export...', end='\n')
                         if len(paths) > 0 :
-                            paths = [
-                                '/home/bcalmel/Documents/2_data/historical-rcp85/HadGEM2-ES/ALADIN63/ADAMONT/SMASH/debit_France_MOHC-HadGEM2-ES_historical-rcp85_r1i1p1_CNRM-ALADIN63_v3_MF-ADAMONT-SAFRAN-1980-2011_INRAE-SMASH_day_20050801-20990731.nc'
-                            ]
+                            # paths = [
+                            #     '/home/bcalmel/Documents/2_data/historical-rcp85/HadGEM2-ES/ALADIN63/ADAMONT/SMASH/debit_France_MOHC-HadGEM2-ES_historical-rcp85_r1i1p1_CNRM-ALADIN63_v3_MF-ADAMONT-SAFRAN-1980-2011_INRAE-SMASH_day_20050801-20990731.nc'
+                            # ]
+                            paths_data=paths
+                            param_type=data_type
+                            sim_points_gdf=sim_points_gdf_simplified
+                            start=files_setup['historical'][0]
+                            end=2005
+                            path_result=path_ncdf
                             extract_ncdf_indicator(
                                 paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
                                 indicator=indicator, function=function, timestep=timestep,
@@ -156,8 +162,8 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                             print(f'> Invalid {indicator} name', end='\n')
                     else:
                         print(f'> {path_ncdf} already exists', end='\n')
-
 run_plot = True
+
 while run_plot:
     run_all = input("Run all ? (y/hydro/climate/[n])")
     data_to_plot = {}
@@ -166,11 +172,11 @@ while run_plot:
             data_to_plot |= {key: value}
     elif run_all.lower().replace(" ", "") == 'hydro':
         for key, value in settings_flatten.items():
-            if value['type'] == 'hydro':
+            if value['type'] == 'hydro_indicator':
                 data_to_plot |= {key: value}
     elif run_all.lower().replace(" ", "") == 'climate':
         for key, value in settings_flatten.items():
-            if value['type'] == 'climate':
+            if value['type'] == 'climate_indicator':
                 data_to_plot |= {key: value}
     else:
         data_input = input('What should I run ?')
@@ -213,6 +219,7 @@ while run_plot:
         #  'QMN5',
         #  'Qm']
         # for indicator, subdicts in data_to_plot.items():
+        datasets = []
         for name_indicator, indicator_setup in data_to_plot.items():
             if name_indicator in runned_data:
                 continue
@@ -288,6 +295,8 @@ while run_plot:
                 ds_stats, variables = format_dataset(ds=ds_stats, data_type=data_type, files_setup=files_setup,
                                                      plot_function=settings['additional_coordinates'],
                                                      return_period=settings['return_period'])
+
+                datasets.append(ds_stats)
 
                 # Geodataframe
                 sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds_stats.gid]
@@ -378,9 +387,11 @@ while run_plot:
                                 plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key),
                                                       variables=variables, plot_type=plot_type,
                                                       path_result=path_indicator_figures+f'{title_join}_map_{plot_type}_median_{key}.pdf',
-                                                      cbar_title=f"{plot_type_name.title()} médiane {title}{units}", title=map_title, cbar_midpoint='zero',
+                                                      cbar_title=f"{plot_type_name.title()} médiane {title}{units}", title=map_title,
+                                                      cbar_midpoint='zero',
                                                       dict_shapefiles=dict_shapefiles, bounds=bounds, edgecolor=edgecolor,
-                                                      markersize=120, discretize=settings['discretize'], palette=settings['palette'], fontsize=settings['fontsize'],
+                                                      markersize=120, discretize=settings['discretize'], palette=settings['palette'],
+                                                      fontsize=settings['fontsize'],
                                                       font=settings['font'], alpha=settings['alpha'],
                                                       vmin=settings['vmin'], vmax=vmax)
 
@@ -430,7 +441,7 @@ while run_plot:
                                                              vlines=vlines,
                                                              fontsize=settings['fontsize'],
                                                              font=settings['font'],
-                                                             path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_row-narrative_col-horizon.pdf')
+                                                             path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_x-PK_y-{title_join}_row-narrative_col-horizon.pdf')
 
 
                                     # print(f">> Linear {plot_type} - x: PK, y: {name_indicator}, col: Horizon")
@@ -459,7 +470,7 @@ while run_plot:
                                                      vlines=None,
                                                      fontsize=settings['fontsize'],
                                                      font=settings['font'],
-                                                     path_result=path_indicator_figures+f'lineplot_{plot_type}_{river}_x-time_y-{title_join}_row-col-stations-ref.pdf',)
+                                                     path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_{river}_x-time_y-{title_join}_row-col-stations-ref.pdf',)
 
                                     print(f"> Box plot...")
                                     print(f">> Boxplot {plot_type} by horizon and selected stations")
@@ -496,7 +507,7 @@ while run_plot:
                                                            title=None,
                                                            name_y_axis=f"{title_join} normalisé",
                                                            normalized=True,
-                                                           percent=percent,
+                                                           percent=False,
                                                            common_yaxes=True,
                                                            fontsize=settings['fontsize'],
                                                            font=settings['font'],
@@ -518,7 +529,7 @@ while run_plot:
             runned_data.append(name_indicator)
 
     keep_plotting = input("Plot again ? ([y]/n)")
-    if run_all.lower().replace(" ", "") in ['n', 'no']:
+    if keep_plotting.lower().replace(" ", "") in ['n', 'no']:
         run_plot = False
 
 

@@ -43,102 +43,140 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         subplot_titles = rows['names_plot']
         rows_plot['names_plot'] = [None]
 
-    if vmax is None:
-        specified_vmax = False
+    # if vmax is None:
+    #     specified_vmax = False
+    # else:
+    #     specified_vmax = True
+    #
+    # if vmin is None:
+    #     specified_vmin = False
+    # else:
+    #     specified_vmin = True
+    #
+    # if '%' in cbar_title:
+    #     if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
+    #         plot_vmax = math.ceil(abs(gdf[indicator_plot]).max() / 5) * 5
+    #     else:
+    #         if np.logical_not(isinstance(indicator_plot, list)):
+    #             plot_vmax = math.ceil(abs(ds[indicator_plot]).max() / 5) * 5
+    #         else:
+    #             plot_vmax = math.ceil(abs(ds[indicator_plot].to_array()).max() / 5) * 5
+    #     if vmax is None:
+    #         vmax = plot_vmax
+    #
+    #     plot_vmin = -plot_vmax
+    #     if vmin is None:
+    #         vmin = -vmax
+    # else:
+    #     if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
+    #         plot_vmax = gdf[indicator_plot].max().values
+    #     else:
+    #         if np.logical_not(isinstance(indicator_plot, list)):
+    #             plot_vmax = ds[indicator_plot].max().values
+    #         else:
+    #             plot_vmax = ds[indicator_plot].to_array().max().values
+    #     if vmax is None:
+    #         vmax = plot_vmax
+    #
+    #     if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
+    #         plot_vmin = gdf[indicator_plot].min().values
+    #     else:
+    #         if np.logical_not(isinstance(indicator_plot, list)):
+    #             plot_vmin = ds[indicator_plot].min().values
+    #         else:
+    #             plot_vmin = ds[indicator_plot].to_array().min().values
+    #     if vmin is None:
+    #         vmin = plot_vmin
+    #
+    # if cbar_midpoint == 'min':
+    #     midpoint = vmin
+    # elif cbar_midpoint == 'zero':
+    #     midpoint = 0
+    #     # plot_vmin = -vmax
+    # else:
+    #     midpoint = None
+    #
+    # # if vmin is None:
+    # #     if midpoint is not None:
+    # #        vmin = midpoint
+    # #     else:
+    # #         vmin = -vmax
+    #
+    # abs_max = max([-vmin, vmax])
+    # if midpoint is not None:
+    #     selected_min = midpoint# min([vmin, midpoint])
+    # else:
+    #     selected_min = vmin
+
+    # n = abs(vmax - selected_min) / discretize
+    # exponent = round(math.log10(n))
+    # step = np.round(n, -exponent+1)
+    # if step == 0:
+    #     step = n
+    #
+    # if specified_vmax:
+    #     if vmax % step != 0:
+    #         step = np.round(vmax / (vmax // step), -exponent+1)
+    # if specified_vmin:
+    #     if vmin < 0:
+    #         check_vmin = -vmin
+    #     else:
+    #         check_vmin = vmin
+    #     if check_vmin % step != 0:
+    #         step = check_vmin / (check_vmin // step)
+    #
+    # if cbar_values is None:
+    #     cbar_values = decimal_places(step)
+    #
+    # start_value = vmin
+    # stop_value = vmax
+
+    if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
+        plot_vmax = abs(gdf[indicator_plot]).max()
     else:
-        specified_vmax = True
+        if np.logical_not(isinstance(indicator_plot, list)):
+            plot_vmax = abs(ds[indicator_plot]).max().values
+        else:
+            plot_vmax = abs(ds[indicator_plot].to_array()).max().values
+    if vmax is None:
+        vmax = plot_vmax
+
+    if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
+        plot_vmin = gdf[indicator_plot].min().values
+    else:
+        if np.logical_not(isinstance(indicator_plot, list)):
+            plot_vmin = ds[indicator_plot].min().values
+        else:
+            plot_vmin = ds[indicator_plot].to_array().min().values
 
     if vmin is None:
-        specified_vmin = False
-    else:
-        specified_vmin = True
-
-    if '%' in cbar_title:
-        if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
-            plot_vmax = math.ceil(abs(gdf[indicator_plot]).max() / 5) * 5
-        else:
-            if np.logical_not(isinstance(indicator_plot, list)):
-                plot_vmax = math.ceil(abs(ds[indicator_plot]).max() / 5) * 5
-            else:
-                plot_vmax = math.ceil(abs(ds[indicator_plot].to_array()).max() / 5) * 5
-        if vmax is None:
-            vmax = plot_vmax
-
-        plot_vmin = -plot_vmax
-        if vmin is None:
-            vmin = -vmax
-    else:
-        if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
-            plot_vmax = gdf[indicator_plot].max().values
-        else:
-            if np.logical_not(isinstance(indicator_plot, list)):
-                plot_vmax = ds[indicator_plot].max().values
-            else:
-                plot_vmax = ds[indicator_plot].to_array().max().values
-        if vmax is None:
-            vmax = plot_vmax
-
-        if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
-            plot_vmin = gdf[indicator_plot].min().values
-        else:
-            if np.logical_not(isinstance(indicator_plot, list)):
-                plot_vmin = ds[indicator_plot].min().values
-            else:
-                plot_vmin = ds[indicator_plot].to_array().min().values
-        if vmin is None:
+        if abs(plot_vmin) >= vmax:
             vmin = plot_vmin
-
-    if cbar_midpoint == 'min':
-        midpoint = vmin
-    elif cbar_midpoint == 'zero':
-        midpoint = 0
-        # plot_vmin = -vmax
-    else:
-        midpoint = None
-
-    abs_max = max([-vmin, vmax])
-    if midpoint is not None:
-        selected_min = min([vmin, midpoint])
-    else:
-        selected_min = vmin
-
-    n = abs(vmax - selected_min) / discretize
+        else:
+            vmin = -vmax
+    abs_max = max([vmax, -vmin])
+    n = 2*abs_max / discretize
     exponent = round(math.log10(n))
     step = np.round(n, -exponent+1)
     if step == 0:
         step = n
 
-    if specified_vmax:
-        if vmax % step != 0:
-            step = vmax / (vmax // step)
-    if specified_vmin:
-        if vmin < 0:
-            check_vmin = -vmin
-        else:
-            check_vmin = vmin
-        if check_vmin % step != 0:
-            step = check_vmin / (check_vmin // step)
-
-    if cbar_values is None:
-        cbar_values = decimal_places(step)
-
-    start_value = vmin
-    stop_value = vmax
-
-    if midpoint is not None:
-        levels = mirrored(maxval=abs_max, inc=step, val_center=midpoint)
+    if cbar_midpoint == 'min':
+        midpoint = vmin
     else:
-        if specified_vmax and not specified_vmin:
-            start_value = vmax
-            stop_value = vmin
-            step = -step
-        levels = np.arange(start=start_value, stop=stop_value+0.01*exponent*step, step=step)
+        midpoint = 0
+
+    levels = mirrored(maxval=abs_max, inc=step, val_center=midpoint)
+    # np.round(levels, -exponent+1)
 
     if levels[0] > levels[-1]:
         levels = levels[::-1]
 
     if cbar_ticks == 'mid':
         levels = [levels[0] - step/2] + [i + step/2 for i in levels]
+
+    if cbar_values is None:
+        cbar_values = decimal_places(step)
 
     # levels = np.linspace(vmin, vmax, discretize+1)
     extended_levels = copy.deepcopy(levels)
@@ -150,18 +188,18 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         colors = colormap(vals)
 
         # Limit values to extrema
-        extended_indices = np.where((levels >= selected_min) & (levels <= vmax))[0]
+        extended_indices = np.where((levels >= vmin) & (levels <= vmax))[0]
 
         # extended_indices = np.unique(np.concatenate([indices - 1, indices, indices + 1]))
         # extended_indices = extended_indices[(extended_indices >= 0) & (extended_indices < len(levels))]
         extended_colors = colors[extended_indices[:-1]]
         extended_levels = extended_levels[extended_indices]
-        if extended_levels[-1] < plot_vmax:
+        if extended_levels[-1] < vmax:
             if extended_indices[-1] < len(levels):
                 extended_levels = np.append(extended_levels, levels[extended_indices[-1] + 1])
                 extended_colors = np.vstack([extended_colors, colors[extended_indices[:-1][-1] + 1]])
 
-        if extended_levels[0] > plot_vmin:
+        if extended_levels[0] > vmin:
             if extended_indices[0] > 0:
                 extended_levels = np.insert(extended_levels, 0, levels[extended_indices[0] - 1])
                 extended_colors = np.vstack([colors[extended_indices[0] - 1], extended_colors])
