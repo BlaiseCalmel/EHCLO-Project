@@ -44,21 +44,17 @@ def compute_narratives(datasets_list, sim_points_gdf, data_type, variables, plot
     # 4. Fusionner toutes les DataArrays en une seule DataArray
     # Le résultat aura les dimensions : ('gid', 'nom-gcm', 'nom-rcm', 'nom-bc', 'nom-hm')
     combined_da = xr.combine_by_coords(data_arrays)
+    count_stations = combined_da[["QA"]].count(dim="gid")
 
     # Calculer la moyenne (sur le territoire) par chaine de simulation
     combined_da = combined_da.mean(dim='gid')
-
-    # combined_da['QA'].shape
-    #
-    # np.sum(~np.isnan(combined_da['QA']))
-    # combined_da['QA'].values.shape
-    # len(combined_da['QA'].values)
 
     combined_da = combined_da.dropna(dim="gid", how="any")
     print("Stations conservées :", combined_da.gid.values)
 
     # 1. Aplatir le dataset : on combine les dimensions pour obtenir un indice unique "sample"
-    ds_stacked = combined_da.stack(sample=("gcm-rcm", "bc", "hm", "gid"))
+    ds_stacked = combined_da.stack(sample=("gcm-rcm", "bc", "hm"))
+    hm_list = list(ds_stacked.hm.values)
 
     # 2. Construire la matrice X des features
     # Chaque colonne correspond à une des variables et chaque ligne à un échantillon
@@ -83,7 +79,7 @@ def compute_narratives(datasets_list, sim_points_gdf, data_type, variables, plot
     labels_unstacked = labels_da.unstack("sample")
 
     # Vous pouvez ajouter les labels comme nouvelle variable dans votre dataset original
-    ds_clustered = combined_da.assign(cluster=labels_unstacked)
+    # ds_clustered = combined_da.assign(cluster=labels_unstacked)
 
     # Récupération des centroïdes du clustering (lorsque KMeans a été appliqué sur X_imputed)
     centroïdes = kmeans.cluster_centers_  # de forme (n_clusters, n_features)
@@ -142,6 +138,19 @@ def compute_narratives(datasets_list, sim_points_gdf, data_type, variables, plot
     #     idx_min = indices_cluster[np.argmin(distances)]
     #     groupes_representatifs[cluster] = idx_min
     # ---------------------------
+    cluster_names = ['A', 'B', 'C', 'D']
+    shape_hp = {
+        'CTRIP': 'D',
+        'EROS': 'H',
+        'GRSD': '*',
+        'J2000': 's',
+        'MORDOR-SD': 'v',
+        'MORDOR-TS': '^',
+        'ORCHIDEE': 'o',
+        'SIM2': '>',
+        'SMASH': '<',
+    }
+    shape_list = [shape_hp[hm_value] for hm_value in hm_list]
 
     # Réduction de dimension avec PCA
     pca = PCA(n_components=2)
@@ -157,43 +166,76 @@ def compute_narratives(datasets_list, sim_points_gdf, data_type, variables, plot
     pc2_contributions = np.abs(loadings[1]) / np.sum(np.abs(loadings[1]))
 
     # Construire les noms des axes
-    xlabel = f"Dim 1 ({variables[0]}: {pc1_contributions[0]:.1%}, {variables[1]}: {pc1_contributions[1]:.1%}, {variables[2]}: {pc1_contributions[2]:.1%})"
-    ylabel = f"Dim 2 ({variables[0]}: {pc2_contributions[0]:.1%}, {variables[1]}: {pc2_contributions[1]:.1%}, {variables[2]}: {pc2_contributions[2]:.1%})"
+    ratio1, ratio2 = pca.explained_variance_ratio_
 
-    # Préparez la figure
-    plt.figure(figsize=(10, 8))
 
-    # Affichage des observations, colorées par cluster
-    scatter = plt.scatter(X_pca[:, 0], X_pca[:, 1], c=labels, cmap='viridis', alpha=0.6)
-    plt.xlabel(xlabel)
-    plt.ylabel(ylabel)
-    plt.title("Clusters et points représentatifs (après PCA)")
+    def plot_narratives(x_data, ds_stacked, path_result, xlabel, ylabel, title, centroids=None):
+        # Affichage des points représentatifs de chaque cluster
+        cmap = plt.get_cmap("viridis", 4)
+        norm = plt.Normalize(vmin=-0.5, vmax=3.5)  # Normalisation entre 0 et 3
 
-    # Affichage des centroïdes
-    plt.scatter(centroids_pca[:, 0], centroids_pca[:, 1],
-                marker='X', c='red', s=200, label='Centroïdes')
+        # Préparez la figure
+        plt.figure(figsize=(11, 8))
 
-    # Affichage des points représentatifs de chaque cluster
-    for cluster, values in groupes_representatifs.items():
-        idx = values['idx']
-        # Marquer le point représentatif dans l'espace PCA
-        plt.scatter(X_pca[idx, 0], X_pca[idx, 1], c='black', edgecolors='white', s=150, marker='o', label=f'Rep. cluster {cluster}' if cluster==list(groupes_representatifs.keys())[0] else "")
+        # Affichage des observations, colorées par cluster
+        for j in range(len(x_data)):
+            scatter = plt.scatter(x_data[j, 0], x_data[j, 1], c=labels[j], cmap=cmap, norm=norm, alpha=0.6,
+                                  marker=shape_list[j], zorder=1)
 
-        # Récupérer les coordonnées d'origine (gcm-rcm, bc, hm)
-        coord_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx).values
-        coord_bc      = ds_stacked["bc"].isel(sample=idx).values
-        coord_hm      = ds_stacked["hm"].isel(sample=idx).values
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.title(title)
 
-        # Annoter le graphique avec ces coordonnées
-        annotation = f"C{cluster}\n{coord_gcm_rcm}, {coord_bc}, {coord_hm}"
-        plt.annotate(annotation, (X_pca[idx, 0], X_pca[idx, 1]), textcoords="offset points", xytext=(5,5), fontsize=9, color='black')
+        # Affichage des centroïdes
+        if centroids is not None:
+            plt.scatter(centroids[:, 0], centroids[:, 1],
+                        marker='X', c='red', s=100, label='Centroïdes', zorder=9)
 
-    # Ajout d'une légende et d'une barre de couleur
-    plt.legend()
-    cbar = plt.colorbar(scatter)
-    cbar.set_label("Cluster")
+        # Affichage des points représentatifs de chaque cluster
+        for cluster, values in groupes_representatifs.items():
+            idx = values['idx']
+            # Marquer le point représentatif dans l'espace PCA
+            plt.scatter(x_data[idx, 0], x_data[idx, 1], c=cluster, edgecolors='k', s=150, marker=shape_list[idx],
+                        cmap=cmap, norm=norm, zorder=10)
+                        # label=f'Rep. cluster {cluster}' if cluster==list(groupes_representatifs.keys())[0] else "")
 
-    plt.savefig(f"/home/bcalmel/Documents/3_results/narratest_pca_hm9_spatial_mean.png")
+            # Récupérer les coordonnées d'origine (gcm-rcm, bc, hm)
+            coord_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx).values
+            coord_bc      = ds_stacked["bc"].isel(sample=idx).values
+            coord_hm      = ds_stacked["hm"].isel(sample=idx).values
+
+            # Annoter le graphique avec ces coordonnées
+            annotation = f"{coord_gcm_rcm}\n{coord_bc}\n{coord_hm}"
+            plt.annotate(annotation, (x_data[idx, 0], x_data[idx, 1]), textcoords="offset points", xytext=(5,5), fontsize=9, color='black',
+                         weight='bold', zorder=11)
+
+        # Add line to zero
+        xmin, ymin = np.min(x_data, axis=0)
+        xmax, ymax = np.max(x_data, axis=0)
+        min_val = np.min([xmin, ymin])*0.95
+        max_val = np.max([xmax, ymax])*1.05
+        plt.hlines(y=0, xmin=min_val, xmax=max_val, color='k', linestyle='--', linewidth=1, alpha=0.7, zorder=0)
+        plt.vlines(x=0, ymin=min_val, ymax=max_val, color='k', linestyle='--', linewidth=1, alpha=0.7, zorder=0)
+        plt.xlim(min_val, max_val)
+        plt.ylim(min_val, max_val)
+
+        # Ajout d'une légende et d'une barre de couleur
+        for hm, shape in shape_hp.items():
+            plt.scatter(np.nan, np.nan, alpha=0.6, marker=shape, label=hm, color='k')
+        plt.legend(loc='center left', bbox_to_anchor=(1.17, 0.5))
+        cbar = plt.colorbar(scatter)
+        cbar.set_label("Cluster")
+        cbar.set_ticks([0,1,2,3])
+        cbar.set_ticklabels(cluster_names)
+
+        plt.savefig(path_result)
+
+    # Plot for PCA
+    xlabel = f"Dim 1 {ratio1:.1%} ({variables[0]}: {pc1_contributions[0]:.1%}, {variables[1]}: {pc1_contributions[1]:.1%}, {variables[2]}: {pc1_contributions[2]:.1%})"
+    ylabel = f"Dim 2 {ratio2:.1%} ({variables[0]}: {pc2_contributions[0]:.1%}, {variables[1]}: {pc2_contributions[1]:.1%}, {variables[2]}: {pc2_contributions[2]:.1%})"
+    title = "Clusters et points représentatifs (après PCA)"
+    path_result = f"/home/bcalmel/Documents/3_results/narratest_pca_spatial_mean_centroides.pdf"
+    plot_narratives(X_pca, ds_stacked, path_result, xlabel, ylabel, title, centroids=centroids_pca)
 
     # PLOT BY INDICATOR
     for idx1 in range(len(ind_values)):
@@ -205,6 +247,10 @@ def compute_narratives(datasets_list, sim_points_gdf, data_type, variables, plot
         # Construire les noms des axes
         xlabel = f"Variation {ind_values[idx1]}"
         ylabel = f"Variation {ind_values[idx2]}"
+        title = "Clusters et points représentatifs"
+        path_result=f"/home/bcalmel/Documents/3_results/narratest_{ind_values[idx1]}_{ind_values[idx2]}_spatial_mean_centroides.pdf"
+
+        plot_narratives(X_imputed[:, [idx1, idx2]], ds_stacked, path_result, xlabel, ylabel, title, centroids=None)
 
         # Affichage des points représentatifs de chaque cluster
         cmap = plt.get_cmap("viridis", 4)
@@ -225,11 +271,13 @@ def compute_narratives(datasets_list, sim_points_gdf, data_type, variables, plot
         # Création du scatter plot
         # fig, ax = plt.subplots()
         # sc = ax.scatter(x, y, c=values, cmap=cmap, norm=norm)
+        i = -1
         for cluster, values in groupes_representatifs.items():
+            i+=1
             idx = values['idx']
             # Marquer le point représentatif dans l'espace PCA
             plt.scatter(X_imputed[idx, idx1], X_imputed[idx, idx2], c=cluster, edgecolors='k', s=150, marker='o',
-                        label=f'Rep. cluster {cluster}', cmap=cmap, norm=norm)
+                        label=f'Rep. cluster {cluster_names[i]}', cmap=cmap, norm=norm)
 
             # Récupérer les coordonnées d'origine (gcm-rcm, bc, hm)
             coord_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx).values
@@ -240,22 +288,29 @@ def compute_narratives(datasets_list, sim_points_gdf, data_type, variables, plot
             annotation = f"C{cluster}\n{coord_gcm_rcm}, {coord_bc}, {coord_hm}"
             plt.annotate(annotation, (X_imputed[idx, idx1], X_imputed[idx, idx2]), textcoords="offset points", xytext=(5,5), fontsize=9, color='black')
 
+        # Add line to zero
+        xmin, ymin = np.min(X_pca, axis=0)
+        xmax, ymax = np.max(X_pca, axis=0)
+        min_val = np.min([xmin, ymin])
+        max_val = np.max([xmax, ymax])
+        plt.hlines(y=0, xmin=min_val, xmax=max_val, color='k', linestyle='--', linewidth=1, alpha=0.8)
+        plt.vlines(x=0, ymin=min_val, ymax=max_val, color='k', linestyle='--', linewidth=1, alpha=0.8)
+        plt.xlim(min_val, max_val)
+        plt.ylim(min_val, max_val)
+
         # Ajout d'une légende et d'une barre de couleur
         plt.legend()
         cbar = plt.colorbar(scatter)
         cbar.set_label("Cluster")
         cbar.set_ticks([0,1,2,3])
-        cbar.set_ticklabels(['Cluster 0', 'Cluster 1', 'Cluster 2', 'Cluster 3'])
+        cbar.set_ticklabels(cluster_names)
 
-        plt.savefig(f"/home/bcalmel/Documents/3_results/narratest_{ind_values[idx1]}_{ind_values[idx2]}_spatial_mean.png")
-
-
+        plt.savefig(f"/home/bcalmel/Documents/3_results/narratest_{ind_values[idx1]}_{ind_values[idx2]}_spatial_mean_centroides.png")
 
 
 
 
-
-
+########################################################################################################################
 
 
 
