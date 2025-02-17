@@ -8,7 +8,7 @@
   "plot_type": "deviation",
   "palette": "BrBG",
   "alpha": 1,
-  "fontsize":20,
+  "fontsize": 22,
   "font": "sans-serif",
   "vmin": "None",
   "vmax": "None",

@@ -4,7 +4,7 @@
       "QA_yr": {
         "QA": {
           "units": "m3/s",
-          "label": "du Q annuel"
+          "label": "du QA"
         }
       },
     "QJXA": {
@@ -13,39 +13,10 @@
         "label": "du QJXA"
       }
     },
-      "QA_seas-JJA": {
-        "Q[JJA]": {
-          "units": "m3/s",
-          "label": "du Q estival [JJA]"
-        }
-      },
-      "QA_seas-DJF": {
-        "Q[DJF]": {
-          "units": "m3/s",
-          "label": "du Q hivernal [DJF]"
-        }
-      },
-      "QA_seas-MAM": {
-        "Q[MAM]": {
-          "units": "m3/s",
-          "label": "du Q printanier [MAM]"
-        }
-      },
-      "QA_seas-SON": {
-        "Q[SON]":{
-          "units": "m3/s",
-          "label": "du Q automnal [SON]"
-        }
-      },
       "VCN10_seas-MJJASON": {
         "VCN10": {
           "units": "m3/s",
           "label": "du VCN10"
-        },
-        "VCN10-5": {
-          "units": "m3/s",
-          "label": "du VCN10-5",
-          "return_period": 5
         }
       },
       "Q10A": {
@@ -71,7 +42,6 @@
           "units": "m3/s",
           "label": "du QMN5",
           "additional_coordinates": "month",
-          "additional_plot_folders": "month",
           "return_period": 5,
           "timestep": "ME",
           "vmin": -75,
@@ -81,7 +51,6 @@
           "units": "m3/s",
           "label": "du Qm",
           "additional_coordinates": "month",
-          "additional_plot_folders": "month",
           "timestep": "ME"
         }
       },
@@ -93,16 +62,16 @@
           "palette": "PuOr_r"
         }
       },
-    "startLF_yr": {
-      "LF-start": {
-        "units": "en jours",
-        "label": "de date de début des basses eaux",
-        "plot_type": "difference",
-        "palette": "PuOr",
-        "vmin": -30,
-        "vmax": 20
-      }
-    },
+      "startLF_yr": {
+        "LF-start": {
+          "units": "en jours",
+          "label": "de date de début des basses eaux",
+          "plot_type": "difference",
+          "palette": "PuOr",
+          "vmin": -30,
+          "vmax": 20
+        }
+      },
       "debit": {
         "Q2": {
           "units": "m3/s",

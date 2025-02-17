@@ -53,7 +53,7 @@ def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
               'name_axis': name_y_axis
               }
 
-    dict_sim = {sim_name: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation', 'linewidth': 0.5}
+    dict_sim = {sim_name: {'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}
                 for sim_name in simulations}
 
     if narratives is not None:
@@ -67,7 +67,7 @@ def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
     else:
         indicator_plot = [copy.deepcopy(dict_sim)]
 
-    legend_items = [{'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation', 'linewidth': 0.5}]
+    legend_items = [{'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}]
     legend_items += [value for value in narratives.values()]
 
     cols = {
@@ -96,7 +96,7 @@ def plot_linear_pk(ds, simulations, path_result, narratives=None,
               'name_axis': name_y_axis
               }
 
-    indicator_plot = {sim_name: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation', 'linewidth': 0.5}
+    indicator_plot = {sim_name: {'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}
                 for sim_name in simulations}
 
     for sim_name, subdict in indicator_plot.items():
@@ -112,7 +112,7 @@ def plot_linear_pk(ds, simulations, path_result, narratives=None,
         'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2099)']
     }
 
-    legend_items = [{'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation'}]
+    legend_items = [{'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections'}]
     legend_items += [value for value in narratives.values()]
 
     rows = {
@@ -137,7 +137,7 @@ def plot_linear_time(ds, simulations, path_result, station_references, narrative
               'name_axis': name_y_axis
               }
 
-    dict_sim = {sim_name: {'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation', 'linewidth': 0.5}
+    dict_sim = {sim_name: {'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}
        for sim_name in simulations}
 
     if narratives is not None:
@@ -146,7 +146,7 @@ def plot_linear_time(ds, simulations, path_result, station_references, narrative
                 if narr_name in key:
                     dict_sim[key] = kwargs
 
-    legend_items = [{'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation', 'linewidth': 0.5}]
+    legend_items = [{'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}]
     legend_items += [value for value in narratives.values()]
 
     indicator_plot = [dict_sim for i in range(len(station_references))]
@@ -177,13 +177,13 @@ def plot_boxplot_station_narrative(ds, station_references, narratives, reference
     simulations = list(ds.data_vars)
 
     narratives_bp = {key: {'boxprops':dict(facecolor=value['color'], alpha=0.9),
-    'medianprops': dict(color="black"), 'widths':0.5, 'patch_artist':True,
+    'medianprops': dict(color="black"), 'widths':0.9, 'patch_artist':True,
     'label': value['label']} for key, value in narratives.items()}
 
     dict_sims = {}
-    dict_sims['simulations'] = {'values': simulations, 'kwargs': {'boxprops':dict(facecolor='lightgray', alpha=0.6),
+    dict_sims['simulations'] = {'values': simulations, 'kwargs': {'boxprops':dict(facecolor='lightgray', alpha=0.8),
                                                                   'medianprops': dict(color="black"), 'widths': 0.9,
-                                                                  'patch_artist':True, 'label': 'Simulations'}}
+                                                                  'patch_artist':True, 'label': 'Ensemble des projections'}}
     for narr_name, kwargs in narratives_bp.items():
         dict_sims[narr_name] = {'values': [], 'kwargs': kwargs}
         for sim_name in simulations:
@@ -211,7 +211,7 @@ def plot_boxplot_station_narrative(ds, station_references, narratives, reference
     }
 
     boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=True,
-             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=1)
+             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=0.25)
 
 def plot_boxplot_station_month_horizon(ds, station_references, narratives, path_result, name_y_axis='', percent=False,
                                    title=None, fontsize=14, font='sans-serif', common_yaxes=False, normalized=False,
@@ -222,7 +222,8 @@ def plot_boxplot_station_month_horizon(ds, station_references, narratives, path_
                             'label': value['label']}} for key, value in narratives.items()}
 
     if normalized:
-        ds = ds / ds.sel(horizon='historical').mean(dim=['month'])
+        mean_historical = ds.sel(horizon='historical').mean(dim=['month'])
+        ds = ds / mean_historical
 
     y_axis = {'names_coord': 'horizon',
               'values_var': narratives_bp,
@@ -244,7 +245,7 @@ def plot_boxplot_station_month_horizon(ds, station_references, narratives, path_
     }
 
     boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=True, common_yaxes=common_yaxes,
-            title=title, percent=percent, fontsize=fontsize, font=font, ymin=ymin, ymax=ymax, blank_space=1)
+            title=title, percent=percent, fontsize=fontsize, font=font, ymin=ymin, ymax=ymax, blank_space=0.25)
 
 def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds,
                           variables, plot_type, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,

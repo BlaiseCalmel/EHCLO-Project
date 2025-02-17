@@ -50,7 +50,9 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
 
-    fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 8 * len_cols, len_rows * 4), constrained_layout=True)
+    # fig_dim = 4
+    fig_dim = 3
+    fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 2.5 * fig_dim * len_cols, 1 + len_rows * fig_dim), constrained_layout=True)
     # fig, axes = plt.subplots(len_rows, len_cols, figsize=(19, 6), constrained_layout=True)
 
     if del_axes:
@@ -67,7 +69,7 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
 
     # Main title
     if title is not None:
-        fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2)
+        fig.suptitle(title)
 
     if legend_items is None:
         legend_items = []
@@ -147,17 +149,26 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
                 ax.set_title(subplot_title)
 
             ax.spines[['right', 'top']].set_visible(False)
-            ax.set_xlim(xmin, xmax)
-            ax.set_ylim(ymin, ymax)
 
             if percent:
                 ax.yaxis.set_major_formatter(mtick.PercentFormatter())
 
-            plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.1, alpha=0.4)
-            ax.grid(True)
-
             # Headers and axes label
             add_header(ax, rows_plot, cols_plot, ylabel=y_title, xlabel=x_title)
+
+    abs_max = max([ymax, -ymin])
+    n = 2*abs_max / 4
+    exponent = round(math.log10(n))
+    step = np.round(n, -exponent+1)
+    if step == 0:
+        step = n
+    ticks = mirrored(abs_max, inc=step, val_center=0)
+    for ax in axes_flatten:
+        ax.set_yticks(ticks)
+        ax.set_xlim(xmin, xmax)
+        ax.set_ylim(ymin, ymax)
+        # plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.1, alpha=0.4)
+        ax.grid(True, linestyle="--", color='lightgray', linewidth=0.1, alpha=0.4)
 
     # Legend
     legend_handles = []
@@ -178,10 +189,10 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
 
     # Estimate necessary width for each legend's column
     fig_width = fig.get_size_inches()[0]
-    avg_label_length = np.median([len(handle.get_label()) for handle in legend_handles ])  # Longueur moyenne des labels
+    avg_label_length = np.median([len(handle.get_label()) for handle in legend_handles])
 
     # Déterminer dynamiquement le nombre de colonnes
-    ncol = max(1, int(fig_width * 4 / avg_label_length))
+    ncol = max(1, int(fig_width * 5 / avg_label_length))
 
     fig.legend(handles=legend_handles, loc='upper center', bbox_to_anchor=(0.5, 0), fancybox=True, shadow=False,
                    ncol=ncol)

@@ -13,15 +13,6 @@ def decimal_places(x):
         return len(x_str.split(".")[1])
     return 0
 
-def mirrored(maxval, inc=1, val_center=0):
-    x = np.arange(val_center, maxval+inc, inc)
-    if x[-1] < maxval:
-        x = np.r_[x, maxval]
-    minval = val_center - (x[-1] - val_center)
-    y = np.arange(val_center, minval-inc, -inc)
-    if y[-1] > minval:
-        y = np.r_[y, minval]
-    return np.r_[y[::-1], x[1:]]
 
 def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             cbar_title=None, title=None, dict_shapefiles=None, bounds=None, discretize=7,

@@ -2,30 +2,28 @@ import matplotlib.lines as mlines
 from sklearn.cluster import KMeans
 from scipy.spatial import Voronoi, voronoi_plot_2d
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
-from format_data import compute_mean_by_horizon
-from main import data_to_plot
 
 
-def compute_narratives(datasets, sim_points_gdf, data_type, variables, plot_type, title_join,plot_type_name):
+def compute_narratives(datasets_list, sim_points_gdf, data_type, variables, plot_type, title_join,plot_type_name):
     # ds = ds_stats
-    # sim_points_gdf = sim_points_gdf_simplified
+    sim_points_gdf = sim_points_gdf_simplified
 
-    stations = list(sim_points_gdf.index)
-
+    # stations = list(sim_points_gdf.index)
+    stations = list(reference_stations['La Loire'].keys())
+    # Sélectionner les stations avec le plus de simulations #### ATTENTION SPATIALISATION
+    # n_values = sim_points_gdf_simplified['n']
+    # stations = list(n_values[n_values == max(n_values)].index)
+    ind_values = ["QJXA", "QA", "VCN10"]
 
     data_arrays = []
     datasets = [ds_i[variables[f'simulation-horizon_by-sims_{plot_type}']].sel(
-        horizon='horizon3', gid=list(stations.keys())) for ds_i in datasets]
+        horizon='horizon3', gid=stations) for ds_i in datasets_list]
     indicator_names = list(data_to_plot.keys())
     for i in range(len(datasets)):
         ds = datasets[i]
         for var_name, da in ds.data_vars.items():
             # 1. Extraire les 4 parties du nom en se basant sur le séparateur "_" (adapté si besoin)
             parts = var_name.split("_")
-            # if len(parts) != 4:
-            #     raise ValueError(f"Le nom de variable '{var_name}' ne respecte pas le format attendu")
             nom_gcmrcm = "_".join(parts[:2])
             nom_bc, nom_hm = parts[2:4]
 
@@ -47,18 +45,31 @@ def compute_narratives(datasets, sim_points_gdf, data_type, variables, plot_type
     # Le résultat aura les dimensions : ('gid', 'nom-gcm', 'nom-rcm', 'nom-bc', 'nom-hm')
     combined_da = xr.combine_by_coords(data_arrays)
 
+    # Calculer la moyenne (sur le territoire) par chaine de simulation
+    combined_da = combined_da.mean(dim='gid')
+
+    # combined_da['QA'].shape
+    #
+    # np.sum(~np.isnan(combined_da['QA']))
+    # combined_da['QA'].values.shape
+    # len(combined_da['QA'].values)
+
+    combined_da = combined_da.dropna(dim="gid", how="any")
+    print("Stations conservées :", combined_da.gid.values)
+
     # 1. Aplatir le dataset : on combine les dimensions pour obtenir un indice unique "sample"
     ds_stacked = combined_da.stack(sample=("gcm-rcm", "bc", "hm", "gid"))
 
     # 2. Construire la matrice X des features
     # Chaque colonne correspond à une des variables et chaque ligne à un échantillon
-    X = np.column_stack([ds_stacked[var].values for var in ["QJXA", "QA", "VCN10"]])
-    print("Shape de X:", X.shape)
+    X_imputed = np.column_stack([ds_stacked[var].values for var in ind_values])
+
+    # 3 colonnes QJXA QA VCN10, 1683 lignes 11 stations * 153 sim (9 HM * 17 GCM-RCM)
 
     # 3. Imputation des valeurs manquantes (NaN) par la moyenne de la colonne
-    from sklearn.impute import SimpleImputer
-    imputer = SimpleImputer(strategy="mean")
-    X_imputed = imputer.fit_transform(X)
+    # from sklearn.impute import SimpleImputer
+    # imputer = SimpleImputer(strategy="mean")
+    # X_imputed = imputer.fit_transform(X)
 
     # 4. Appliquer le clustering (ici KMeans avec 4 clusters)
     kmeans = KMeans(n_clusters=4, random_state=42)
@@ -107,7 +118,7 @@ def compute_narratives(datasets, sim_points_gdf, data_type, variables, plot_type
             "bc": coords_bc,
             "hm": coords_hm,
             "distance": distances[np.argmin(distances)],
-            "idx": idx_min  # optionnel : la distance minimale
+            "idx": idx_min
         }
 
     import numpy as np
@@ -182,7 +193,62 @@ def compute_narratives(datasets, sim_points_gdf, data_type, variables, plot_type
     cbar = plt.colorbar(scatter)
     cbar.set_label("Cluster")
 
-    plt.savefig(f"/home/bcalmel/Documents/3_results/test42.png")
+    plt.savefig(f"/home/bcalmel/Documents/3_results/narratest_pca_hm9_spatial_mean.png")
+
+    # PLOT BY INDICATOR
+    for idx1 in range(len(ind_values)):
+        if idx1 != len(ind_values)-1:
+            idx2 =idx1+1
+        else:
+            idx2 = 0
+
+        # Construire les noms des axes
+        xlabel = f"Variation {ind_values[idx1]}"
+        ylabel = f"Variation {ind_values[idx2]}"
+
+        # Affichage des points représentatifs de chaque cluster
+        cmap = plt.get_cmap("viridis", 4)
+        norm = plt.Normalize(vmin=-0.5, vmax=3.5)  # Normalisation entre 0 et 3
+
+        # Préparez la figure
+        plt.figure(figsize=(10, 8))
+
+        # Affichage des observations, colorées par cluster
+        scatter = plt.scatter(X_imputed[:, idx1], X_imputed[:, idx2], c=labels, cmap=cmap, norm=norm, alpha=0.6)
+        plt.xlabel(xlabel)
+        plt.ylabel(ylabel)
+        plt.title("Clusters et points représentatifs")
+
+        # Affichage des centroïdes
+        # plt.scatter(kmeans.cluster_centers_[:, idx1], kmeans.cluster_centers_[:, idx2], marker='X', c='red', s=200, label='Centroïdes')
+
+        # Création du scatter plot
+        # fig, ax = plt.subplots()
+        # sc = ax.scatter(x, y, c=values, cmap=cmap, norm=norm)
+        for cluster, values in groupes_representatifs.items():
+            idx = values['idx']
+            # Marquer le point représentatif dans l'espace PCA
+            plt.scatter(X_imputed[idx, idx1], X_imputed[idx, idx2], c=cluster, edgecolors='k', s=150, marker='o',
+                        label=f'Rep. cluster {cluster}', cmap=cmap, norm=norm)
+
+            # Récupérer les coordonnées d'origine (gcm-rcm, bc, hm)
+            coord_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx).values
+            coord_bc      = ds_stacked["bc"].isel(sample=idx).values
+            coord_hm      = ds_stacked["hm"].isel(sample=idx).values
+
+            # Annoter le graphique avec ces coordonnées
+            annotation = f"C{cluster}\n{coord_gcm_rcm}, {coord_bc}, {coord_hm}"
+            plt.annotate(annotation, (X_imputed[idx, idx1], X_imputed[idx, idx2]), textcoords="offset points", xytext=(5,5), fontsize=9, color='black')
+
+        # Ajout d'une légende et d'une barre de couleur
+        plt.legend()
+        cbar = plt.colorbar(scatter)
+        cbar.set_label("Cluster")
+        cbar.set_ticks([0,1,2,3])
+        cbar.set_ticklabels(['Cluster 0', 'Cluster 1', 'Cluster 2', 'Cluster 3'])
+
+        plt.savefig(f"/home/bcalmel/Documents/3_results/narratest_{ind_values[idx1]}_{ind_values[idx2]}_spatial_mean.png")
+
 
 
 

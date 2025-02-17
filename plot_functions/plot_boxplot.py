@@ -76,7 +76,10 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
 
-    fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 10 * len_cols, len_rows * 4), constrained_layout=True)
+    # fig_dim = 4
+    fig_dim = 3
+
+    fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 2.5 * fig_dim * len_cols, 1 + len_rows * fig_dim), constrained_layout=True)
     max_values = []
     min_values = []
     if del_axes:
@@ -93,7 +96,7 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
 
     # Main title
     if title is not None:
-        fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2)
+        fig.suptitle(title)
 
     idx = -1
     for row_idx, row in enumerate(rows_plot['values_var']):
@@ -152,7 +155,7 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
 
                 # Plot by sub box categories
                 bp = ax.boxplot(cell_boxplots, positions=current_position, vert=True,
-                                **kwargs)
+                                whiskerprops=dict(linewidth=0.4), **kwargs)
                 y_temp_max.append(np.nanmax(cell_boxplots))
                 y_temp_min.append(np.nanmin(cell_boxplots))
 
@@ -180,11 +183,11 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
             if vlines is not None:
                 ax.vlines(x=vlines,
                           ymin=ymin, ymax=ymax,
-                          color='lightgray', linewidth=1, alpha=0.5)
+                          color='lightgray', linewidth=2, alpha=0.6)
 
-            plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.8, alpha=0.8)
+            # plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.1, alpha=0.4)
             # ax.grid(True)
-            ax.yaxis.grid(True)
+            ax.yaxis.grid(True, linestyle="--", color='lightgray', linewidth=0.1, alpha=0.4)
 
             ax.spines[['right', 'top']].set_visible(False)
 
@@ -200,11 +203,22 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
             max_values.append(np.nanmax(y_temp_max))
             min_values.append(np.nanmin(y_temp_min))
 
+    if ymin is None:
+        ymin = np.nanmin(min_values)
+    if ymax is None:
+        ymax = np.nanmax(max_values)
+
+    abs_max = max([ymax, -ymin])
+    n = 2*abs_max / 4
+    exponent = round(math.log10(n))
+    step = np.round(n, -exponent+1)
+    if step == 0:
+        step = n
+    ticks = mirrored(abs_max, inc=step, val_center=0)
+    for ax in axes_flatten:
+        ax.set_yticks(ticks)
+
     if common_yaxes:
-        if ymin is None:
-            ymin = np.nanmin(min_values)
-        if ymax is None:
-            ymax = np.nanmax(max_values)
         for ax in axes_flatten:
             ax.set_ylim(ymin, ymax)
     else:
@@ -225,7 +239,7 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     ncol = max(1, int(fig_width * 5 / avg_label_length))
 
     fig.legend(np.array(legend_items)[imported_order], np.array(legend_labels)[imported_order], loc='upper center', bbox_to_anchor=(0.5, 0),
-               fancybox=False, shadow=False, ncol=ncol, fontsize=fontsize-2)
+               fancybox=False, shadow=False, ncol=ncol)
 
     plt.savefig(path_result, bbox_inches='tight')
 
