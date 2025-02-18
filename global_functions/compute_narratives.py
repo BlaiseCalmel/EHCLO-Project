@@ -44,13 +44,13 @@ def compute_narratives(datasets_list, sim_points_gdf, data_type, variables, plot
     # 4. Fusionner toutes les DataArrays en une seule DataArray
     # Le résultat aura les dimensions : ('gid', 'nom-gcm', 'nom-rcm', 'nom-bc', 'nom-hm')
     combined_da = xr.combine_by_coords(data_arrays)
-    count_stations = combined_da[["QA"]].count(dim="gid")
+    count_stations = combined_da[["QA"]].count(dim="gid")['QA'].values.flatten()
 
     # Calculer la moyenne (sur le territoire) par chaine de simulation
     combined_da = combined_da.mean(dim='gid')
 
-    combined_da = combined_da.dropna(dim="gid", how="any")
-    print("Stations conservées :", combined_da.gid.values)
+    # combined_da = combined_da.dropna(dim="gid", how="any")
+    # print("Stations conservées :", combined_da.gid.values)
 
     # 1. Aplatir le dataset : on combine les dimensions pour obtenir un indice unique "sample"
     ds_stacked = combined_da.stack(sample=("gcm-rcm", "bc", "hm"))
@@ -76,7 +76,7 @@ def compute_narratives(datasets_list, sim_points_gdf, data_type, variables, plot
     labels_da = xr.DataArray(labels, dims="sample", coords={"sample": ds_stacked.sample})
 
     # 6. Optionnel : déplier (unstack) pour retrouver les dimensions d'origine
-    labels_unstacked = labels_da.unstack("sample")
+    # labels_unstacked = labels_da.unstack("sample")
 
     # Vous pouvez ajouter les labels comme nouvelle variable dans votre dataset original
     # ds_clustered = combined_da.assign(cluster=labels_unstacked)
@@ -88,9 +88,17 @@ def compute_narratives(datasets_list, sim_points_gdf, data_type, variables, plot
     groupes_representatifs = {}
 
     # Pour chaque cluster, on parcourt les observations qui lui appartiennent
+    # TODO Filter les sim par nombre de stations parmi la sélection
+    threshold = 0.8*len(stations)
+    above_threshold = count_stations > threshold
     for cluster in np.unique(labels):
         # Indices des observations appartenant au cluster 'cluster'
         indices_cluster = np.where(labels == cluster)[0]
+
+        # Filter indices for sim which see at least 80% of stations
+        indices_mask = above_threshold[indices_cluster]
+        if len(indices_mask) > 0:
+            indices_cluster = indices_cluster[indices_mask]
 
         # Récupérer les vecteurs de caractéristiques de ces observations
         X_cluster = X_imputed[indices_cluster, :]  # de forme (nombre_d'observations_dans_le_cluster, n_features)
@@ -176,6 +184,7 @@ def compute_narratives(datasets_list, sim_points_gdf, data_type, variables, plot
 
         # Préparez la figure
         plt.figure(figsize=(11, 8))
+        plt.grid(alpha=0.3)
 
         # Affichage des observations, colorées par cluster
         for j in range(len(x_data)):
