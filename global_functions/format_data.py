@@ -13,7 +13,7 @@ def optimize_label_length(label, settings, length=22):
     wrapped_label = wrapper.wrap(label)
     return "\n".join(wrapped_label)
 
-def load_settings(indicator_setup):
+def load_settings(indicator_setup, name_indicator):
     with open('init_setup.json') as init_setup_file:
         init_setup = json.load(init_setup_file)
 
@@ -22,7 +22,36 @@ def load_settings(indicator_setup):
         settings.update({key: value})
 
     settings = {key: value if value != 'None' else None for key, value in settings.items()}
-    return settings
+
+
+    # Define variable name for axis
+    if settings['label'] is None:
+        title = name_indicator
+    else:
+        title = settings['label']
+
+    if settings['units'] != '':
+        units = f" ({settings['units']})"
+    else:
+        units = ''
+
+    plot_type = settings['plot_type']
+    start_cbar_ticks = ''
+    end_cbar_ticks = ''
+    if plot_type == 'difference':
+        plot_type_name = 'difference'
+        percent = False
+    else:
+        plot_type_name = 'variation'
+        percent = True
+        units = " (%)"
+
+    if settings['start_cbar_ticks'] != '':
+        start_cbar_ticks = f" {settings['start_cbar_ticks']}"
+    if settings['end_cbar_ticks'] != '':
+        end_cbar_ticks = f" {settings['end_cbar_ticks']}"
+
+    return settings, title, units, plot_type, plot_type_name, percent, start_cbar_ticks, end_cbar_ticks
 
 def get_season(month):
     if month in [12, 1, 2]:

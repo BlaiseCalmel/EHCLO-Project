@@ -19,6 +19,7 @@ from plot_functions.run_plot import *
 from global_functions.format_data import *
 from global_functions.shp_geometry import *
 from global_functions.path_functions import  *
+from global_functions.compute_narratives import compute_narratives
 
 # Avoid crash with console when launched manually
 import matplotlib
@@ -162,6 +163,12 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                             print(f'> Invalid {indicator} name', end='\n')
                     else:
                         print(f'> {path_ncdf} already exists', end='\n')
+
+
+compute_narratives(dict_paths, stations=list(reference_stations['La Loire'].keys()), files_setup=files_setup,
+                   indictor_values=["QJXA", "QA", "VCN10"], threshold=0.8*len(reference_stations['La Loire']))
+
+
 run_plot = True
 
 while run_plot:
@@ -205,21 +212,7 @@ while run_plot:
         overwrite = True
         rcp = 'rcp85'
         runned_data = []
-        # runned_data['QA',
-        #  'QJXA',
-        #  'Q[JJA]',
-        #  'Q[DJF]',
-        #  'Q[MAM]',
-        #  'Q[SON]',
-        #  'VCN10',
-        #  'VCN10-5',
-        #  'Q10',
-        #  'Q90',
-        #  'QMNA5',
-        #  'QMN5',
-        #  'Qm']
-        # for indicator, subdicts in data_to_plot.items():
-        datasets_list = []
+
         for name_indicator, indicator_setup in data_to_plot.items():
             if name_indicator in runned_data:
                 continue
@@ -232,34 +225,9 @@ while run_plot:
                 write_fig = False
 
             # Get plot settings
-            settings = load_settings(indicator_setup)
+            settings, title, units, plot_type, plot_type_name, percent, start_cbar_ticks, end_cbar_ticks = (
+                load_settings(indicator_setup, name_indicator))
 
-            # Define variable name for axis
-            if settings['label'] is None:
-                title = name_indicator
-            else:
-                title = settings['label']
-
-            if settings['units'] != '':
-                units = f" ({settings['units']})"
-            else:
-                units = ''
-
-            plot_type = settings['plot_type']
-            start_cbar_ticks = ''
-            end_cbar_ticks = ''
-            if plot_type == 'difference':
-                plot_type_name = 'difference'
-                percent = False
-            else:
-                plot_type_name = 'variation'
-                percent = True
-                units = " (%)"
-
-            if settings['start_cbar_ticks'] != '':
-                start_cbar_ticks = f" {settings['start_cbar_ticks']}"
-            if settings['end_cbar_ticks'] != '':
-                end_cbar_ticks = f" {settings['end_cbar_ticks']}"
 
             # Create folder
             title_join = name_indicator.replace(" ", "-").replace(".", "")
@@ -269,8 +237,6 @@ while run_plot:
                 write_fig = True
 
             if write_fig:
-                path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}.nc"
-
                 # Compute PK
                 if indicator_setup['type']  == 'hydro_indicator':
                     data_type = 'hydro'
@@ -289,14 +255,13 @@ while run_plot:
                     edgecolor = None
 
                 # Open ncdf dataset
+                path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}.nc"
                 ds_stats = xr.open_dataset(path_ncdf)
 
                 # Compute stats
                 ds_stats, variables = format_dataset(ds=ds_stats, data_type=data_type, files_setup=files_setup,
                                                      plot_function=settings['additional_coordinates'],
                                                      return_period=settings['return_period'])
-
-                datasets_list.append(ds_stats)
 
                 # Geodataframe
                 sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds_stats.gid]
@@ -500,7 +465,7 @@ while run_plot:
                     for river, river_stations in reference_stations.items():
                         extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
                         for key, value in extended_station_name.items():
-                            extended_station_name[key] = optimize_label_length(value, settings, legnth=25)
+                            extended_station_name[key] = optimize_label_length(value, settings, length=28)
                         print(f"> Box plot...")
                         print(f">> Boxplot normalized {title_join} by month and horizon")
                         name_y_axis = optimize_label_length(f"{title_join} normalisé", settings)
@@ -516,7 +481,8 @@ while run_plot:
                                                            font=settings['font'],
                                                            path_result=path_indicator+f'{title_join}_boxplot_normalized-discharge_{river}_month.pdf')
                         print(f">> Boxplot {plot_type} by month and horizon")
-                        name_y_axis = optimize_label_length(f'{plot_type_name.title()} {title}{units}', settings)
+                        name_y_axis = optimize_label_length(f'{plot_type_name.title()} {title}{units}', settings,
+                                                            length=18)
 
                         plot_boxplot_station_month_horizon(ds=ds_stats[variables[f'simulation-horizon_by-sims_{plot_type}']],
                                                            station_references=extended_station_name,

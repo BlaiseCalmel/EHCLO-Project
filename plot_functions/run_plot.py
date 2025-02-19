@@ -44,7 +44,7 @@ def plot_linear_pk_hm(ds, simulations, path_result, narratives=None,
              legend_items=legend_items, title=title, percent=percent, fontsize=fontsize, font=font, ymax=None)
 
 def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
-                      name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None, ymax=None, xmax=None,
+                             name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None, ymax=None, xmax=None,
                              fontsize=14, font='sans-serif'):
     x_axis = {'names_coord': 'PK',
               'name_axis': name_x_axis
