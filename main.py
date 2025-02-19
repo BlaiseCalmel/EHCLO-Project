@@ -411,11 +411,7 @@ while run_plot:
                                         vlines['fontsize'] = settings['fontsize'] - 3
 
                                         # Limit size of y axis label
-                                        name_y_axis = f'{plot_type_name.title()} {title}{units}'
-                                        label_length = max([22*20/settings['fontsize'], len(max(re.split(r"[ ]", name_y_axis), key=len))])
-                                        wrapper = textwrap.TextWrapper(width=label_length, break_long_words=False, break_on_hyphens=True)
-                                        wrapped_label = wrapper.wrap(name_y_axis)
-                                        name_y_axis = "\n".join(wrapped_label)
+                                        name_y_axis = optimize_label_length(f'{plot_type_name.title()} {title}{units}', settings)
 
                                         # print(f">> Linear {plot_type} - x: PK, y: {name_indicator}, row: HM, col: Horizon")
                                         # plot_linear_pk_hm(ds,
@@ -460,10 +456,7 @@ while run_plot:
                                     for river, river_stations in reference_stations.items():
                                         extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
                                         for key, value in extended_station_name.items():
-                                            label_length = max([25*20/settings['fontsize'], len(max(re.split(r"[ ]", value), key=len))])
-                                            wrapper = textwrap.TextWrapper(width=label_length, break_long_words=False, break_on_hyphens=True)
-                                            wrapped_label = wrapper.wrap(value)
-                                            extended_station_name[key] = "\n".join(wrapped_label)
+                                            extended_station_name[key] = optimize_label_length(value, settings, length=25)
                                         print(f">> Linear timeline {plot_type} - x: time, y: {name_indicator}, row/col: Stations ref {river}")
                                         plot_linear_time(ds,
                                                          simulations=variables[f'simulation_{plot_type}'],
@@ -507,17 +500,15 @@ while run_plot:
                     for river, river_stations in reference_stations.items():
                         extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
                         for key, value in extended_station_name.items():
-                            label_length = max([25*20/settings['fontsize'], len(max(re.split(r"[ ]", value), key=len))])
-                            wrapper = textwrap.TextWrapper(width=label_length, break_long_words=False, break_on_hyphens=True)
-                            wrapped_label = wrapper.wrap(value)
-                            extended_station_name[key] = "\n".join(wrapped_label)
+                            extended_station_name[key] = optimize_label_length(value, settings, legnth=25)
                         print(f"> Box plot...")
                         print(f">> Boxplot normalized {title_join} by month and horizon")
+                        name_y_axis = optimize_label_length(f"{title_join} normalisé", settings)
                         plot_boxplot_station_month_horizon(ds=ds_stats[variables['simulation_horizon']],
                                                            station_references=extended_station_name,
                                                            narratives=horizon_boxes,
                                                            title=None,
-                                                           name_y_axis=f"{title_join} normalisé",
+                                                           name_y_axis=name_y_axis,
                                                            normalized=True,
                                                            percent=False,
                                                            common_yaxes=True,
@@ -525,11 +516,13 @@ while run_plot:
                                                            font=settings['font'],
                                                            path_result=path_indicator+f'{title_join}_boxplot_normalized-discharge_{river}_month.pdf')
                         print(f">> Boxplot {plot_type} by month and horizon")
+                        name_y_axis = optimize_label_length(f'{plot_type_name.title()} {title}{units}', settings)
+
                         plot_boxplot_station_month_horizon(ds=ds_stats[variables[f'simulation-horizon_by-sims_{plot_type}']],
                                                            station_references=extended_station_name,
                                                            narratives={key: value for key, value in horizon_boxes.items() if key!='historical'},
                                                            title=None,
-                                                           name_y_axis=f'{plot_type_name.title()} {title}{units}',
+                                                           name_y_axis=name_y_axis,
                                                            percent=percent,
                                                            common_yaxes=True,
                                                            ymin=settings['vmin'],

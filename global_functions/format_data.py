@@ -3,9 +3,15 @@ import copy
 import xarray as xr
 import numpy as np
 import pandas as pd
-import os
+import textwrap
+import re
 import json
 
+def optimize_label_length(label, settings, length=22):
+    label_length = max([length*20/settings['fontsize'], len(max(re.split(r"[ ]", label), key=len))])
+    wrapper = textwrap.TextWrapper(width=label_length, break_long_words=False, break_on_hyphens=True)
+    wrapped_label = wrapper.wrap(label)
+    return "\n".join(wrapped_label)
 
 def load_settings(indicator_setup):
     with open('init_setup.json') as init_setup_file:
