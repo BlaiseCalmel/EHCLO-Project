@@ -79,7 +79,10 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     # fig_dim = 4
     fig_dim = 3
 
-    fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 2.5 * fig_dim * len_cols, 1 + len_rows * fig_dim), constrained_layout=True)
+    # extend_rows = 1 + fontsize * (1 + max(s.count('\n') for s in rows['names_plot'])) / 200
+
+    # fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 2.5 * fig_dim * len_cols, 1 + extend_rows * len_rows * fig_dim), constrained_layout=True)
+    fig, axes = plt.subplots(len_rows, len_cols, figsize=(16, 1 + len_rows * fig_dim), constrained_layout=True)
     max_values = []
     min_values = []
     if del_axes:
@@ -219,8 +222,13 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
         ax.set_yticks(ticks)
 
     if common_yaxes:
-        for ax in axes_flatten:
+        for ax_idx, ax in enumerate(axes_flatten):
             ax.set_ylim(ymin, ymax)
+            sbs = ax.get_subplotspec()
+            if not sbs.is_first_col():
+                ax.set_yticklabels([])
+                ax.set_yticks([])
+
     else:
         for ax_idx, ax in enumerate(axes_flatten):
             ax.set_ylim(min_values[ax_idx], max_values[ax_idx])

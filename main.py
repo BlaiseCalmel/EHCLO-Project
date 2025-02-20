@@ -165,8 +165,8 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                         print(f'> {path_ncdf} already exists', end='\n')
 
 
-compute_narratives(dict_paths, stations=list(reference_stations['La Loire'].keys()), files_setup=files_setup,
-                   indictor_values=["QJXA", "QA", "VCN10"], threshold=0.8*len(reference_stations['La Loire']))
+# compute_narratives(dict_paths, stations=list(reference_stations['La Loire'].keys()), files_setup=files_setup,
+#                    indictor_values=["QJXA", "QA", "VCN10"], threshold=0.8*len(reference_stations['La Loire']))
 
 
 run_plot = True
@@ -373,10 +373,11 @@ while run_plot:
                                         cities = [i.split(' A ')[-1].split(' [')[0] for i in vlines['Suggesti_2']]
                                         vlines.insert(loc=0, column='label', value=cities)
                                         vlines['annotate'] = 0.02
-                                        vlines['fontsize'] = settings['fontsize'] - 3
+                                        vlines['fontsize'] = settings['fontsize'] - 2
 
                                         # Limit size of y axis label
-                                        name_y_axis = optimize_label_length(f'{plot_type_name.title()} {title}{units}', settings)
+                                        name_y_axis = optimize_label_length(f'{plot_type_name.title()} {title}{units}', settings,
+                                                                            )
 
                                         # print(f">> Linear {plot_type} - x: PK, y: {name_indicator}, row: HM, col: Horizon")
                                         # plot_linear_pk_hm(ds,
@@ -421,7 +422,9 @@ while run_plot:
                                     for river, river_stations in reference_stations.items():
                                         extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
                                         for key, value in extended_station_name.items():
-                                            extended_station_name[key] = optimize_label_length(value, settings, length=25)
+                                            extended_station_name[key] = optimize_label_length(value, settings, length=30)
+
+
                                         print(f">> Linear timeline {plot_type} - x: time, y: {name_indicator}, row/col: Stations ref {river}")
                                         plot_linear_time(ds,
                                                          simulations=variables[f'simulation_{plot_type}'],

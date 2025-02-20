@@ -52,7 +52,8 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
 
     # fig_dim = 4
     fig_dim = 3
-    fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 2.5 * fig_dim * len_cols, 1 + len_rows * fig_dim), constrained_layout=True)
+    # fig, axes = plt.subplots(len_rows, len_cols, figsize=(1 + 2.5 * fig_dim * len_cols, 1 + len_rows * fig_dim), constrained_layout=True)
+    fig, axes = plt.subplots(len_rows, len_cols, figsize=(16, 1 + len_rows * fig_dim), constrained_layout=True)
     # fig, axes = plt.subplots(len_rows, len_cols, figsize=(19, 6), constrained_layout=True)
 
     if del_axes:
@@ -156,6 +157,11 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
             # Headers and axes label
             add_header(ax, rows_plot, cols_plot, ylabel=y_title, xlabel=x_title)
 
+            # if col_idx != 0:
+            #     ax.set_yticklabels([])
+            # if row_idx != len(rows_plot['values_var'])-1:
+            #     ax.set_xticklabels([])
+
     abs_max = max([ymax, -ymin])
     n = 2*abs_max / 4
     exponent = round(math.log10(n))
@@ -169,6 +175,12 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
         ax.set_ylim(ymin, ymax)
         # plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.1, alpha=0.4)
         ax.grid(True, linestyle="--", color='lightgray', linewidth=0.1, alpha=0.4)
+
+        sbs = ax.get_subplotspec()
+        if not sbs.is_first_col():
+            ax.set_yticklabels([])
+        if not sbs.is_last_row():
+            ax.set_xticklabels([])
 
     # Legend
     legend_handles = []

@@ -7,8 +7,9 @@ import textwrap
 import re
 import json
 
-def optimize_label_length(label, settings, length=22):
-    label_length = max([length*20/settings['fontsize'], len(max(re.split(r"[ ]", label), key=len))])
+def optimize_label_length(label, settings, length=20):
+    # label_length = max([length*20/settings['fontsize'], len(max(re.split(r"[ ]", label), key=len))])
+    label_length = max([length + 2*(20 - settings['fontsize']), len(max(re.split(r"[ ]", label), key=len))])
     wrapper = textwrap.TextWrapper(width=label_length, break_long_words=False, break_on_hyphens=True)
     wrapped_label = wrapper.wrap(label)
     return "\n".join(wrapped_label)
