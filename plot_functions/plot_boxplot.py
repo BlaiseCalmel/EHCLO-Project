@@ -227,7 +227,7 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
             sbs = ax.get_subplotspec()
             if not sbs.is_first_col():
                 ax.set_yticklabels([])
-                ax.set_yticks([])
+                # ax.set_yticks([])
 
     else:
         for ax_idx, ax in enumerate(axes_flatten):

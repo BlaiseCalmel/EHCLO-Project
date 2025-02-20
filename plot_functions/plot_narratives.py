@@ -1,12 +1,14 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-def plot_narratives(x_data, ds_stacked, groupes_representatifs, labels, cluster_names,
+def plot_narratives(x_data, ds_stacked, representative_groups, labels, cluster_names,
                     path_result, xlabel, ylabel, title, centroids=None, count_stations=None,
                     above_threshold=None, palette='viridis', n=4):
+
+    plt.rcParams['font.size'] = 10
     shape_hp = {
         'CTRIP': 'D',
-        'EROS': '+',
+        'EROS': 'P',
         'GRSD': '*',
         'J2000': 's',
         'MORDOR-SD': 'v',
@@ -48,29 +50,36 @@ def plot_narratives(x_data, ds_stacked, groupes_representatifs, labels, cluster_
                                                   marker='X', c='red', s=100, label='Centroïdes', zorder=9))
 
     # Affichage des points représentatifs de chaque cluster
+    edgecolors = ['k', 'red', 'blue', 'green', 'orange']
+    if not isinstance(representative_groups, list):
+        representative_groups = [representative_groups]
 
-    for cluster, values in groupes_representatifs.items():
-        idx = values['idx']
+    i = -1
+    for rg in representative_groups:
+        i += 1
+        for cluster, values in rg.items():
 
-        # Récupérer les coordonnées d'origine (gcm-rcm, bc, hm)
-        coord_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx).values
-        coord_bc      = ds_stacked["bc"].isel(sample=idx).values
-        coord_hm      = ds_stacked["hm"].isel(sample=idx).values
+            idx = values['idx']
 
-        # Annoter le graphique avec ces coordonnées
-        annotation = f"{coord_gcm_rcm}\n{coord_bc}\n{coord_hm}"
-        # Marquer le point représentatif dans l'espace PCA
-        representative_legends.append(plt.scatter(x_data[idx, 0], x_data[idx, 1], c=cluster,
-                                                  edgecolors='k', s=150, marker=shape_list[idx],
-                                                  cmap=cmap, norm=norm, zorder=10, label=annotation))
-        # plt.annotate(annotation, (x_data[idx, 0], x_data[idx, 1]), textcoords="offset points", xytext=(5,5), fontsize=9, color='black',
-        #              weight='bold', zorder=11)
+            # Récupérer les coordonnées d'origine (gcm-rcm, bc, hm)
+            coord_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx).values
+            coord_bc      = ds_stacked["bc"].isel(sample=idx).values
+            coord_hm      = ds_stacked["hm"].isel(sample=idx).values
+
+            # Annoter le graphique avec ces coordonnées
+            annotation = f"{coord_gcm_rcm}\n{coord_bc}\n{coord_hm}"
+            # Marquer le point représentatif dans l'espace PCA
+            representative_legends.append(plt.scatter(x_data[idx, 0], x_data[idx, 1], c=cluster,
+                                                      edgecolors=edgecolors[i], s=150, marker=shape_list[idx],
+                                                      cmap=cmap, norm=norm, zorder=10, label=annotation))
+            # plt.annotate(annotation, (x_data[idx, 0], x_data[idx, 1]), textcoords="offset points", xytext=(5,5), fontsize=9, color='black',
+            #              weight='bold', zorder=11)
 
     # Add line to zero
     xmin, ymin = np.min(x_data, axis=0)
     xmax, ymax = np.max(x_data, axis=0)
-    min_val = np.min([xmin, ymin])*0.9
-    max_val = np.max([xmax, ymax])*1.1
+    min_val = np.min([xmin, ymin])
+    max_val = np.max([xmax, ymax])
     plt.axhline(y=0, color='k', linestyle='--', linewidth=1, alpha=0.3, zorder=0)
     plt.axvline(x=0, color='k', linestyle='--', linewidth=1, alpha=0.3, zorder=0)
     plt.xlim(min_val, max_val)
@@ -86,7 +95,7 @@ def plot_narratives(x_data, ds_stacked, groupes_representatifs, labels, cluster_
                          title="Modèles Hydro", ncol=2)
     ax.add_artist(legend1)
     plt.legend(handles=representative_legends, loc='center left', bbox_to_anchor=(1.2, 0.3),
-               title="Narratifs", ncol=1)
+               title="Narratifs", ncol=2)
     cbar = plt.colorbar(scatter, fraction=0.03, pad=0.02)
     cbar.set_label("Cluster")
     cbar.set_ticks([0,1,2,3])

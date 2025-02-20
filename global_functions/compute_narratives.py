@@ -1,14 +1,35 @@
-from sndhdr import whathdr
-
 from sklearn.cluster import KMeans
 import xarray as xr
 import numpy as np
 from sklearn.decomposition import PCA
 from global_functions.format_data import format_dataset
 from plot_functions.plot_narratives import plot_narratives
+import matplotlib.colors as mcolors
+import matplotlib.pyplot as plt
 
-def compute_narratives(dict_paths, stations, files_setup,
-                       indictor_values=["QJXA", "QA", "VCN10"], threshold=0):
+def representative_item(X_cluster, centroids, cluster, cluster_id, indices_cluster, method='closest'):
+    idx = None
+    if method == 'closest':
+        # Compute distance from cluster centroid
+        distances = np.linalg.norm(X_cluster - centroids[cluster], axis=1)
+
+        # Get index of the closest sim
+        idx = indices_cluster[np.argmin(distances)]
+    elif method == 'furthest':
+        # Compute distance from other cluster centroids
+        distances_list = []
+        for c in cluster_id:
+            if c != cluster:
+                distances_list.append(np.linalg.norm(X_cluster - centroids[c], axis=1))
+
+            distances = np.mean(distances_list, axis=0)
+            idx = indices_cluster[np.argmax(distances)]
+
+    return idx
+
+
+def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_simplified,
+                       indictor_values=["QJXA", "QA", "VCN10"], threshold=0, narrative_method='closest'):
 
     # Load selected indicators
     datasets_list = []
@@ -53,7 +74,15 @@ def compute_narratives(dict_paths, stations, files_setup,
     count_stations = combined_da[["QA"]].count(dim="gid")['QA'].values.flatten()
 
     # Compute mean on selected stations
-    combined_da = combined_da.mean(dim='gid')
+    # combined_da = combined_da.mean(dim='gid')
+
+    # Weighted mean by cumulative distance between station
+    gdf = hydro_sim_points_gdf_simplified.loc[stations]
+    gdf["sum_distance"] = gdf.geometry.apply(lambda p: gdf.distance(p).sum())
+    gdf["sum_distance"] = gdf["sum_distance"] / gdf["sum_distance"].mean()
+
+    combined_da = combined_da.assign_coords(weights=("gid", gdf.reindex(ds["gid"].values)["sum_distance"].values))
+    combined_da = combined_da.weighted(combined_da["weights"]).mean(dim="gid")
 
     # Flatten dataset and generate new coordinate named "sample"
     ds_stacked = combined_da.stack(sample=("gcm-rcm", "bc", "hm"))
@@ -83,7 +112,12 @@ def compute_narratives(dict_paths, stations, files_setup,
     # Create mask for sim above threshold
     above_threshold = count_stations > threshold
     # Run on each cluster
-    for cluster in np.unique(labels):
+    cluster_id = np.unique(labels)
+    # Cluster info
+    colors = plt.get_cmap("Dark2", 4).colors
+    hex_colors = [mcolors.to_hex(c) for c in colors]
+    cluster_names = ['A', 'B', 'C', 'D']
+    for cluster in cluster_id:
         # Index of cluster values
         indices_cluster = np.where(labels == cluster)[0]
 
@@ -95,27 +129,27 @@ def compute_narratives(dict_paths, stations, files_setup,
         # Get vector of these sims
         X_cluster = X_imputed[indices_cluster, :]  # de forme (nombre_d'observations_dans_le_cluster, n_features)
 
-        # Compute distance from cluster centroid
-        distances = np.linalg.norm(X_cluster - centroids[cluster], axis=1)
-
-        # Get index of the closest sim
-        idx_min = indices_cluster[np.argmin(distances)]
+        idx = representative_item(X_cluster, centroids, cluster, cluster_id, indices_cluster, method=narrative_method)
 
         # Extract coordinate (gcm-rcm, bc, hm) of selected sim
-        coords_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx_min).values
-        coords_bc      = ds_stacked["bc"].isel(sample=idx_min).values
-        coords_hm      = ds_stacked["hm"].isel(sample=idx_min).values
+        coords_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx).values
+        coords_bc      = ds_stacked["bc"].isel(sample=idx).values
+        coords_hm      = ds_stacked["hm"].isel(sample=idx).values
 
         # Save result in dict
         representative_groups[cluster] = {
             "gcm-rcm": coords_gcm_rcm,
             "bc": coords_bc,
             "hm": coords_hm,
-            "distance": distances[np.argmin(distances)],
-            "idx": idx_min
+            # "distance": distances[np.argmin(distances)],
+            "idx": idx,
+            "color": hex_colors[cluster],
+            "name": cluster_names[cluster]
         }
 
-    cluster_names = ['A', 'B', 'C', 'D']
+    narratives = {f"{value['gcm-rcm']}_{value['bc']}_{value['hm']}": {'color': value['color'], 'zorder': 10,
+                                                                      'label': f"{value['name'].title()} [{value['gcm-rcm']}_{value['bc']}_{value['hm']}]",
+                                                                      'linewidth': 1} for key, value in representative_groups.items()}
 
     # PCA for 2D visualisation
     pca = PCA(n_components=2)
@@ -162,5 +196,5 @@ def compute_narratives(dict_paths, stations, files_setup,
                         path_result, xlabel, ylabel, title, centroids=None, count_stations=None,
                         above_threshold=above_threshold, palette='Dark2', n=4)
 
-        return representative_groups
+    return narratives
 

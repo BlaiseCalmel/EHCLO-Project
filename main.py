@@ -164,9 +164,11 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                     else:
                         print(f'> {path_ncdf} already exists', end='\n')
 
-
-# compute_narratives(dict_paths, stations=list(reference_stations['La Loire'].keys()), files_setup=files_setup,
-#                    indictor_values=["QJXA", "QA", "VCN10"], threshold=0.8*len(reference_stations['La Loire']))
+narratives =  compute_narratives(dict_paths, stations=list(reference_stations['La Loire'].keys()),
+                                 files_setup=files_setup,
+                                 hydro_sim_points_gdf_simplified=hydro_sim_points_gdf_simplified,
+                                 indictor_values=["QJXA", "QA", "VCN10"],
+                                 threshold=0.8*len(reference_stations['La Loire']))
 
 
 run_plot = True
@@ -212,6 +214,17 @@ while run_plot:
         overwrite = True
         rcp = 'rcp85'
         runned_data = []
+        if narratives is None:
+            narratives = {
+                "HadGEM2-ES_ALADIN63_ADAMONT": {'color': '#569A71', 'zorder': 10, 'label': 'Vert [HadGEM2-ES_ALADIN63_ADAMONT]',
+                                                'linewidth': 1},
+                "CNRM-CM5_ALADIN63_ADAMONT": {'color': '#EECC66', 'zorder': 10, 'label': 'Jaune [CNRM-CM5_ALADIN63_ADAMONT]',
+                                              'linewidth': 1},
+                "EC-EARTH_HadREM3-GA7_ADAMONT": {'color': '#E09B2F', 'zorder': 10, 'label': 'Orange [EC-EARTH_HadREM3-GA7_ADAMONT]',
+                                                 'linewidth': 1},
+                "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'color': '#791F5D', 'zorder': 10, 'label': 'Violet [HadGEM2-ES_CCLM4-8-17_ADAMONT]',
+                                                  'linewidth': 1},
+            }
 
         for name_indicator, indicator_setup in data_to_plot.items():
             if name_indicator in runned_data:
@@ -267,17 +280,6 @@ while run_plot:
                 sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds_stats.gid]
                 dict_shapefiles = define_plot_shapefiles(regions_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified,
                                        indicator_setup['type'], files_setup)
-
-                narratives = {
-                    "HadGEM2-ES_ALADIN63_ADAMONT": {'color': '#569A71', 'zorder': 10, 'label': 'Vert [HadGEM2-ES_ALADIN63_ADAMONT]',
-                                                    'linewidth': 1},
-                    "CNRM-CM5_ALADIN63_ADAMONT": {'color': '#EECC66', 'zorder': 10, 'label': 'Jaune [CNRM-CM5_ALADIN63_ADAMONT]',
-                                                  'linewidth': 1},
-                    "EC-EARTH_HadREM3-GA7_ADAMONT": {'color': '#E09B2F', 'zorder': 10, 'label': 'Orange [EC-EARTH_HadREM3-GA7_ADAMONT]',
-                                                     'linewidth': 1},
-                    "HadGEM2-ES_CCLM4-8-17_ADAMONT": {'color': '#791F5D', 'zorder': 10, 'label': 'Violet [HadGEM2-ES_CCLM4-8-17_ADAMONT]',
-                                                      'linewidth': 1},
-                }
 
                 # Check for additional coordinates
                 used_coords = set()
