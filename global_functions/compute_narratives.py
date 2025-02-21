@@ -86,15 +86,15 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
     count_stations = combined_da[["QA"]].count(dim="gid")['QA'].values.flatten()
 
     # Compute mean on selected stations
-    # combined_da = combined_da.mean(dim='gid')
+    combined_da = combined_da.mean(dim='gid')
 
-    # Weighted mean by cumulative distance between station
-    gdf = hydro_sim_points_gdf_simplified.loc[stations]
-    gdf["sum_distance"] = gdf.geometry.apply(lambda p: gdf.distance(p).sum())
-    gdf["sum_distance"] = gdf["sum_distance"] / gdf["sum_distance"].mean()
-
-    combined_da = combined_da.assign_coords(weights=("gid", gdf.reindex(ds["gid"].values)["sum_distance"].values))
-    combined_da = combined_da.weighted(combined_da["weights"]).mean(dim="gid")
+    # # Weighted mean by cumulative distance between station
+    # gdf = hydro_sim_points_gdf_simplified.loc[stations]
+    # gdf["sum_distance"] = gdf.geometry.apply(lambda p: gdf.distance(p).sum())
+    # gdf["sum_distance"] = gdf["sum_distance"] / gdf["sum_distance"].mean()
+    #
+    # combined_da = combined_da.assign_coords(weights=("gid", gdf.reindex(ds["gid"].values)["sum_distance"].values))
+    # combined_da = combined_da.weighted(combined_da["weights"]).mean(dim="gid")
 
     # Flatten dataset and generate new coordinate named "sample"
     ds_stacked = combined_da.stack(sample=("gcm-rcm", "bc", "hm"))
@@ -117,9 +117,6 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
 
     # Find centroids
     centroids = kmeans.cluster_centers_  # de forme (n_clusters, n_features)
-
-    # Dict to find the closest sim from the centroid (gcm-rcm, bc, hm)
-
 
     # Create mask for sim above threshold
     above_threshold = count_stations > threshold
@@ -167,9 +164,9 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
             }
         meth_list.append(representative_groups)
 
-    narratives = {f"{value['gcm-rcm']}_{value['bc']}_{value['hm']}": {'color': value['color'], 'zorder': 10,
-                                                                      'label': f"{value['name'].title()} [{value['gcm-rcm']}_{value['bc']}_{value['hm']}]",
-                                                                      'linewidth': 1} for rp in meth_list for key, value in rp.items()}
+    narratives = {methods[i] : {f"{value['gcm-rcm']}_{value['bc']}_{value['hm']}": {'color': value['color'], 'zorder': 10,
+                                                                       'label': f"{value['name'].title()}", # [{value['gcm-rcm']}_{value['bc']}_{value['hm']}]",
+                                                                       'linewidth': 1} for key, value in rp.items()} for i, rp in enumerate(meth_list)}
 
     # PCA for 2D visualisation
     pca = PCA(n_components=2)
@@ -191,7 +188,7 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
     xlabel = f"Dim 1 {ratio1:.1%} ({indictor_values[0]}: {pc1_contributions[0]:.1%}, {indictor_values[1]}: {pc1_contributions[1]:.1%}, {indictor_values[2]}: {pc1_contributions[2]:.1%})"
     ylabel = f"Dim 2 {ratio2:.1%} ({indictor_values[0]}: {pc2_contributions[0]:.1%}, {indictor_values[1]}: {pc2_contributions[1]:.1%}, {indictor_values[2]}: {pc2_contributions[2]:.1%})"
     title = "Clusters et points représentatifs (après PCA)"
-    path_result = f"/home/bcalmel/Documents/3_results/narratest_pca_spatial_wmean_centroides.pdf"
+    path_result = f"/home/bcalmel/Documents/3_results/narratest_pca_spatial_mean_centroides.pdf"
     plot_narratives(X_pca, ds_stacked, meth_list, labels, cluster_names,
                     path_result, xlabel, ylabel, title, centroids=centroids_pca, count_stations=None,
                     above_threshold=above_threshold, palette='Dark2', n=4)
@@ -210,7 +207,7 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
         xlabel = f"Variation {indictor_values[idx1]} (%)"
         ylabel = f"Variation {indictor_values[idx2]} (%)"
         title = "Clusters et points représentatifs"
-        path_result=f"/home/bcalmel/Documents/3_results/narratest_{indictor_values[idx1]}_{indictor_values[idx2]}_spatial_wmean_centroides.pdf"
+        path_result=f"/home/bcalmel/Documents/3_results/narratest_{indictor_values[idx1]}_{indictor_values[idx2]}_spatial_mean_centroides.pdf"
 
         plot_narratives(X_imputed[:, [idx1, idx2]], ds_stacked, meth_list, labels, cluster_names,
                         path_result, xlabel, ylabel, title, centroids=None, count_stations=None,

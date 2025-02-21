@@ -158,7 +158,7 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
 
                 # Plot by sub box categories
                 bp = ax.boxplot(cell_boxplots, positions=current_position, vert=True,
-                                whiskerprops=dict(linewidth=0.4), **kwargs)
+                                whiskerprops=dict(linewidth=0.4), flierprops=dict(marker='.', markersize=6), **kwargs)
                 y_temp_max.append(np.nanmax(cell_boxplots))
                 y_temp_min.append(np.nanmin(cell_boxplots))
 

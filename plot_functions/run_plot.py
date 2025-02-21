@@ -56,19 +56,29 @@ def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
     dict_sim = {sim_name: {'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}
                 for sim_name in simulations}
 
+    # if narratives is not None:
+    #     indicator_plot = [copy.deepcopy(dict_sim) for i in range(len(narratives))]
+    #     idx = -1
+    #     for narr_name, kwargs in narratives.items():
+    #         idx += 1
+    #         for sim_name, values in indicator_plot[idx].items():
+    #             if narr_name in sim_name:
+    #                 indicator_plot[idx][sim_name] = kwargs
     if narratives is not None:
         indicator_plot = [copy.deepcopy(dict_sim) for i in range(len(narratives))]
         idx = -1
-        for narr_name, kwargs in narratives.items():
+        for narr_type, narr in narratives.items():
             idx += 1
-            for sim_name, values in indicator_plot[idx].items():
-                if narr_name in sim_name:
-                    indicator_plot[idx][sim_name] = kwargs
+            for narr_name, kwargs in narr.items():
+                for sim_name, values in indicator_plot[idx].items():
+                    if narr_name in sim_name:
+                        indicator_plot[idx][sim_name] = kwargs
     else:
         indicator_plot = [copy.deepcopy(dict_sim)]
 
-    # legend_items = [{'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}]
-    legend_items = [value for value in narratives.values()]
+    legend_items = [{'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}]
+    legend_items += [value for value in list(narratives.values())[0].values()]
+    # legend_items = [value for value in narratives.values()]
 
     cols = {
         'names_coord': 'horizon',
@@ -76,10 +86,15 @@ def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
         'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2099)']
     }
 
+    # rows = {
+    #     'names_coord': 'indicator',
+    #     'values_var': indicator_plot,
+    #     'names_plot': [f"Narratif {i['label'].split(' ')[0]}" for i in narratives.values()] #list(narratives.keys())
+    # }
     rows = {
         'names_coord': 'indicator',
         'values_var': indicator_plot,
-        'names_plot': [f"Narratif {i['label'].split(' ')[0]}" for i in narratives.values()] #list(narratives.keys())
+        'names_plot': [f"Centrés", "Éloignés", "Mixtes"] #list(narratives.keys())
     }
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,

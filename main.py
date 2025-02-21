@@ -164,15 +164,16 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                     else:
                         print(f'> {path_ncdf} already exists', end='\n')
 
-narratives =  compute_narratives(dict_paths, stations=list(reference_stations['La Loire'].keys()),
+narratives =  compute_narratives(dict_paths,
+                                 stations=list(reference_stations['La Loire'].keys()),
                                  files_setup=files_setup,
                                  hydro_sim_points_gdf_simplified=hydro_sim_points_gdf_simplified,
                                  indictor_values=["QJXA", "QA", "VCN10"],
-                                 threshold=0.8*len(reference_stations['La Loire']))
+                                 threshold=0.8*len(reference_stations['La Loire']),
+                                 narrative_method=None)
 
 
 run_plot = True
-
 while run_plot:
     run_all = input("Run all ? (y/hydro/climate/[n])")
     data_to_plot = {}
@@ -352,16 +353,16 @@ while run_plot:
                                         map_title = f"{value}: {coordinate_value} "
                                     else:
                                         map_title = f"{value}"
-                                    plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key),
-                                                          variables=variables, plot_type=plot_type,
-                                                          path_result=path_indicator_figures+f'{title_join}_map_{plot_type}_median_{key}.pdf',
-                                                          cbar_title=f"{plot_type_name.title()} médiane {title}{units}", title=map_title,
-                                                          cbar_midpoint='zero',
-                                                          dict_shapefiles=dict_shapefiles, bounds=bounds, edgecolor=edgecolor,
-                                                          markersize=170, discretize=settings['discretize'], palette=settings['palette'],
-                                                          fontsize=settings['fontsize'],
-                                                          font=settings['font'], alpha=settings['alpha'],
-                                                          vmin=settings['vmin'], vmax=settings['vmax'])
+                                    # plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key),
+                                    #                       variables=variables, plot_type=plot_type,
+                                    #                       path_result=path_indicator_figures+f'{title_join}_map_{plot_type}_median_{key}.pdf',
+                                    #                       cbar_title=f"{plot_type_name.title()} médiane {title}{units}", title=map_title,
+                                    #                       cbar_midpoint='zero',
+                                    #                       dict_shapefiles=dict_shapefiles, bounds=bounds, edgecolor=edgecolor,
+                                    #                       markersize=170, discretize=settings['discretize'], palette=settings['palette'],
+                                    #                       fontsize=settings['fontsize'],
+                                    #                       font=settings['font'], alpha=settings['alpha'],
+                                    #                       vmin=settings['vmin'], vmax=settings['vmax'])
 
                                 if settings['additional_coordinates'] != 'month':
                                     print(f"> Linear plot...")
@@ -380,7 +381,22 @@ while run_plot:
                                         # Limit size of y axis label
                                         name_y_axis = optimize_label_length(f'{plot_type_name.title()} {title}{units}', settings,
                                                                             )
-                                    if len(list(narratives.keys())[0].split("_")) < 4:
+                                    if len(list(narratives.keys())[0].split("_")) <= 1:
+                                        print(f"{name_indicator} >> Linear {plot_type} PK Narratives comparison")
+                                        plot_linear_pk_narrative(ds,
+                                                                 simulations=variables[f'simulation-horizon_by-sims_{plot_type}'],
+                                                                 narratives=narratives,
+                                                                 title=coordinate_value,
+                                                                 name_x_axis=f'PK (km)',
+                                                                 name_y_axis=name_y_axis,
+                                                                 percent=percent,
+                                                                 vlines=vlines,
+                                                                 fontsize=settings['fontsize'],
+                                                                 font=settings['font'],
+                                                                 path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_x-PK_y-{title_join}_narratives_comparison.pdf')
+
+
+                                    elif len(list(narratives.keys())[0].split("_")) < 4:
                                         # print(f"{name_indicator} >> Linear {plot_type} PK for HM & Horizon with Narrative")
                                         # plot_linear_pk_hm(ds,
                                         #                   simulations=variables[f'hydro-model_sim-horizon_{plot_type}'],
