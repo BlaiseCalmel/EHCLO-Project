@@ -24,6 +24,18 @@ def representative_item(X_cluster, centroids, cluster, cluster_id, indices_clust
 
             distances = np.mean(distances_list, axis=0)
             idx = indices_cluster[np.argmax(distances)]
+    elif method == 'combine':
+        # Compute distance from cluster centroid
+        distances_cluster = np.linalg.norm(X_cluster - centroids[cluster], axis=1)
+        mask_cluster = distances_cluster < np.mean(distances_cluster)
+
+        # Compute distance from other cluster centroids
+        distances_list = []
+        for c in cluster_id:
+            if c != cluster:
+                distances_list.append(np.linalg.norm(X_cluster - centroids[c], axis=1))
+        distances_other = np.mean(distances_list, axis=0)
+        idx = indices_cluster[mask_cluster][np.argmax(distances_other[mask_cluster])]
 
     return idx
 
@@ -107,7 +119,7 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
     centroids = kmeans.cluster_centers_  # de forme (n_clusters, n_features)
 
     # Dict to find the closest sim from the centroid (gcm-rcm, bc, hm)
-    representative_groups = {}
+
 
     # Create mask for sim above threshold
     above_threshold = count_stations > threshold
@@ -117,39 +129,47 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
     colors = plt.get_cmap("Dark2", 4).colors
     hex_colors = [mcolors.to_hex(c) for c in colors]
     cluster_names = ['A', 'B', 'C', 'D']
-    for cluster in cluster_id:
-        # Index of cluster values
-        indices_cluster = np.where(labels == cluster)[0]
+    if narrative_method is None:
+        methods = ['closest', 'furthest', 'combine']
+    else:
+        methods = [narrative_method]
+    meth_list = []
+    for narrative_method in methods:
+        representative_groups = {}
+        for cluster in cluster_id:
+            # Index of cluster values
+            indices_cluster = np.where(labels == cluster)[0]
 
-        # Filter indices for sim above threshold
-        indices_mask = above_threshold[indices_cluster]
-        if len(indices_mask) > 0:
-            indices_cluster = indices_cluster[indices_mask]
+            # Filter indices for sim above threshold
+            indices_mask = above_threshold[indices_cluster]
+            if len(indices_mask) > 0:
+                indices_cluster = indices_cluster[indices_mask]
 
-        # Get vector of these sims
-        X_cluster = X_imputed[indices_cluster, :]  # de forme (nombre_d'observations_dans_le_cluster, n_features)
+            # Get vector of these sims
+            X_cluster = X_imputed[indices_cluster, :]
 
-        idx = representative_item(X_cluster, centroids, cluster, cluster_id, indices_cluster, method=narrative_method)
+            idx = representative_item(X_cluster, centroids, cluster, cluster_id, indices_cluster, method=narrative_method)
 
-        # Extract coordinate (gcm-rcm, bc, hm) of selected sim
-        coords_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx).values
-        coords_bc      = ds_stacked["bc"].isel(sample=idx).values
-        coords_hm      = ds_stacked["hm"].isel(sample=idx).values
+            # Extract coordinate (gcm-rcm, bc, hm) of selected sim
+            coords_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx).values
+            coords_bc      = ds_stacked["bc"].isel(sample=idx).values
+            coords_hm      = ds_stacked["hm"].isel(sample=idx).values
 
-        # Save result in dict
-        representative_groups[cluster] = {
-            "gcm-rcm": coords_gcm_rcm,
-            "bc": coords_bc,
-            "hm": coords_hm,
-            # "distance": distances[np.argmin(distances)],
-            "idx": idx,
-            "color": hex_colors[cluster],
-            "name": cluster_names[cluster]
-        }
+            # Save result in dict
+            representative_groups[cluster] = {
+                "gcm-rcm": coords_gcm_rcm,
+                "bc": coords_bc,
+                "hm": coords_hm,
+                # "distance": distances[np.argmin(distances)],
+                "idx": idx,
+                "color": hex_colors[cluster],
+                "name": cluster_names[cluster]
+            }
+        meth_list.append(representative_groups)
 
     narratives = {f"{value['gcm-rcm']}_{value['bc']}_{value['hm']}": {'color': value['color'], 'zorder': 10,
                                                                       'label': f"{value['name'].title()} [{value['gcm-rcm']}_{value['bc']}_{value['hm']}]",
-                                                                      'linewidth': 1} for key, value in representative_groups.items()}
+                                                                      'linewidth': 1} for rp in meth_list for key, value in rp.items()}
 
     # PCA for 2D visualisation
     pca = PCA(n_components=2)
@@ -171,8 +191,8 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
     xlabel = f"Dim 1 {ratio1:.1%} ({indictor_values[0]}: {pc1_contributions[0]:.1%}, {indictor_values[1]}: {pc1_contributions[1]:.1%}, {indictor_values[2]}: {pc1_contributions[2]:.1%})"
     ylabel = f"Dim 2 {ratio2:.1%} ({indictor_values[0]}: {pc2_contributions[0]:.1%}, {indictor_values[1]}: {pc2_contributions[1]:.1%}, {indictor_values[2]}: {pc2_contributions[2]:.1%})"
     title = "Clusters et points représentatifs (après PCA)"
-    path_result = f"/home/bcalmel/Documents/3_results/narratest_closest_pca_spatial_mean_centroides.pdf"
-    plot_narratives(X_pca, ds_stacked, representative_groups, labels, cluster_names,
+    path_result = f"/home/bcalmel/Documents/3_results/narratest_pca_spatial_wmean_centroides.pdf"
+    plot_narratives(X_pca, ds_stacked, meth_list, labels, cluster_names,
                     path_result, xlabel, ylabel, title, centroids=centroids_pca, count_stations=None,
                     above_threshold=above_threshold, palette='Dark2', n=4)
 
@@ -190,9 +210,9 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
         xlabel = f"Variation {indictor_values[idx1]} (%)"
         ylabel = f"Variation {indictor_values[idx2]} (%)"
         title = "Clusters et points représentatifs"
-        path_result=f"/home/bcalmel/Documents/3_results/narratest_closest_{indictor_values[idx1]}_{indictor_values[idx2]}_spatial_mean_centroides.pdf"
+        path_result=f"/home/bcalmel/Documents/3_results/narratest_{indictor_values[idx1]}_{indictor_values[idx2]}_spatial_wmean_centroides.pdf"
 
-        plot_narratives(X_imputed[:, [idx1, idx2]], ds_stacked, representative_groups, labels, cluster_names,
+        plot_narratives(X_imputed[:, [idx1, idx2]], ds_stacked, meth_list, labels, cluster_names,
                         path_result, xlabel, ylabel, title, centroids=None, count_stations=None,
                         above_threshold=above_threshold, palette='Dark2', n=4)
 

@@ -95,7 +95,7 @@ def plot_narratives(x_data, ds_stacked, representative_groups, labels, cluster_n
                          title="Modèles Hydro", ncol=2)
     ax.add_artist(legend1)
     plt.legend(handles=representative_legends, loc='center left', bbox_to_anchor=(1.2, 0.3),
-               title="Narratifs", ncol=2)
+               title="Narratifs", ncol=3)
     cbar = plt.colorbar(scatter, fraction=0.03, pad=0.02)
     cbar.set_label("Cluster")
     cbar.set_ticks([0,1,2,3])

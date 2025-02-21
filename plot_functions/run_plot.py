@@ -67,8 +67,8 @@ def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
     else:
         indicator_plot = [copy.deepcopy(dict_sim)]
 
-    legend_items = [{'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}]
-    legend_items += [value for value in narratives.values()]
+    # legend_items = [{'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}]
+    legend_items = [value for value in narratives.values()]
 
     cols = {
         'names_coord': 'horizon',
