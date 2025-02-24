@@ -32,7 +32,7 @@ print(f'> Load json inputs...', end='\n')
 with open('config.json') as config_file:
     config = json.load(config_file)
 
-with open('files_setup.json') as files_setup:
+with open('files_setup-perso.json') as files_setup:
     files_setup = json.load(files_setup)
 
 settings_flatten = {}
@@ -92,8 +92,8 @@ print(f'> Simplify shapefiles...', end='\n')
 study_hydro_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified, regions_shp_simplified, bounds = (
     simplify_shapefiles(study_hydro_shp, study_climate_shp, rivers_shp, regions_shp, tolerance=1000, zoom=1000))
 
-hydro_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
-hydro_sim_points_gdf_simplified = hydro_sim_points_gdf[hydro_sim_points_gdf['n'] >= 4]
+hydro_sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
+# hydro_sim_points_gdf_simplified = hydro_sim_points_gdf[hydro_sim_points_gdf['n'] >= 4]
 hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified.reset_index(drop=True).set_index('Suggestion')
 hydro_sim_points_gdf_simplified.index.names = ['name']
 
@@ -138,7 +138,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                         function = settings_dict['extract_function']
 
                     name_join = name_indicator.replace(" ", "-").replace(".", "")
-                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}.nc"
+                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}.csv"
 
                     if not os.path.isfile(path_ncdf):
                         print(f'> Create {indicator} export...', end='\n')

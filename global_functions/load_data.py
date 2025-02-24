@@ -131,6 +131,8 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                 split_name = files[0].split(os.sep)[-4:-1]
             else:
                 split_name = files[0].split(os.sep)[-5:-1]
+                if "SAFRAN" in split_name:
+                    split_name = files[0].split(os.sep)[-3:-1]
 
             file_name = '_'.join(split_name)
             var = indicator+'_'+file_name
@@ -144,6 +146,21 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             for file in files:
                 print(file)
                 ds = xr.open_dataset(file)
+
+                if 'SAFRAN' in split_name:
+                    # Get hydro model
+                    hm = split_name[-1]
+                    # Get remove station list
+                    rm_hm = pd.read_csv(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_rm.csv", sep=";")
+                    rm_hm["AncienNom"] = rm_hm["AncienNom"].apply(lambda x: x.encode())
+                    ds = ds.sel(station=ds["station"].where(~ds["code"].isin(rm_hm["AncienNom"]), drop=True))
+
+                    # Get modify station list
+                    mv_hm = pd.read_csv(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_mv.csv", sep=";")
+                    mv_hm["AncienNom"] = mv_hm["AncienNom"].apply(lambda x: x.encode())
+                    mv_hm = mv_hm.set_index(["AncienNom", "AncienX", "AncienY"])["NouveauNom"]
+                    mask = list(zip(ds["code"].values, ds["L93_X"].values, ds["L93_Y"].values))
+                    ds = ds.assign_coords(code=[mv_hm.get(k, old) for k, old in zip(mask, ds["code"].values)])
 
                 # Check for coordinates without dimension
                 dims_without_coords = [dim for dim in ds.dims if dim not in ds.coords]
