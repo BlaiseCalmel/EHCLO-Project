@@ -138,7 +138,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                         function = settings_dict['extract_function']
 
                     name_join = name_indicator.replace(" ", "-").replace(".", "")
-                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}.csv"
+                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{start}-{end}.nc"
 
                     if not os.path.isfile(path_ncdf):
                         print(f'> Create {indicator} export...', end='\n')
@@ -152,6 +152,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                             start=files_setup['historical'][0]
                             end=2005
                             path_result=path_ncdf
+                            path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{start}-{end}.csv"
                             extract_ncdf_indicator(
                                 paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
                                 indicator=indicator, function=function, timestep=timestep,
