@@ -173,10 +173,6 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
             # Headers and axes label
             add_header(ax, rows_plot, cols_plot, ylabel=y_title, xlabel=x_title)
 
-            # if col_idx != 0:
-            #     ax.set_yticklabels([])
-            # if row_idx != len(rows_plot['values_var'])-1:
-            #     ax.set_xticklabels([])
 
     abs_max = max([ymax, -ymin])
     n = 2*abs_max / 4
@@ -223,7 +219,7 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
     ncol = max(1, int(fig_width * 5 / avg_label_length))
 
     fig.legend(handles=legend_handles, loc='upper center', bbox_to_anchor=(0.5, 0), fancybox=True, shadow=False,
-                   ncol=ncol)
+               ncol=ncol)
 
     plt.savefig(path_result, bbox_inches='tight')
 

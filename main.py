@@ -49,7 +49,7 @@ print(f'> Load json inputs...', end='\n')
 with open('config.json') as config_file:
     config = json.load(config_file)
 
-with open('files_setup-perso.json') as files_setup:
+with open('files_setup.json') as files_setup:
     files_setup = json.load(files_setup)
 
 settings_flatten = {}
@@ -128,7 +128,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
     # Run among data type climate/hydro
     data_type='hydro'
     subdict=path_files[data_type]
-    rcp='rcp85'
+    rcp='SAFRAN'
     subdict2=subdict[rcp]
     indicator = "debit"
     paths = subdict2[indicator]
@@ -155,6 +155,8 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                         function = settings_dict['extract_function']
 
                     name_join = name_indicator.replace(" ", "-").replace(".", "")
+                    start=files_setup['historical'][0]
+                    end=2005
                     path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{start}-{end}.nc"
 
                     if not os.path.isfile(path_ncdf):
@@ -166,8 +168,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                             paths_data=paths
                             param_type=data_type
                             sim_points_gdf=sim_points_gdf_simplified
-                            start=files_setup['historical'][0]
-                            end=2005
+
                             path_result=path_ncdf
                             path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{start}-{end}.csv"
                             extract_ncdf_indicator(
@@ -189,6 +190,9 @@ narratives =  compute_narratives(dict_paths,
                                  indictor_values=["QJXA", "QA", "VCN10"],
                                  threshold=0.8*len(reference_stations['La Loire']),
                                  narrative_method=None)
+
+df = pd.read_csv(f"/home/bcalmel/Documents/2_data/Antoine_25-02/hydrologie_csv/dataEX_Explore2_criteria_diagnostic_LF.csv",
+                 sep=";")
 
 
 run_plot = True

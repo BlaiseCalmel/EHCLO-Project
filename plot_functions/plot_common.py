@@ -148,7 +148,6 @@ def add_header(ax, rows_plot, cols_plot, ylabel='', xlabel=''):
             if name_row is not None:
                 name_row = name_row.replace(' ', '~')
 
-
         if name_row is None:
             ax.set_ylabel(f"{ylabel}")
         elif ylabel is None or len(ylabel) == 0:

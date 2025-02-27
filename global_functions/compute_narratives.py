@@ -21,8 +21,10 @@ import numpy as np
 from sklearn.decomposition import PCA
 from global_functions.format_data import format_dataset
 from plot_functions.plot_narratives import plot_narratives
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
+
+from rpy2.robjects.packages import importr
+import rpy2.robjects as ro
+from rpy2.robjects import pandas2ri
 
 def representative_item(X_cluster, centroids, cluster, cluster_id, indices_cluster, method='closest'):
     idx = None
@@ -140,11 +142,50 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
     # Run on each cluster
     cluster_id = np.unique(labels)
     # Cluster info
-    colors = plt.get_cmap("Dark2", 4).colors
-    hex_colors = [mcolors.to_hex(c) for c in colors]
+    # colors = plt.get_cmap("Dark2", 4).colors
+    # hex_colors = [mcolors.to_hex(c) for c in colors]
+
+    # # Load hm performances .fst files
+    # # Run once to install the related R packages
+    # utils = importr('utils')
+    # utils.install_packages('fst')
+    # utils.install_packages('data.table')
+
+    # load the installed R packages
+    fst = importr('fst')
+    dt = importr('data.table')
+
+    # Read the .fst file
+    df = fst.read_fst(f"/home/bcalmel/Documents/2_data/hydrologie/dataEX_Explore2_criteria_diagnostic_BF.fst")
+    # Convert to pandas dataframe
+    with (ro.default_converter + pandas2ri.converter).context():
+        df = ro.conversion.get_conversion().rpy2py(df)
+
     cluster_names = ['A', 'B', 'C', 'D']
+
+    # Rank clusters
+    # ranks = np.argsort(np.argsort(centroids, axis=0), axis=0) + 1
+    # cumulative_ranks = ranks[:, 0] + ranks[:, 2]
+    # mask = np.ones(ranks.shape, dtype=bool)
+    #
+    # extreme = np.argmin(cumulative_ranks)
+    # mask[extreme, :] = False
+    # dry = np.argmin(np.where(mask, ranks, np.inf)[:, 2])
+    # mask[dry, :] = False
+    # flood = np.argmax(np.where(mask, ranks, -np.inf)[:, 0])
+    # mask[flood, :] = False
+    # last = np.argmin(np.where(mask, ranks, np.inf)[:, 2])
+    #
+    # narra_idx = [flood, dry, last, extreme]
+    # narra_idx = [1, 2, 0, 3]
+    hex_colors = ["#016367", "#9E3A14", "#E66912", "#0B1C48"]
+    # Bleunavy Orange Brun Turquoise https://www.canva.com/colors/color-palettes/freshly-sliced-fruit/
+    # hex_colors = [hex_colors[i] for i in narra_idx]
+
+    rows = None
     if narrative_method is None:
         methods = ['closest', 'furthest', 'combine']
+        rows = ['Proche', 'Lointain', 'Mixte']
     else:
         methods = [narrative_method]
     meth_list = []
@@ -177,7 +218,8 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
                 # "distance": distances[np.argmin(distances)],
                 "idx": idx,
                 "color": hex_colors[cluster],
-                "name": cluster_names[cluster]
+                "name": cluster_names[cluster],
+                "method": narrative_method
             }
         meth_list.append(representative_groups)
 
@@ -203,12 +245,20 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
     # Plot for PCA
     print(f"Narrative PCA Plot")
     xlabel = f"Dim 1 {ratio1:.1%} ({indictor_values[0]}: {pc1_contributions[0]:.1%}, {indictor_values[1]}: {pc1_contributions[1]:.1%}, {indictor_values[2]}: {pc1_contributions[2]:.1%})"
-    ylabel = f"Dim 2 {ratio2:.1%} ({indictor_values[0]}: {pc2_contributions[0]:.1%}, {indictor_values[1]}: {pc2_contributions[1]:.1%}, {indictor_values[2]}: {pc2_contributions[2]:.1%})"
+    ylabel = f"Dim 2 {ratio2:.1%} ({indictor_values[0]}: {pc2_contributions[0]:.1%}, \n{indictor_values[1]}: {pc2_contributions[1]:.1%}, {indictor_values[2]}: {pc2_contributions[2]:.1%})"
     title = "Clusters et points représentatifs (après PCA)"
-    path_result = f"/home/bcalmel/Documents/3_results/narratest_pca_spatial_mean_centroides.pdf"
+    path_result = f"/home/bcalmel/Documents/3_results/narratest_pca_comparatives.pdf"
     plot_narratives(X_pca, ds_stacked, meth_list, labels, cluster_names,
-                    path_result, xlabel, ylabel, title, centroids=centroids_pca, count_stations=None,
-                    above_threshold=above_threshold, palette='Dark2', n=4)
+                    path_result, xlabel, ylabel, title=None, centroids=centroids_pca, count_stations=None,
+                    above_threshold=above_threshold, palette=hex_colors, n=4, rows=rows,
+                    cols=None)
+
+    # Plot comparison with every indicator
+    path_result = f"/home/bcalmel/Documents/3_results/narratest_spatial_mean_comparatives.pdf"
+    plot_narratives(X_imputed, ds_stacked, meth_list, labels, cluster_names,
+                    path_result, xlabel, ylabel, title, centroids=None, count_stations=None,
+                    above_threshold=above_threshold, palette=hex_colors, n=4, rows=rows,
+                    cols=indictor_values)
 
     # PLOT BY INDICATOR
     for idx1 in range(len(indictor_values)):
@@ -224,11 +274,12 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
         xlabel = f"Variation {indictor_values[idx1]} (%)"
         ylabel = f"Variation {indictor_values[idx2]} (%)"
         title = "Clusters et points représentatifs"
-        path_result=f"/home/bcalmel/Documents/3_results/narratest_{indictor_values[idx1]}_{indictor_values[idx2]}_spatial_mean_centroides.pdf"
+        path_result=f"/home/bcalmel/Documents/3_results/narratest_{indictor_values[idx1]}-{indictor_values[idx2]}.pdf"
+        # path_result=f"/home/bcalmel/Documents/3_results/narratest_spatial_mean_comparison.pdf"
 
         plot_narratives(X_imputed[:, [idx1, idx2]], ds_stacked, meth_list, labels, cluster_names,
-                        path_result, xlabel, ylabel, title, centroids=None, count_stations=None,
-                        above_threshold=above_threshold, palette='Dark2', n=4)
+                        path_result, xlabel, ylabel, title=None, centroids=None, count_stations=None,
+                        above_threshold=above_threshold, palette=hex_colors, n=4, rows=rows)
 
     return narratives
 

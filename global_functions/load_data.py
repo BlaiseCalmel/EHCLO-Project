@@ -121,8 +121,8 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
     temp_paths = []
     with (tqdm(total=total_iterations, desc=f"Create {title} file") as pbar):
-        # i=2
-        # files=paths_data[i]
+        i=2
+        files=paths_data[i]
         # file1 = [
         #         '/home/bcalmel/Documents/2_data/historical-rcp85/HadGEM2-ES/ALADIN63/ADAMONT/SMASH/debit_France_MOHC-HadGEM2-ES_historical-rcp85_r1i1p1_CNRM-ALADIN63_v3_MF-ADAMONT-SAFRAN-1980-2011_INRAE-SMASH_day_20050801-20990731.nc'
         #     ]
@@ -161,22 +161,8 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             datasets = []
             for file in files:
                 print(file)
+                # mypath= "/media/bcalmel/Explore2/hydrological-projection_daily-time-series_by-chain_raw-netcdf/rcp85/CNRM-CM5/ALADIN63/ADAMONT/CTRIP/debit_France_CNRM-CERFACS-CNRM-CM5_rcp85_r1i1p1_CNRM-ALADIN63_v2_MF-ADAMONT-SAFRAN-1980-2011_MF-ISBA-CTRIP_day_20050801-21000731.nc"
                 ds = xr.open_dataset(file)
-
-                if 'SAFRAN' in split_name:
-                    # Get hydro model
-                    hm = split_name[-1]
-                    # Get remove station list
-                    rm_hm = pd.read_csv(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_rm.csv", sep=";")
-                    rm_hm["AncienNom"] = rm_hm["AncienNom"].apply(lambda x: x.encode())
-                    ds = ds.sel(station=ds["station"].where(~ds["code"].isin(rm_hm["AncienNom"]), drop=True))
-
-                    # Get modify station list
-                    mv_hm = pd.read_csv(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_mv.csv", sep=";")
-                    mv_hm["AncienNom"] = mv_hm["AncienNom"].apply(lambda x: x.encode())
-                    mv_hm = mv_hm.set_index(["AncienNom", "AncienX", "AncienY"])["NouveauNom"]
-                    mask = list(zip(ds["code"].values, ds["L93_X"].values, ds["L93_Y"].values))
-                    ds = ds.assign_coords(code=[mv_hm.get(k, old) for k, old in zip(mask, ds["code"].values)])
 
                 # Check for coordinates without dimension
                 dims_without_coords = [dim for dim in ds.dims if dim not in ds.coords]
@@ -229,6 +215,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             coordinates = {}
             for dim in resampled_var.dims:
                 coordinates |= {dim: resampled_var[dim].values}
+
             print(f"Create")
             if param_type == "climate":
                 if ds[file_name].attrs.get("units") == 'kg.m-2.s-1':
@@ -259,10 +246,49 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
                 ds = xr.Dataset({
                     file_name: (resampled_var.dims, resampled_var.values),
-                    # 'x': (ds.L93_X.dims, ds.L93_X.values),
-                    # 'y': (ds.L93_Y.dims, ds.L93_Y.values)
+                    'x': (ds.L93_X.dims, ds.L93_X.values),
+                    'y': (ds.L93_Y.dims, ds.L93_Y.values)
                 }, coords=coordinates
                 )
+
+                if 'SAFRAN' in split_name:
+                    # Get hydro model
+                    hm = split_name[-1]
+                    # Get remove station list
+                    if os.path.isfile(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_rm.csv"):
+                        rm_hm = pd.read_csv(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_rm.csv", sep=";")
+                        rm_hm["AncienNom"] = rm_hm["AncienNom"].apply(lambda x: x.encode())
+                        # ds = ds.sel(station=[int(j) for j in ds["station"].where(~ds["code"].isin(rm_hm["AncienNom"]),
+                        #                                                          drop=True)])
+                        ds = ds.where(~ds["code"].isin(rm_hm["AncienNom"]), drop=True)
+
+                    # Get modify station list
+                    if os.path.isfile(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_mv.csv"):
+                        mv_hm = pd.read_csv(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_mv.csv", sep=";")
+                        mv_hm["AncienNom"] = mv_hm["AncienNom"].apply(lambda x: x.encode())
+                        mv_hm["NouveauNom"] = mv_hm["NouveauNom"].apply(lambda x: x.encode())
+                        codes_updated = ds["code"].values.copy()
+                        remove_list = []
+                        for _, row in mv_hm.iterrows():
+                            mask = (
+                                    (ds["code"] == row["AncienNom"]) &
+                                    (np.round(ds["x"]) == np.round(row["AncienX"])) &
+                                    (np.round(ds["y"]) == np.round(row["AncienY"]))
+                            )
+
+                            if np.sum(mask) == 0:
+                                mask = (ds["code"] == row["AncienNom"])
+
+                            if np.sum(mask) == 1:
+                                codes_updated = xr.where(mask, row["NouveauNom"], codes_updated)
+                            else:
+                                if row["AncienNom"] in ds.code:
+                                    remove_list.append(row["AncienNom"])
+
+                        ds = ds.assign_coords(code=("code", codes_updated.values))
+                        if len(remove_list) > 0:
+                            ds = ds.where(~ds["code"].isin(remove_list), drop=True)
+
                 ds = ds.sel(code=ds["code"] != b'----------')
                 gid_values = np.unique([code.encode() for code in sim_points_gdf.index.values])
                 codes_to_select = [code for code in gid_values if code in ds['code'].values]
