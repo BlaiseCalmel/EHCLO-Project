@@ -114,8 +114,8 @@ def plot_narratives(x_data, ds_stacked, representative_groups, labels, cluster_n
                     ax.annotate(count_stations[j], (x_data_plot[j, 0], x_data_plot[j, 1]),
                                  fontsize=9, color='black', zorder=13)
 
-            scatter = ax.scatter([np.nan]*len(representative_groups), [np.nan]*len(representative_groups),
-                                 c=np.arange(len(representative_groups)), cmap=cmap, norm=norm)
+            # scatter = ax.scatter([np.nan]*len(representative_groups), [np.nan]*len(representative_groups),
+            #                      c=np.arange(len(representative_groups)), cmap=cmap, norm=norm)
 
                 # Affichage des centroïdes
             representative_legends = []
@@ -130,7 +130,7 @@ def plot_narratives(x_data, ds_stacked, representative_groups, labels, cluster_n
 
                 # Récupérer les coordonnées d'origine (gcm-rcm, bc, hm)
                 coord_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx).values
-                coord_bc      = ds_stacked["bc"].isel(sample=idx).values
+                # coord_bc      = ds_stacked["bc"].isel(sample=idx).values
                 coord_hm      = ds_stacked["hm"].isel(sample=idx).values
 
                 # Annoter le graphique avec ces coordonnées

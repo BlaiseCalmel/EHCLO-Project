@@ -121,8 +121,8 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
     temp_paths = []
     with (tqdm(total=total_iterations, desc=f"Create {title} file") as pbar):
-        i=2
-        files=paths_data[i]
+        # i=2
+        # files=paths_data[i]
         # file1 = [
         #         '/home/bcalmel/Documents/2_data/historical-rcp85/HadGEM2-ES/ALADIN63/ADAMONT/SMASH/debit_France_MOHC-HadGEM2-ES_historical-rcp85_r1i1p1_CNRM-ALADIN63_v3_MF-ADAMONT-SAFRAN-1980-2011_INRAE-SMASH_day_20050801-20990731.nc'
         #     ]
@@ -160,7 +160,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
             datasets = []
             for file in files:
-                print(file)
+                # print(file)
                 # mypath= "/media/bcalmel/Explore2/hydrological-projection_daily-time-series_by-chain_raw-netcdf/rcp85/CNRM-CM5/ALADIN63/ADAMONT/CTRIP/debit_France_CNRM-CERFACS-CNRM-CM5_rcp85_r1i1p1_CNRM-ALADIN63_v2_MF-ADAMONT-SAFRAN-1980-2011_MF-ISBA-CTRIP_day_20050801-21000731.nc"
                 ds = xr.open_dataset(file)
 
@@ -209,14 +209,14 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
             # Compute quantile
             # if function is not None:
-            print('resample')
+            # print('resample')
             resampled_var = apply_function_to_ds(ds, function, file_name, timestep)
             # Create a new dataset
             coordinates = {}
             for dim in resampled_var.dims:
                 coordinates |= {dim: resampled_var[dim].values}
 
-            print(f"Create")
+            # print(f"Create")
             if param_type == "climate":
                 if ds[file_name].attrs.get("units") == 'kg.m-2.s-1':
                     ds[file_name] = ds[file_name] * 86400
@@ -331,9 +331,9 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             # ds = ds.set_coords('y')
 
             # datasets.append(ds[var])
-            print(f"Save")
+            # print(f"Save")
             ds.to_netcdf(path=f"{temp_dir}{os.sep}{var}.nc")
-            print('Saved')
+            # print('Saved')
             temp_paths.append(f"{temp_dir}{os.sep}{var}.nc")
 
             # Update progress bar
@@ -341,6 +341,13 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
     # Open temporary files and merge datasets
     combined_dataset = xr.open_mfdataset(temp_paths, combine='nested', compat='override')
+
+    if 'code' in combined_dataset.coords:
+        combined_dataset = combined_dataset.rename({'code': 'gid'})
+        combined_dataset = combined_dataset.sel(gid=combined_dataset["gid"] != b'----------')
+
+    combined_dataset = combined_dataset.set_coords('x')
+    combined_dataset = combined_dataset.set_coords('y')
 
     # Save as ncdf
     if path_result is not None:

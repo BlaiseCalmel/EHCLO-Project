@@ -37,11 +37,13 @@ def plot_linear_pk_hm(ds, simulations, path_result, narratives=None,
     if narratives is not None:
         for subdict in indicator_plot:
             for key in subdict.keys():
-                for narr_name, kwargs in narratives.items():
-                    if narr_name in key:
-                        subdict[key] = kwargs
+                for narr_name in narratives.values():
+                    for sim_name, kwargs in narr_name.items():
+                        if sim_name in key:
+                            subdict[key] = kwargs
+
     legend_items = [{'color': 'lightgray', 'alpha': 0.8, 'zorder': 1, 'label': 'Simulation', 'linewidth': 0.5}]
-    legend_items += [value for value in narratives.values()]
+    legend_items += [value for narr_name in narratives.values() for value in narr_name.values()]
 
     cols = {
         'names_coord': 'horizon',
@@ -60,7 +62,7 @@ def plot_linear_pk_hm(ds, simulations, path_result, narratives=None,
 
 def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
                              name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None, ymax=None, xmax=None,
-                             fontsize=14, font='sans-serif'):
+                             fontsize=14, font='sans-serif', by_narrative=False):
     x_axis = {'names_coord': 'PK',
               'name_axis': name_x_axis
               }
@@ -71,28 +73,44 @@ def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
     dict_sim = {sim_name: {'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}
                 for sim_name in simulations}
 
-    # if narratives is not None:
-    #     indicator_plot = [copy.deepcopy(dict_sim) for i in range(len(narratives))]
-    #     idx = -1
-    #     for narr_name, kwargs in narratives.items():
+    if narratives is not None:
+        if not by_narrative:
+            indicator_plot = [copy.deepcopy(dict_sim) for narr_name in narratives.values() for i in narr_name]
+            idx = -1
+            for narr in narratives.values():
+                for narr_name, kwargs in narr.items():
+                    idx += 1
+                    for sim_name, values in indicator_plot[idx].items():
+                        if narr_name in sim_name:
+                            indicator_plot[idx][sim_name] = kwargs
+            row_names_plot = [f"Narratif {i['label'].split(' ')[0]}" for value in narratives.values() for i in
+                              value.values()]
+        else:
+            indicator_plot = [copy.deepcopy(dict_sim) for narr_name in narratives.values()]
+            idx = -1
+            for narr in narratives.values():
+                idx += 1
+                for narr_name, kwargs in narr.items():
+                    for sim_name, values in indicator_plot[idx].items():
+                        if narr_name in sim_name:
+                            indicator_plot[idx][sim_name] = kwargs
+            row_names_plot = [f"{key.title()}" for key in narratives.keys()]
+    # indicator_plot = [copy.deepcopy(dict_sim) for narr_name in narratives.values() for i in narr_name]
+    # idx = -1
+    # for narr in narratives.values():
+    #     for narr_name, kwargs in narr.items():
     #         idx += 1
     #         for sim_name, values in indicator_plot[idx].items():
     #             if narr_name in sim_name:
     #                 indicator_plot[idx][sim_name] = kwargs
-    if narratives is not None:
-        indicator_plot = [copy.deepcopy(dict_sim) for i in range(len(narratives))]
-        idx = -1
-        for narr_type, narr in narratives.items():
-            idx += 1
-            for narr_name, kwargs in narr.items():
-                for sim_name, values in indicator_plot[idx].items():
-                    if narr_name in sim_name:
-                        indicator_plot[idx][sim_name] = kwargs
-    else:
-        indicator_plot = [copy.deepcopy(dict_sim)]
 
     legend_items = [{'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}]
-    legend_items += [value for value in list(narratives.values())[0].values()]
+    legend_items += [value for narr_value in narratives.values() for value in narr_value.values()]
+    # Suppression des doublons en convertissant les dictionnaires en tuples immuables
+    unique_legend_items = []
+    for i in legend_items:
+        if i not in unique_legend_items:
+            unique_legend_items.append(i)
     # legend_items = [value for value in narratives.values()]
 
     cols = {
@@ -101,24 +119,24 @@ def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
         'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2099)']
     }
 
-    # rows = {
-    #     'names_coord': 'indicator',
-    #     'values_var': indicator_plot,
-    #     'names_plot': [f"Narratif {i['label'].split(' ')[0]}" for i in narratives.values()] #list(narratives.keys())
-    # }
     rows = {
         'names_coord': 'indicator',
         'values_var': indicator_plot,
-        'names_plot': [f"Centrés", "Éloignés", "Mixtes"] #list(narratives.keys())
+        'names_plot': row_names_plot #list(narratives.keys())
     }
+    # rows = {
+    #     'names_coord': 'indicator',
+    #     'values_var': indicator_plot,
+    #     'names_plot': [f"Centrés", "Éloignés", "Mixtes"] #list(narratives.keys())
+    # }
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
-             legend_items=legend_items, title=title, percent=percent, ymax=ymax, xmax=xmax,
+             legend_items=unique_legend_items, title=title, percent=percent, ymax=ymax, xmax=xmax,
              fontsize=fontsize, font=font)
 
 def plot_linear_pk(ds, simulations, path_result, narratives=None,
                    name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None,
-                   fontsize=14, font='sans-serif'):
+                   fontsize=14, font='sans-serif', by_narrative=False, xmax=None, ymax=None):
     x_axis = {'names_coord': 'PK',
               'name_axis': name_x_axis
               }
@@ -126,33 +144,49 @@ def plot_linear_pk(ds, simulations, path_result, narratives=None,
               'name_axis': name_y_axis
               }
 
-    indicator_plot = {sim_name: {'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}
+    dict_sim = {sim_name: {'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}
                 for sim_name in simulations}
 
-    for sim_name, subdict in indicator_plot.items():
-        for narr_name, kwargs in narratives.items():
-            if narr_name in sim_name:
-                indicator_plot[sim_name] = kwargs
+    row_names_plot = None
+    if narratives is not None:
+        indicator_plot = [copy.deepcopy(dict_sim) for narr_name in narratives.values()]
+        idx = -1
+        for narr in narratives.values():
+            idx += 1
+            for narr_name, kwargs in narr.items():
+                for sim_name, values in indicator_plot[idx].items():
+                    if narr_name in sim_name:
+                        indicator_plot[idx][sim_name] = kwargs
+        if not by_narrative:
+            row_names_plot = [None for value in narratives.values() for i in
+                              value.values()]
+        else:
+            row_names_plot = [f"{key.title()}" for key in narratives.keys()]
 
-    if isinstance(indicator_plot, dict):
-        indicator_plot = [indicator_plot]
+    legend_items = [{'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}]
+    legend_items += [value for narr_value in narratives.values() for value in narr_value.values()]
+    # Suppression des doublons en convertissant les dictionnaires en tuples immuables
+    unique_legend_items = []
+    for i in legend_items:
+        if i not in unique_legend_items:
+            unique_legend_items.append(i)
+    # legend_items = [value for value in narratives.values()]
+
     cols = {
         'names_coord': 'horizon',
         'values_var': ['horizon1', 'horizon2', 'horizon3'],
         'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2099)']
     }
 
-    legend_items = [{'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections'}]
-    legend_items += [value for value in narratives.values()]
-
     rows = {
         'names_coord': 'indicator',
         'values_var': indicator_plot,
-        'names_plot': ''
+        'names_plot': row_names_plot
     }
 
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
-             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, legend_items=legend_items)
+             legend_items=unique_legend_items, title=title, percent=percent, ymax=ymax, xmax=xmax,
+             fontsize=fontsize, font=font)
 
 
 def plot_linear_time(ds, simulations, path_result, station_references, narratives=None,
@@ -172,22 +206,15 @@ def plot_linear_time(ds, simulations, path_result, station_references, narrative
 
     if narratives is not None:
         for key in dict_sim.keys():
-            for narr_name, kwargs in narratives.items():
-                if narr_name in key:
-                    dict_sim[key] = kwargs
+            for narr_type, narr in narratives.items():
+                for sim_name, kwargs in narr.items():
+                    if sim_name in key:
+                        dict_sim[key] = kwargs
 
     legend_items = [{'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}]
-    legend_items += [value for value in narratives.values()]
+    legend_items += [i for narr_value in narratives.values() for i in narr_value.values()]
 
     indicator_plot = [dict_sim for i in range(len(station_references))]
-
-    # cols = {
-    #     'names_coord': 'gid',
-    #     'values_var': list(station_references.keys()),
-    #     'names_plot': list(station_references.values())
-    # }
-    #
-    # rows = 4
 
     rows = {
         'names_coord': 'gid',
@@ -208,7 +235,7 @@ def plot_boxplot_station_narrative(ds, station_references, narratives, reference
 
     narratives_bp = {key: {'boxprops':dict(facecolor=value['color'], alpha=0.9),
     'medianprops': dict(color="black"), 'widths':0.9, 'patch_artist':True,
-    'label': value['label']} for key, value in narratives.items()}
+    'label': value['label']} for narr_value in narratives.values() for key, value in narr_value.items()}
 
     dict_sims = {}
     dict_sims['simulations'] = {'values': simulations, 'kwargs': {'boxprops':dict(facecolor='lightgray', alpha=0.8),
@@ -306,16 +333,43 @@ def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, bou
             discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
             font=font, vmax=vmax, vmin=vmin, markersize=markersize, alpha=alpha)
 
-def plot_map_indicator_climate(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds,
-                               indicator_plot, cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,
-                               font='sans-serif', title=None, vmin=None, vmax=None, edgecolor='k',
-                               cbar_midpoint=None, markersize=50, alpha=1, cbar_values=None,
-                               start_cbar_ticks='', end_cbar_ticks=''):
+def plot_map_indicator_narratives(gdf, ds, narratives, path_result, cbar_title, dict_shapefiles, bounds,
+                                  variables, plot_type, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,
+                                  vmin=None, vmax=None, edgecolor='k', cbar_midpoint=None, markersize=50, alpha=1):
+
+    narr = [key for narr_values in narratives.values() for key in narr_values.keys()]
+    stats_by_narr = [sim for sim in variables[f'simulation-horizon_by-sims_{plot_type}'] if any(n in sim for n in narr)]
+
+    # rows = {
+    #     'names_coord': 'indicator',
+    #     'values_var': stats_by_narr,
+    #     'names_plot': [v['label'] for narr in narratives.values() for v in narr.values()]
+    # }
+    rows = {
+        'names_coord': 'indicator',
+        'values_var': stats_by_narr,
+        'names_plot': [{'label': v['label'], 'color': v['color']} for narr in narratives.values() for v in narr.values()]
+    }
+    cols = 2
+
+    mapplot(gdf=gdf, ds=ds, indicator_plot=stats_by_narr,
+            path_result=path_result,
+            cols=cols, rows=rows,
+            cbar_title=cbar_title, title=title, dict_shapefiles=dict_shapefiles, cbar_midpoint=cbar_midpoint,
+            bounds=bounds,
+            discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
+            font=font, vmax=vmax, vmin=vmin, markersize=markersize, alpha=alpha)
+
+def plot_map_indicator(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds,
+                       indicator_plot, cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,
+                       font='sans-serif', title=None, vmin=None, vmax=None, edgecolor='k',
+                       cbar_midpoint=None, markersize=50, alpha=1, cbar_values=None,
+                       start_cbar_ticks='', end_cbar_ticks=''):
 
     cols = {
             'names_coord': 'horizon',
             'values_var': ['horizon1', 'horizon2', 'horizon3'],
-            'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2099)']
+            'names_plot': ['Horizon 1\n(2021-2050)', 'Horizon 2\n(2041-2070)', 'Horizon 3\n(2070-2099)']
              }
 
     used_coords = [dim for dim in ds[indicator_plot].dims if dim in ds.coords]

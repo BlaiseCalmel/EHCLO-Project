@@ -72,6 +72,14 @@
           "vmax": 20
         }
       },
+    "endLF_yr": {
+      "LF-end": {
+        "units": "en jours",
+        "label": "de date de fin des basses eaux",
+        "plot_type": "difference",
+        "palette": "PuOr_r"
+      }
+    },
       "debit": {
         "Q2": {
           "units": "m3/s",

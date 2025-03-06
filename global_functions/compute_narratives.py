@@ -226,7 +226,20 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
     narratives = {methods[i] : {f"{value['gcm-rcm']}_{value['bc']}_{value['hm']}": {'color': value['color'], 'zorder': 10,
                                                                        'label': f"{value['name'].title()}", # [{value['gcm-rcm']}_{value['bc']}_{value['hm']}]",
                                                                        'linewidth': 1} for key, value in rp.items()} for i, rp in enumerate(meth_list)}
+    df = ds_stacked.to_dataframe()
+    df = df.reset_index(drop=True)
+    df["cluster"] = [cluster_names[i] for i in labels]
+    for key in narratives.keys():
+        df[key] = None
+        for id_row, row in df.iterrows():
+            # print(row)
+            name = f"{row.loc['gcm-rcm']}_{row['bc']}_{row['hm']}"
+            if name in narratives[key].keys():
+                print()
+                df.loc[id_row, key] = narratives[key][name]['label']
 
+
+    df.to_csv(f"/home/bcalmel/Documents/3_results/test.csv", sep=";")
     # PCA for 2D visualisation
     pca = PCA(n_components=2)
     X_pca = pca.fit_transform(X_imputed)
@@ -254,6 +267,7 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
                     cols=None)
 
     # Plot comparison with every indicator
+    print(f"Narrative every indicators Plot {indictor_values}")
     path_result = f"/home/bcalmel/Documents/3_results/narratest_spatial_mean_comparatives.pdf"
     plot_narratives(X_imputed, ds_stacked, meth_list, labels, cluster_names,
                     path_result, xlabel, ylabel, title, centroids=None, count_stations=None,

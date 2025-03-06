@@ -268,7 +268,7 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     # Main title
     if title is not None:
         # top -= 0.04 * (fontsize - 18)
-        fig.suptitle(title, fontsize=plt.rcParams['font.size'] + 2, weight='bold')
+        fig.suptitle(title, fontsize=plt.rcParams['font.size'], weight='bold')
 
     # plt.subplots_adjust(left=0, bottom=0.01, right=1, top=top, wspace=wspace, hspace=hspace)
 
@@ -355,9 +355,22 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
 
             if subplot_title:
                 if title:
-                    ax.set_title(subplot_title, fontsize=plt.rcParams['font.size'] - 2)
+                    if isinstance(subplot_title, dict):
+                        ax.text(bounds[0], bounds[3], subplot_title['label'], fontsize=14, color='w',
+                                ha='center', va='center', fontweight='bold',
+                                bbox=dict(facecolor=subplot_title['color'], edgecolor=subplot_title['color'],
+                                          boxstyle='circle'))
+                    else:
+                        ax.set_title(subplot_title, fontsize=plt.rcParams['font.size'] - 2)
+
                 else:
-                    ax.set_title(subplot_title, weight='bold')
+                    if isinstance(subplot_title, dict):
+                        ax.text(bounds[0], bounds[3], subplot_title['label'], fontsize=14, color=subplot_title['color'],
+                                ha='center', va='center', fontweight='bold',
+                                bbox=dict(facecolor=subplot_title['color'], edgecolor=subplot_title['color'],
+                                          boxstyle='circle,pad=0.1'))
+                    else:
+                        ax.set_title(subplot_title, weight='bold')
 
             # Headers and axes label
             add_header(ax, rows_plot, cols_plot, ylabel='', xlabel='')
