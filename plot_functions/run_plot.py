@@ -274,9 +274,13 @@ def plot_boxplot_station_month_horizon(ds, station_references, narratives, path_
                                        title=None, fontsize=14, font='sans-serif', common_yaxes=False, normalized=False,
                                        ymin=None, ymax=None):
 
-    narratives_bp = {key: {'kwargs': {'boxprops': dict(facecolor=value['color'], alpha=0.9),
+    narratives_bp = {}
+    narratives_bp |= {key: {'type': 'histo', 'kwargs': {
+        'label': value['label'], 'zorder': 1, 'color':'lightgray', 'edgecolor':'k', 'alpha':0.5}} for key, value in
+                      narratives.items() if key == "historical"}
+    narratives_bp |= {key: {'kwargs': {'boxprops': dict(facecolor=value['color'], alpha=0.9),
                             'medianprops': dict(color="black"), 'widths': 0.8, 'patch_artist': True,
-                            'label': value['label']}} for key, value in narratives.items()}
+                            'label': value['label'], 'zorder': 2}} for key, value in narratives.items() if key != "historical"}
 
     if normalized:
         mean_historical = ds.sel(horizon='historical').mean(dim=['month'])

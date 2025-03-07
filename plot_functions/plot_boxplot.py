@@ -72,15 +72,20 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     #     ymax = ds[all_sims].to_array().max()
     #     ymin = ds[all_sims].to_array().min()
 
+    ignore = 0
+    for key, value in y_axis['values_var'].items():
+        if 'type' in value.keys():
+            ignore += 1
+
     xmin = - blank_space / 2 - 1
-    xmax = (len(x_axis['names_plot']) * len(y_axis['names_plot']) + 2 * blank_space * (len(x_axis['names_plot'])) -
-            2 * blank_space)
+    xmax = (len(x_axis['names_plot']) * (len(y_axis['names_plot']) - ignore) + 2 * blank_space *
+            (len(x_axis['names_plot'])) - 2 * blank_space)
 
     legend_items = []
     legend_labels = []
     # centers = [((len(y_axis['names_plot']) + 1) / 2) - 1 + 5 * j for j in range(len(x_axis['names_plot']))]
-    init_center = (len(y_axis['names_plot']) - 1) / 2
-    centers = [init_center + k * (2 * blank_space + len(y_axis['names_plot'])) for k in
+    init_center = (len(y_axis['names_plot']) - ignore - 1) / 2
+    centers = [init_center + k * (2 * blank_space + len(y_axis['names_plot']) - ignore) for k in
                range(len(x_axis['names_plot']))]
 
     if vlines is not None:
@@ -149,7 +154,7 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
                 else:
                     cell_data = plot_selection(ds_selection, y_axis['names_coord'], name)
 
-                if 'kwargs' in  y_var.keys():
+                if 'kwargs' in y_var.keys():
                     kwargs = y_var['kwargs']
                 else:
                     kwargs = {}
@@ -166,13 +171,24 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
                         cell_boxplots.append(all_values[mask])
                     else:
                         cell_boxplots.append([np.nan])
-                i += 1
-                current_position = [i + (len(y_axis['names_plot']) + 2 * blank_space) * j for j in
-                                    range(len(x_axis['names_plot']))]
 
                 # Plot by sub box categories
-                bp = ax.boxplot(cell_boxplots, positions=current_position, vert=True,
-                                whiskerprops=dict(linewidth=0.4), flierprops=dict(marker='.', markersize=6), **kwargs)
+                if 'type' in y_var.keys():
+                    if y_var['type'] == 'histo':
+                        # del kwargs['type']
+                        for cell_idx, cell in enumerate(cell_boxplots):
+                            bp = ax.fill_between(x=[centers[cell_idx] - (len(y_axis['names_plot']) - ignore) / 2,
+                                                 centers[cell_idx] + (len(y_axis['names_plot']) - ignore) / 2],
+                                                 y1=[0],
+                                                 y2=[np.nanmedian(cell)], **kwargs)
+                else:
+                    i += 1
+                    current_position = [i + (len(y_axis['names_plot']) - ignore + 2 * blank_space) * j for j in
+                                        range(len(x_axis['names_plot']))]
+                    bp = ax.boxplot(cell_boxplots, positions=current_position, vert=True,
+                                    whiskerprops=dict(linewidth=0.4),
+                                    flierprops=dict(marker='.', markersize=4, markerfacecolor='k'), **kwargs)
+
                 y_temp_max.append(np.nanmax(cell_boxplots))
                 y_temp_min.append(np.nanmin(cell_boxplots))
 
@@ -181,9 +197,11 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
                 else:
                     label = y_axis['names_plot'][i]
 
-
                 if label not in legend_labels:
-                    legend_items.append(bp["boxes"][0])
+                    if isinstance(bp, dict) and "boxes" in bp.keys():
+                        legend_items.append(bp["boxes"][0])
+                    else:
+                        legend_items.append(bp)
                     legend_labels.append(label)
                     # if 'label' in kwargs:
                     #     legend_labels.append(kwargs['label'])
@@ -259,9 +277,9 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
 
     # Déterminer dynamiquement le nombre de colonnes
     ncol = max(1, int(fig_width * 5 / avg_label_length))
+    ncol = np.round(len(legend_items) / ncol) + 1
 
     fig.legend(np.array(legend_items)[imported_order], np.array(legend_labels)[imported_order], loc='upper center', bbox_to_anchor=(0.5, 0),
                fancybox=False, shadow=False, ncol=ncol)
 
     plt.savefig(path_result, bbox_inches='tight')
-
