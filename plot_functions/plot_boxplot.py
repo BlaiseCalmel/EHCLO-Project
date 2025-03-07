@@ -226,7 +226,7 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
         ymax = np.nanmax(max_values)
 
     abs_max = max([ymax, -ymin])
-    n = 2*abs_max / 4
+    n = abs_max / 3
     exponent = round(math.log10(n))
     step = np.round(n, -exponent+1)
     if step == 0:
@@ -237,7 +237,7 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
 
     if common_yaxes:
         for ax_idx, ax in enumerate(axes_flatten):
-            ax.set_ylim(ymin, ymax)
+            ax.set_ylim(np.round(ymin, -exponent+1), np.round(ymax, -exponent+1))
             sbs = ax.get_subplotspec()
             if not sbs.is_first_col():
                 ax.set_yticklabels([])

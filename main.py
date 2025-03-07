@@ -186,13 +186,13 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                     else:
                         print(f'> {path_ncdf} already exists', end='\n')
 narratives = None
-narratives =  compute_narratives(dict_paths,
-                                 stations=list(reference_stations['La Loire'].keys()),
-                                 files_setup=files_setup,
-                                 hydro_sim_points_gdf_simplified=hydro_sim_points_gdf_simplified,
-                                 indictor_values=["QJXA", "QA", "VCN10"],
-                                 threshold=0.8*len(reference_stations['La Loire']),
-                                 narrative_method=None)
+# narratives =  compute_narratives(dict_paths,
+#                                  stations=list(reference_stations['La Loire'].keys()),
+#                                  files_setup=files_setup,
+#                                  hydro_sim_points_gdf_simplified=hydro_sim_points_gdf_simplified,
+#                                  indictor_values=["QJXA", "QA", "VCN10"],
+#                                  threshold=0.8*len(reference_stations['La Loire']),
+#                                  narrative_method=None)
 #
 # df = pd.read_csv(f"/home/bcalmel/Documents/2_data/Antoine_25-02/hydrologie_csv/dataEX_Explore2_criteria_diagnostic_LF.csv",
 #                  sep=";")
@@ -297,7 +297,8 @@ while run_plot:
                     edgecolor = None
 
                 # Open ncdf dataset
-                path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}_{start_year}-{end_year}.nc"
+                # path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}_{start_year}-{end_year}.nc"
+                path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}.nc"
                 ds_stats = xr.open_dataset(path_ncdf)
 
                 # Compute stats
@@ -427,17 +428,37 @@ while run_plot:
                                                                      font=settings['font'],
                                                                      path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_col-horizon.pdf')
 
-                                            print(f">> Boxplot {plot_type} by horizon and selected stations")
-                                            plot_boxplot_station_narrative(ds=ds[variables[f'simulation-horizon_by-sims_{plot_type}']],
-                                                                           station_references=extended_station_name,
-                                                                           narratives=narratives,
-                                                                           title=coordinate_value,
-                                                                           references=None,
-                                                                           name_y_axis=name_y_axis,
-                                                                           percent=percent,
-                                                                           fontsize=settings['fontsize'],
-                                                                           font=settings['font'],
-                                                                           path_result=path_indicator_figures+f'{title_join}_boxplot_{plot_type}_{river}_narratives.pdf',)
+                                            for river, river_stations in reference_stations.items():
+                                                extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
+                                                for key, value in extended_station_name.items():
+                                                    extended_station_name[key] = optimize_label_length(value, settings, length=30)
+
+
+                                                print(f"{name_indicator} >> Linear {plot_type} Time for Reference stations [{river}]")
+                                                plot_linear_time(ds,
+                                                                 simulations=variables[f'simulation_{plot_type}'],
+                                                                 station_references=extended_station_name,
+                                                                 narratives=narratives,
+                                                                 title=coordinate_value,
+                                                                 name_x_axis='Date',
+                                                                 name_y_axis=name_y_axis,
+                                                                 percent=percent,
+                                                                 vlines=None,
+                                                                 fontsize=settings['fontsize'],
+                                                                 font=settings['font'],
+                                                                 path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_{river}_x-time_y-{title_join}_row-col-stations-ref.pdf',)
+
+                                                print(f"{name_indicator} >> Boxplot {plot_type} by horizon and selected stations")
+                                                plot_boxplot_station_narrative(ds=ds[variables[f'simulation-horizon_by-sims_{plot_type}']],
+                                                                               station_references=extended_station_name,
+                                                                               narratives=narratives,
+                                                                               title=coordinate_value,
+                                                                               references=None,
+                                                                               name_y_axis=name_y_axis,
+                                                                               percent=percent,
+                                                                               fontsize=settings['fontsize'],
+                                                                               font=settings['font'],
+                                                                               path_result=path_indicator_figures+f'{title_join}_boxplot_{plot_type}_{river}_narratives.pdf',)
 
 
                                         # print(f"{name_indicator} >> Linear {plot_type} PK for HM & Horizon with Narrative")
@@ -483,26 +504,6 @@ while run_plot:
                                                            fontsize=settings['fontsize'],
                                                            font=settings['font'],
                                                            path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_x-PK_y-{title_join}_row-narrative_col-horizon.pdf')
-
-                                        for river, river_stations in reference_stations.items():
-                                            extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
-                                            for key, value in extended_station_name.items():
-                                                extended_station_name[key] = optimize_label_length(value, settings, length=30)
-
-
-                                            print(f"{name_indicator} >> Linear {plot_type} Time for Reference stations [{river}]")
-                                            plot_linear_time(ds,
-                                                             simulations=variables[f'simulation_{plot_type}'],
-                                                             station_references=extended_station_name,
-                                                             narratives=narratives,
-                                                             title=coordinate_value,
-                                                             name_x_axis='Date',
-                                                             name_y_axis=name_y_axis,
-                                                             percent=percent,
-                                                             vlines=None,
-                                                             fontsize=settings['fontsize'],
-                                                             font=settings['font'],
-                                                             path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_{river}_x-time_y-{title_join}_row-col-stations-ref.pdf',)
                                     else:
                                         print(f"{name_indicator} >> Linear {plot_type} PK Narratives method comparison")
                                         plot_linear_pk(ds,

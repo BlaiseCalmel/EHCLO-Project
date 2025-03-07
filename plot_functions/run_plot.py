@@ -271,8 +271,8 @@ def plot_boxplot_station_narrative(ds, station_references, narratives, reference
              title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=0.25)
 
 def plot_boxplot_station_month_horizon(ds, station_references, narratives, path_result, name_y_axis='', percent=False,
-                                   title=None, fontsize=14, font='sans-serif', common_yaxes=False, normalized=False,
-                                    ymin=None, ymax=None):
+                                       title=None, fontsize=14, font='sans-serif', common_yaxes=False, normalized=False,
+                                       ymin=None, ymax=None):
 
     narratives_bp = {key: {'kwargs': {'boxprops': dict(facecolor=value['color'], alpha=0.9),
                             'medianprops': dict(color="black"), 'widths': 0.8, 'patch_artist': True,
