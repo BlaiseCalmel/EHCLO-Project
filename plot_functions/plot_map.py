@@ -170,17 +170,20 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     else:
         midpoint = 0
 
+    if cbar_values is None:
+        cbar_values = decimal_places(step)
+    else:
+        step = cbar_values
     levels = mirrored(maxval=abs_max, inc=step, val_center=midpoint)
-    # np.round(levels, -exponent+1)
+
+    # levels = np.arange(vmin, abs_max+1, 1)
+    # levels = np.round(levels, -exponent+1)
 
     if levels[0] > levels[-1]:
         levels = levels[::-1]
 
     if cbar_ticks == 'mid':
-        levels = [levels[0] - step/2] + [i + step/2 for i in levels]
-
-    if cbar_values is None:
-        cbar_values = decimal_places(step)
+        levels = np.array([levels[0] - step/2] + [i + step/2 for i in levels])
 
     # levels = np.linspace(vmin, vmax, discretize+1)
     extended_levels = copy.deepcopy(levels)
@@ -383,7 +386,6 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             ax.set_yticks([])
             plt.setp(ax.spines.values(), color=None)
 
-    # Colorbar
     cbar = define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap=extended_levels,
                        cbar_title=cbar_title, cbar_values=cbar_values, cbar_ticks=cbar_ticks,
                        start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks,

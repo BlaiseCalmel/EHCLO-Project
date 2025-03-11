@@ -93,7 +93,9 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
         # bottom = axes_flatten[middle].get_position().y0 - 0.2
         # height = axes_flatten[middle].get_position().y1 + 0.2
 
-    cbar_ax = fig.add_axes([axes_flatten[len_cols - 1].get_position().x1 + 0.025, bottom, 0.02, height])
+    distance = (axes_flatten[len_cols - 1].get_position().x1 - axes_flatten[len_cols - 1].get_position().x0) / 10
+    cbar_ax = fig.add_axes([axes_flatten[len_cols - 1].get_position().x1 + distance, bottom, #0.025
+                            max([0.02, 0.3*distance]), height]) #0.02
 
     sm._A = []
     # if percent:
@@ -129,10 +131,13 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
         # label_ax.annotate(cbar_title, xy=(0, 0.45), wrap=True, **text_kwargs)
         # label_ax.axis('off')
         # wrapped_label = "\n".join(wrap(cbar_title, width=10))
-        label_length = max([10, len(max(re.split(r"[ -]", cbar_title), key=len))])
-        wrapper = textwrap.TextWrapper(width=label_length, break_long_words=False, break_on_hyphens=True)
-        wrapped_label = wrapper.wrap(cbar_title)
-        cbar.set_label("\n".join(wrapped_label), rotation=0, ha='left', va='center', **text_kwargs)
+        if not "\n" in cbar_title:
+            label_length = max([10, len(max(re.split(r"[ -]", cbar_title), key=len))])
+            wrapper = textwrap.TextWrapper(width=label_length, break_long_words=False, break_on_hyphens=True)
+            wrapped_label = wrapper.wrap(cbar_title)
+            cbar.set_label("\n".join(wrapped_label), rotation=0, ha='left', va='center', **text_kwargs)
+        else:
+            cbar.set_label(cbar_title, rotation=0, ha='left', va='center', **text_kwargs)
         # cbar.ax.yaxis.label.set_horizontalalignment('center')
 
         # cbar.set_label(cbar_title, rotation=0, wrap=True, labelpad=25, **text_kwargs)

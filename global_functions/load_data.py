@@ -299,6 +299,11 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
         combined_dataset = combined_dataset.rename({'code': 'gid'})
         combined_dataset = combined_dataset.sel(gid=combined_dataset["gid"] != b'----------')
 
+        gid_values = np.unique([code.encode() for code in sim_points_gdf.index.values])
+        codes_to_select = [code for code in gid_values if code in ds['code'].values]
+        if len(codes_to_select) > 0:
+            combined_dataset = combined_dataset.sel(gid=codes_to_select)
+
     combined_dataset = combined_dataset.set_coords('x')
     combined_dataset = combined_dataset.set_coords('y')
 

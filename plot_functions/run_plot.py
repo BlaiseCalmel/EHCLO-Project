@@ -515,36 +515,55 @@ def plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles,
         coord_couples = [(-i, -i), (-i, i), (i, i), (i, -i)]
         alphabet = [chr(i) for i in range(65, 65 + len(station_references))]
         count_idx = -1
+        loire_value = 0
+        allier_value = 0
+        chapeauroux_value = 0
         for key, value in station_references.items():
             idx += 1
             count_idx += 1
             if idx == len(coord_couples):
                 idx = 0
             # station_references_plot |= {key: {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth': 1.5,
-            #                                   'facecolors':'none',
-            #                                   'text': {'text': ' '.join(value.split(' ')[:3]) + '\n' + ' '.join(value.split(' ')[3:]),
+            #                                   'facecolors':'none', 'label': value,
+            #                                   'text': {'text': alphabet[count_idx],
             #                                            'xytext': coord_couples[idx],
-            #                                            'arrowprops':dict(arrowstyle='-', connectionstyle="arc3,rad=.2"),
+            #                                            'arrowprops':dict(arrowstyle='-'),
             #                                            'textcoords': 'offset points'
             #                                            }
             #                                   }
             #                             }
-            station_references_plot |= {key: {'s':90, 'edgecolors':'k', 'zorder':10, 'linewidth': 1.5,
+            if "Loire" in value:
+                loire_value += 1
+                my_text = f"L{loire_value}"
+                edgecolors = 'gray'
+                zorder = 9
+            elif "Allier" in value:
+                allier_value += 1
+                my_text = f"A{allier_value}"
+                edgecolors = 'green'
+                zorder = 8
+            else:
+                chapeauroux_value += 1
+                my_text = f"C{chapeauroux_value}"
+                edgecolors = 'cornflowerblue'
+                zorder = 7
+
+            station_references_plot |= {key: {'s':90, 'edgecolors':edgecolors, 'zorder':zorder, 'linewidth': 5,
                                               'facecolors':'none', 'label': value,
-                                              'text': {'text': alphabet[count_idx],
-                                                       'xytext': coord_couples[idx],
-                                                       'arrowprops':dict(arrowstyle='-'),
-                                                       'textcoords': 'offset points'
-                                                       }
+                                              # 'text': {'text': my_text,
+                                              #          'xytext': coord_couples[idx],
+                                              #          'textcoords': 'offset points',
+                                              #          'arrowprops':dict(arrowstyle='-'),
+                                              #          'zorder': 20
+                                              #          }
                                               }
                                         }
-
 
     for key in station_references_plot.keys():
         station_references_plot[key] |= {'x': hydro_sim_points_gdf_simplified.loc[key].geometry.x,
                                     'y': hydro_sim_points_gdf_simplified.loc[key].geometry.y}
-        station_references_plot[key]['text'] |= {'xy': (hydro_sim_points_gdf_simplified.loc[key].geometry.x,
-                                                   hydro_sim_points_gdf_simplified.loc[key].geometry.y)}
+        # station_references_plot[key]['text'] |= {'xy': (hydro_sim_points_gdf_simplified.loc[key].geometry.x,
+        #                                            hydro_sim_points_gdf_simplified.loc[key].geometry.y)}
 
     print(f"> Plot Number of HM by station...")
     j = -1
@@ -554,7 +573,7 @@ def plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles,
         dict_shapefiles[key]['zorder'] = -j
 
     mapplot(gdf=hydro_sim_points_gdf_simplified, indicator_plot='n', path_result=path_global_figures+'count_HM.pdf', ds=None,
-            cols=None, rows=None, references=station_references_plot, cbar_ticks='mid',  cbar_values=1,
-            cbar_title=f"Nombre de HM", title=None, dict_shapefiles=dict_shapefiles, bounds=bounds,
-            discretize=6, palette='RdBu_r', fontsize=fontsize-10, font='sans-serif', edgecolor='k',
-            cbar_midpoint='min', vmin=3.5, vmax=9.5)
+            cols=None, rows=None, references=station_references_plot, cbar_ticks='mid', cbar_values=1,
+            cbar_title=f"Nombre\nde HM", title=None, dict_shapefiles=dict_shapefiles, bounds=bounds,
+            discretize=9, palette='RdBu_r', fontsize=fontsize-4, font='sans-serif', edgecolor='k',
+            cbar_midpoint='min', vmin=2, vmax=9, markersize=90)

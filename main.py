@@ -134,7 +134,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
     subdict=path_files[data_type]
     rcp='rcp85'
     subdict2=subdict[rcp]
-    indicator = "QJXA"
+    indicator = "QA_yr"
     paths = subdict2[indicator]
     for data_type, subdict in path_files.items():
         # Load simulation points for current data type
@@ -309,6 +309,12 @@ while run_plot:
                 # ds_stats = ds_stats.sel(gid=ds_stats["gid"] != b'----------')
                 ds_stats['gid'] = ds_stats['gid'].astype(str)
                 # Geodataframe
+
+                gid_values = np.unique([code for code in sim_points_gdf_simplified.index.values])
+                codes_to_select = [code for code in gid_values if code in ds_stats['gid'].values]
+                if len(codes_to_select) > 0:
+                    ds_stats = ds_stats.sel(gid=codes_to_select)
+
                 sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds_stats.gid]
                 dict_shapefiles = define_plot_shapefiles(regions_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified,
                                        indicator_setup['type'], files_setup)
@@ -579,17 +585,17 @@ while run_plot:
 
 
 # print(f'################################ PLOT GLOBAL ################################', end='\n')
-path_global_figures = dict_paths['folder_study_figures'] + 'global' + os.sep
-if not os.path.isdir(path_global_figures):
-    os.makedirs(path_global_figures)
-
-print(f"> Plot HM by station...")
-plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bounds, path_global_figures,
-                       fontsize=settings['fontsize']+2)
-
-print(f"> Plot #HM by station and Ref station...")
-plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles, path_global_figures, bounds,
-                          station_references=flatten_reference_stations, fontsize=settings['fontsize'])
+# path_global_figures = dict_paths['folder_study_figures'] + 'global' + os.sep
+# if not os.path.isdir(path_global_figures):
+#     os.makedirs(path_global_figures)
+#
+# print(f"> Plot HM by station...")
+# plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bounds, path_global_figures,
+#                        fontsize=settings['fontsize']+2)
+#
+# print(f"> Plot #HM by station and Ref station...")
+# plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles, path_global_figures, bounds,
+#                           station_references=flatten_reference_stations, fontsize=settings['fontsize'])
 
 print(f'################################ END ################################', end='\n')
 input("Press Enter to close")
