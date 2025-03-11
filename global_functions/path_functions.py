@@ -94,7 +94,8 @@ def get_files_path(dict_paths, setup, extension='.nc'):
 
             for (item, indic) in zip(item_indicator, setup[f'{data_type}_indicator'].keys()):
                 indic_values = [s for s in rcp_files if item in s.split(os.sep)[-1]]
-                # Filter by HM
+                indic_values = [i for i in indic_values
+                                if '_'.join(i.split(os.sep)[-1].split('_')[:item.count('_')+1]) == item]                # Filter by HM
                 if data_type == 'hydro':
                     if len(setup['select_hm']) > 0:
                         indic_values = [s for s in indic_values if any(word in s for word in setup['select_hm'])]

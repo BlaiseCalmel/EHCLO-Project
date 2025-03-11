@@ -193,6 +193,9 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                 if 'LII' in ds.variables:
                     del ds['LII']
 
+                if ds[file_name].attrs.get("units") == 'kg.m-2.s-1':
+                    ds[file_name] = ds[file_name] * 86400
+
                 # Remove attribute and define code as coordinates
                 ds.attrs = {}
                 ds[file_name].attrs = {}
@@ -204,23 +207,14 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
             if len(datasets) > 1:
                 # ds = xr.concat(datasets, dim="time").sortby("time")
-                merge_dim = [file_name, 'L93_X', 'L93_Y']
+                if 'L93_X' in ds.data_vars:
+                    merge_dim = [file_name, 'L93_X', 'L93_Y']
+                else:
+                    merge_dim = [file_name]
                 ds = xr.combine_by_coords([temp_ds[merge_dim] for temp_ds in datasets])
 
-            # Compute quantile
-            # if function is not None:
-            # print('resample')
             resampled_var = apply_function_to_ds(ds, function, file_name, timestep)
-            # Create a new dataset
-            coordinates = {}
-            for dim in resampled_var.dims:
-                coordinates |= {dim: resampled_var[dim].values}
-
-            # print(f"Create")
             if param_type == "climate":
-                if ds[file_name].attrs.get("units") == 'kg.m-2.s-1':
-                    ds[file_name] = ds[file_name] * 86400
-                resampled_var = apply_function_to_ds(ds, function, file_name, timestep)
                 # if timestep is not None:
                 # resampled_var = resample_ds(ds, file_name, timestep)
                 coordinates = {i: ds[i] for i in ds._coord_names if i != 'time'}
@@ -235,14 +229,10 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                 ds = ds.rename({'name': 'gid'})
 
             else:
-                # Use station code as coordinate
-                # ds = ds.set_coords('code')
-                # ds = ds.swap_dims({'station': 'code'})
-                # if 'station' in ds.data_vars:
-                #     del ds['station']
-                #
-                # ds = ds.sel(code=ds["code"] != b'----------')
-                # test.append(ds)
+                # Create a new dataset
+                coordinates = {}
+                for dim in resampled_var.dims:
+                    coordinates |= {dim: resampled_var[dim].values}
 
                 ds = xr.Dataset({
                     file_name: (resampled_var.dims, resampled_var.values),
@@ -289,51 +279,14 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                         if len(remove_list) > 0:
                             ds = ds.where(~ds["code"].isin(remove_list), drop=True)
 
-                ds = ds.sel(code=ds["code"] != b'----------')
-                gid_values = np.unique([code.encode() for code in sim_points_gdf.index.values])
-                codes_to_select = [code for code in gid_values if code in ds['code'].values]
-                if len(codes_to_select) > 0:
-                    ds = ds.sel(code=codes_to_select)
-                # station_to_select = ds.station.isel(station=ds.code.isin(codes_to_select))
-                # if len(station_to_select) > 0:
-                #     ds = ds.sel(station=station_to_select)
+                    ds = ds.sel(code=ds["code"] != b'----------')
+                    gid_values = np.unique([code.encode() for code in sim_points_gdf.index.values])
+                    codes_to_select = [code for code in gid_values if code in ds['code'].values]
+                    if len(codes_to_select) > 0:
+                        ds = ds.sel(code=codes_to_select)
 
-                # ds = ds.set_coords('code')
-                # ds = ds.swap_dims({'station': 'code'})
-                # if 'station' in ds.data_vars:
-                # del ds['station']
-
-                # ds = ds.rename({'code': 'gid'})
-                # ds['gid'] = ds['gid'].astype(str)
-                # gid_values = np.unique(sim_points_gdf.index.values)
-                # codes_to_select = [code for code in gid_values if code in ds['gid'].values]
-                # if len(codes_to_select) > 0:
-                #     ds = ds.sel(gid=codes_to_select)
-
-            # coordinates = {'gid': ds.gid.values, 'time': resampled_var['time'].values}
-            # ds = xr.Dataset({
-            #     file_name: (('time', 'gid'), resampled_var.values),
-            #     'L93_X': (('gid'), ds.L93_X.values),
-            #     'L93_Y': (('gid'), ds.L93_Y.values)
-            # }, coords=coordinates
-            # )
-
-            # ds['gid'] = ds['gid'].astype(str)
-
-            # Clean dataset
-            # ds = xr.Dataset({
-            #     file_name: (ds[file_name].dims, ds[file_name].values),
-            #     'x': (('gid'), ds['L93_X'].values),
-            #     'y': (('gid'), ds['L93_Y'].values),
-            # }, coords={i: ds[i] for i in ds._coord_names}
-            # )
-            # ds = ds.set_coords('x')
-            # ds = ds.set_coords('y')
-
-            # datasets.append(ds[var])
-            # print(f"Save")
+            # Create temporary file
             ds.to_netcdf(path=f"{temp_dir}{os.sep}{var}.nc")
-            # print('Saved')
             temp_paths.append(f"{temp_dir}{os.sep}{var}.nc")
 
             # Update progress bar

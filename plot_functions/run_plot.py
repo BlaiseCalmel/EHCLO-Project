@@ -555,6 +555,6 @@ def plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles,
 
     mapplot(gdf=hydro_sim_points_gdf_simplified, indicator_plot='n', path_result=path_global_figures+'count_HM.pdf', ds=None,
             cols=None, rows=None, references=station_references_plot, cbar_ticks='mid',  cbar_values=1,
-            cbar_title=f"Nombre de HM", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
+            cbar_title=f"Nombre de HM", title=None, dict_shapefiles=dict_shapefiles, bounds=bounds,
             discretize=6, palette='RdBu_r', fontsize=fontsize-10, font='sans-serif', edgecolor='k',
             cbar_midpoint='min', vmin=3.5, vmax=9.5)

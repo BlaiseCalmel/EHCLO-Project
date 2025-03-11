@@ -146,7 +146,7 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         vmax = plot_vmax
 
     if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
-        plot_vmin = gdf[indicator_plot].min().values
+        plot_vmin = gdf[indicator_plot].min()
     else:
         if np.logical_not(isinstance(indicator_plot, list)):
             plot_vmin = ds[indicator_plot].min().values

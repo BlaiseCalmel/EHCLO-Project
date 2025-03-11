@@ -110,7 +110,7 @@ study_hydro_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simpl
     simplify_shapefiles(study_hydro_shp, study_climate_shp, rivers_shp, regions_shp, tolerance=1000, zoom=1000))
 
 hydro_sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
-# hydro_sim_points_gdf_simplified = hydro_sim_points_gdf[hydro_sim_points_gdf['n'] >= 4]
+hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified[hydro_sim_points_gdf_simplified['n'] >= 4]
 hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified.reset_index(drop=True).set_index('Suggestion')
 hydro_sim_points_gdf_simplified.index.names = ['name']
 
@@ -134,7 +134,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
     subdict=path_files[data_type]
     rcp='rcp85'
     subdict2=subdict[rcp]
-    indicator = "endLF_yr"
+    indicator = "QJXA"
     paths = subdict2[indicator]
     for data_type, subdict in path_files.items():
         # Load simulation points for current data type
@@ -297,8 +297,8 @@ while run_plot:
                     edgecolor = None
 
                 # Open ncdf dataset
-                # path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}_{start_year}-{end_year}.nc"
-                path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}.nc"
+                path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}_{start_year}-{end_year}.nc"
+                # path_ncdf2 = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}.nc"
                 ds_stats = xr.open_dataset(path_ncdf)
 
                 # Compute stats
@@ -426,7 +426,7 @@ while run_plot:
                                                                      vlines=vlines,
                                                                      fontsize=settings['fontsize'],
                                                                      font=settings['font'],
-                                                                     path_result=path_indicator_figures+f'lineplot_{plot_type}_x-PK_y-{title_join}_col-horizon.pdf')
+                                                                     path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_PK_horizon.pdf')
 
                                             for river, river_stations in reference_stations.items():
                                                 extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
@@ -446,7 +446,7 @@ while run_plot:
                                                                  vlines=None,
                                                                  fontsize=settings['fontsize'],
                                                                  font=settings['font'],
-                                                                 path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_{river}_x-time_y-{title_join}_row-col-stations-ref.pdf',)
+                                                                 path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_stations-{river}_timeseries.pdf',)
 
                                                 print(f"{name_indicator} >> Boxplot {plot_type} by horizon and selected stations")
                                                 plot_boxplot_station_narrative(ds=ds[variables[f'simulation-horizon_by-sims_{plot_type}']],
@@ -458,7 +458,7 @@ while run_plot:
                                                                                percent=percent,
                                                                                fontsize=settings['fontsize'],
                                                                                font=settings['font'],
-                                                                               path_result=path_indicator_figures+f'{title_join}_boxplot_{plot_type}_{river}_narratives.pdf',)
+                                                                               path_result=path_indicator_figures+f'{title_join}_boxplot_{plot_type}_stations-{river}_horizons_narratives.pdf',)
 
 
                                         # print(f"{name_indicator} >> Linear {plot_type} PK for HM & Horizon with Narrative")
@@ -503,7 +503,7 @@ while run_plot:
                                                            vlines=vlines,
                                                            fontsize=settings['fontsize'],
                                                            font=settings['font'],
-                                                           path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_x-PK_y-{title_join}_row-narrative_col-horizon.pdf')
+                                                           path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_PK_narratives_horizon.pdf')
                                     else:
                                         print(f"{name_indicator} >> Linear {plot_type} PK Narratives method comparison")
                                         plot_linear_pk(ds,
@@ -517,7 +517,7 @@ while run_plot:
                                                        fontsize=settings['fontsize'],
                                                        font=settings['font'],
                                                        by_narrative=True,
-                                                       path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_x-PK_y-{title_join}_narratives-method-comparison.pdf')
+                                                       path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_PK_narratives-method-comparison.pdf')
 
 
 
@@ -552,7 +552,7 @@ while run_plot:
                                                            common_yaxes=True,
                                                            fontsize=settings['fontsize'],
                                                            font=settings['font'],
-                                                           path_result=path_indicator+f'{title_join}_boxplot_normalized-discharge_{river}_month.pdf')
+                                                           path_result=path_indicator+f'{title_join}_boxplot_normalized_{river}_month.pdf')
                         print(f">> Boxplot {plot_type} by month and horizon")
                         name_y_axis = optimize_label_length(f'{plot_type_name.title()} {title}{units}', settings,
                                                             length=18)
@@ -579,17 +579,17 @@ while run_plot:
 
 
 # print(f'################################ PLOT GLOBAL ################################', end='\n')
-# path_global_figures = dict_paths['folder_study_figures'] + 'global' + os.sep
-# if not os.path.isdir(path_global_figures):
-#     os.makedirs(path_global_figures)
-#
-# print(f"> Plot HM by station...")
-# plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bounds, path_global_figures,
-#                        fontsize=settings['fontsize']+2)
-#
-# print(f"> Plot #HM by station and Ref station...")
-# plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles, path_global_figures, bounds,
-#                           station_references=flatten_reference_stations, fontsize=settings['fontsize'])
+path_global_figures = dict_paths['folder_study_figures'] + 'global' + os.sep
+if not os.path.isdir(path_global_figures):
+    os.makedirs(path_global_figures)
+
+print(f"> Plot HM by station...")
+plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bounds, path_global_figures,
+                       fontsize=settings['fontsize']+2)
+
+print(f"> Plot #HM by station and Ref station...")
+plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles, path_global_figures, bounds,
+                          station_references=flatten_reference_stations, fontsize=settings['fontsize'])
 
 print(f'################################ END ################################', end='\n')
 input("Press Enter to close")

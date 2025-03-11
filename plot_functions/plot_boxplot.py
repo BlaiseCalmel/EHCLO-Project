@@ -277,7 +277,7 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
 
     # Déterminer dynamiquement le nombre de colonnes
     ncol = max(1, int(fig_width * 5 / avg_label_length))
-    ncol = np.round(len(legend_items) / ncol) + 1
+    # ncol = np.round(len(legend_items) / ncol) + 1
 
     fig.legend(np.array(legend_items)[imported_order], np.array(legend_labels)[imported_order], loc='upper center', bbox_to_anchor=(0.5, 0),
                fancybox=False, shadow=False, ncol=ncol)

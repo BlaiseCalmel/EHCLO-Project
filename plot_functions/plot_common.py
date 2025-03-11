@@ -190,6 +190,8 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
             xmin = min(x_min_temp)
         except KeyError:
             xmin = None
+        except OverflowError:
+            xmin = None
     if xmax is None:
         try:
             x_max_temp = 0
@@ -202,6 +204,8 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
         except ValueError:
             xmax = max(x_max_temp)
         except KeyError:
+            xmax = None
+        except OverflowError:
             xmax = None
 
     if ymin is None:
@@ -217,6 +221,8 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
             ymin = min(y_min_temp)
         except KeyError:
             ymin = None
+        except OverflowError:
+            ymin = None
 
     if ymax is None:
         try:
@@ -230,6 +236,8 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
         except ValueError:
             ymax = max(y_max_temp)
         except KeyError:
+            ymax = None
+        except OverflowError:
             ymax = None
 
     return xmin, xmax, ymin, ymax
