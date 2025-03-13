@@ -109,59 +109,6 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
             other_dimension = 'season'
             dimension_names = {1: "Hiver", 2: "Printemps", 3: "Été", 4: "Automne"}
 
-    # if data_type == 'climate':
-    #     # sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
-    #     # sim_points_gdf_simplified = sim_points_gdf
-    #     ds = ds.assign_coords(geometry=(
-    #         'gid', sim_all_points_info.set_index('name').loc[ds['gid'].values, 'geometry']))
-    #
-    #     # Find matching area
-    #     # geometry_dict = {row['gid']: row['geometry'] for _, row in study_hydro_shp.iterrows()}
-    #     # region_da = xr.DataArray(sim_points_gdf_simplified['gid'].values, dims=['gid'],
-    #     #                          coords={'gid': sim_points_gdf_simplified['name']})
-    #     # ds = ds.assign_coords(region=region_da)
-    #     # ds = ds.assign_coords(geometry=('region', [geometry_dict[code] for code in ds['region'].values]))
-    #     # ds = ds.rename({'region': 'gid'})
-    # else:
-    #     # sim_points_gdf_simplified = sim_points_gdf.copy()
-    #     # sim_points_gdf_simplified = sim_points_gdf_simplified.simplify(tolerance=1000, preserve_topology=True)
-    #     # geometry_dict = sim_points_gdf_simplified['geometry'].to_dict()
-    #     # TODO Rename 'code' with gid
-    #     # ds['geometry'] = ('code', [
-    #     #     geometry_dict[code] if code in geometry_dict.keys() else None for code in ds['code'].values
-    #     # ])
-    #     # ds = ds.rename({'code': 'gid'})
-    #
-    #     # Compute PK
-    #
-    #
-    #     if indicator == 'QA':
-    #         # other_dimension = {'time': 'time.month'}
-    #         ds = ds.assign_coords(month=ds['time.month'])
-    #         other_dimension = 'month'
-    #     elif indicator == 'seas':
-    #         def get_season(month):
-    #             if month in [12, 1, 2]:
-    #                 return 'DJF'
-    #             elif month in [3, 4, 5]:
-    #                 return 'MAM'
-    #             elif month in [6, 7, 8]:
-    #                 return 'JJA'
-    #             else:
-    #                 return 'SON'
-    #
-    #         seasons = xr.DataArray(
-    #             [get_season(i) for i in ds['time.month'].values],
-    #             coords={'time': ds['time']},
-    #             dims='time'
-    #         )
-    #         ds = ds.assign_coords(season=seasons)
-    #         other_dimension = 'season'
-
-    # if indicator == 'QA':
-    #         # other_dimension = {'time': 'time.month'}
-    #         ds = ds.assign_coords(month=ds['time.month'])
-    #         other_dimension = 'month'
     columns = {}
     print(f'>> Define horizons...', end='\n')
     # Define horizons
@@ -415,7 +362,7 @@ def compute_return_period(ds, indicator_cols, files_setup, return_period=5, othe
     horizons = ['historical'] + list(files_setup['horizons'].keys())
 
     if other_dimension:
-        data_dim = np.unique(ds[other_dimension])
+        data_dim = np.unique(ds[other_dimension].values)
         dict_by_horizon = {
             f"{i}_by-horizon": (["gid", "horizon", other_dimension],
                                                    np.full((len(ds['gid']),
@@ -423,7 +370,7 @@ def compute_return_period(ds, indicator_cols, files_setup, return_period=5, othe
                                                             len(data_dim)), np.nan))
             for i in indicator_cols
         }
-        coords = {"gid": ds['gid'].data, "horizon": horizons, other_dimension: data_dim.data}
+        coords = {"gid": ds['gid'].data, "horizon": horizons, other_dimension: data_dim}
     else:
         dict_by_horizon = {
             f"{i}_by-horizon": (["gid", "horizon"],

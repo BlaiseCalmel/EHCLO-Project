@@ -121,27 +121,6 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
     temp_paths = []
     with (tqdm(total=total_iterations, desc=f"Create {title} file") as pbar):
-        # i=2
-        # files=paths_data[i]
-        # file1 = [
-        #         '/home/bcalmel/Documents/2_data/historical-rcp85/HadGEM2-ES/ALADIN63/ADAMONT/SMASH/debit_France_MOHC-HadGEM2-ES_historical-rcp85_r1i1p1_CNRM-ALADIN63_v3_MF-ADAMONT-SAFRAN-1980-2011_INRAE-SMASH_day_20050801-20990731.nc'
-        #     ]
-        # file2=['/home/bcalmel/Documents/2_data/historical-rcp85/IPSL-CM5A-MR/RCA4/ADAMONT/J2000/debit_Rhone-Loire_IPSL-IPSL-CM5A-MR_historical-rcp85_r1i1p1_SMHI-RCA4_v3_MF-ADAMONT-SAFRAN-France-1980-2011_INRAE-J2000_day_20050801-21000731.nc']
-        # paths_data = [file1, file2]
-        #
-        # ds1 = test[0]
-        # file_name1 = 'HadGEM2-ES_ALADIN63_ADAMONT_SMASH'
-        # ds2 = test[1]
-        # file_name2 = 'IPSL-CM5A-MR_RCA4_ADAMONT_J2000'
-        #
-        # ds1[file_name1].quantile(0.9, dim='time')
-        # ds2[file_name2].quantile(0.9, dim='time')
-        # ds[file_name].quantile(0.9, dim='time')
-        #
-        # ds2 = xr.open_dataset(file2[0])
-        # ds2.debit.quantile(0.9)
-        #
-        # test = []
         for i, files in enumerate(paths_data):
             if param_type == "climate":
                 split_name = files[0].split(os.sep)[-4:-1]
@@ -195,10 +174,14 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
                 if ds[file_name].attrs.get("units") == 'kg.m-2.s-1':
                     ds[file_name] = ds[file_name] * 86400
+                    units = 'kg.m-2'
+                else:
+                    units = ds[file_name].attrs.get("units")
 
                 # Remove attribute and define code as coordinates
                 ds.attrs = {}
                 ds[file_name].attrs = {}
+                ds[file_name].attrs["units"] = units
                 if 'code' in ds.data_vars:
                     ds = ds.set_coords("code")
                     ds = ds.swap_dims({'station': 'code'})
@@ -241,49 +224,56 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                 }, coords=coordinates
                 )
 
-                if 'SAFRAN' in split_name:
-                    # Get hydro model
-                    hm = split_name[-1]
-                    # Get remove station list
-                    if os.path.isfile(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_rm.csv"):
-                        rm_hm = pd.read_csv(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_rm.csv", sep=";")
-                        rm_hm["AncienNom"] = rm_hm["AncienNom"].apply(lambda x: x.encode())
-                        # ds = ds.sel(station=[int(j) for j in ds["station"].where(~ds["code"].isin(rm_hm["AncienNom"]),
-                        #                                                          drop=True)])
-                        ds = ds.where(~ds["code"].isin(rm_hm["AncienNom"]), drop=True)
+                # if 'SAFRAN' in split_name:
+                # Get hydro model
+                hm = split_name[-1]
+                # Get remove station list
+                if os.path.isfile(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_rm.csv"):
+                    rm_hm = pd.read_csv(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_rm.csv", sep=";")
+                    rm_hm["AncienNom"] = rm_hm["AncienNom"].apply(lambda x: x.encode())
+                    # ds = ds.sel(station=[int(j) for j in ds["station"].where(~ds["code"].isin(rm_hm["AncienNom"]),
+                    #                                                          drop=True)])
+                    ds = ds.where(~ds["code"].isin(rm_hm["AncienNom"]), drop=True)
 
-                    # Get modify station list
-                    if os.path.isfile(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_mv.csv"):
-                        mv_hm = pd.read_csv(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_mv.csv", sep=";")
-                        mv_hm["AncienNom"] = mv_hm["AncienNom"].apply(lambda x: x.encode())
-                        mv_hm["NouveauNom"] = mv_hm["NouveauNom"].apply(lambda x: x.encode())
-                        codes_updated = ds["code"].values.copy()
-                        remove_list = []
-                        for _, row in mv_hm.iterrows():
-                            mask = (
-                                    (ds["code"] == row["AncienNom"]) &
-                                    (np.round(ds["x"]) == np.round(row["AncienX"])) &
-                                    (np.round(ds["y"]) == np.round(row["AncienY"]))
-                            )
+                # Get modify station list
+                if os.path.isfile(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_mv.csv"):
+                    mv_hm = pd.read_csv(f"/home/bcalmel/Documents/2_data/code_correction/{hm}_mv.csv", sep=";")
+                    mv_hm["AncienNom"] = mv_hm["AncienNom"].apply(lambda x: x.encode())
+                    mv_hm["NouveauNom"] = mv_hm["NouveauNom"].apply(lambda x: x.encode())
+                    codes_updated = ds["code"].values.copy()
+                    remove_list = []
+                    for _, row in mv_hm.iterrows():
+                        mask = (
+                                (ds["code"] == row["AncienNom"]) &
+                                (np.round(ds["x"]) == np.round(row["AncienX"])) &
+                                (np.round(ds["y"]) == np.round(row["AncienY"]))
+                        )
 
-                            if np.sum(mask) == 0:
-                                mask = (ds["code"] == row["AncienNom"])
+                        # if np.sum(mask) == 0:
+                        #     mask = (ds["code"] == row["AncienNom"])
 
-                            if np.sum(mask) == 1:
-                                codes_updated = xr.where(mask, row["NouveauNom"], codes_updated)
-                            else:
-                                if row["AncienNom"] in ds.code:
-                                    remove_list.append(row["AncienNom"])
+                        if np.sum(mask) == 1:
+                            codes_updated = np.where(mask, row["NouveauNom"], codes_updated)
+                        else:
+                            if row["AncienNom"] in ds.code:
+                                remove_list.append(row["AncienNom"])
 
-                        ds = ds.assign_coords(code=("code", codes_updated.values))
-                        if len(remove_list) > 0:
-                            ds = ds.where(~ds["code"].isin(remove_list), drop=True)
+                    ds = ds.assign_coords(code=("code", codes_updated))
+                    if len(remove_list) > 0:
+                        ds = ds.where(~ds["code"].isin(remove_list), drop=True)
 
-                    ds = ds.sel(code=ds["code"] != b'----------')
-                    gid_values = np.unique([code.encode() for code in sim_points_gdf.index.values])
-                    codes_to_select = [code for code in gid_values if code in ds['code'].values]
-                    if len(codes_to_select) > 0:
-                        ds = ds.sel(code=codes_to_select)
+                # Remove empty code
+                ds = ds.sel(code=ds["code"] != b'----------')
+                # Remove duplicates
+                _, unique_indices = np.unique(ds["code"], return_index=True)
+                ds = ds.isel(code=unique_indices)
+
+                # Keep only selected area codes
+                gid_values = np.unique([code.encode() for code in sim_points_gdf.index.values])
+                codes_to_select = [code for code in gid_values if code in ds['code'].values]
+                ds.sel(code=np.unique(ds.code.values))
+                if len(codes_to_select) > 0:
+                    ds = ds.sel(code=codes_to_select)
 
             # Create temporary file
             ds.to_netcdf(path=f"{temp_dir}{os.sep}{var}.nc")
@@ -297,12 +287,12 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
 
     if 'code' in combined_dataset.coords:
         combined_dataset = combined_dataset.rename({'code': 'gid'})
-        combined_dataset = combined_dataset.sel(gid=combined_dataset["gid"] != b'----------')
-
-        gid_values = np.unique([code.encode() for code in sim_points_gdf.index.values])
-        codes_to_select = [code for code in gid_values if code in ds['code'].values]
-        if len(codes_to_select) > 0:
-            combined_dataset = combined_dataset.sel(gid=codes_to_select)
+    #     combined_dataset = combined_dataset.sel(gid=combined_dataset["gid"] != b'----------')
+    #
+    #     gid_values = np.unique([code.encode() for code in sim_points_gdf.index.values])
+    #     codes_to_select = [code for code in gid_values if code in combined_dataset['code'].values]
+    #     if len(codes_to_select) > 0:
+    #         combined_dataset = combined_dataset.sel(code=codes_to_select)
 
     combined_dataset = combined_dataset.set_coords('x')
     combined_dataset = combined_dataset.set_coords('y')
@@ -323,6 +313,176 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
             df.to_csv(f"{path_result}", index=False, sep=";")
     else:
          return combined_dataset
+
+
+def extract_ncdf_indicator2(paths_data, param_type, sim_points_gdf, indicator, timestep=None, function=None,
+                           start=None, end=None, path_result=None):
+
+    # Create temporary directory
+    temp_dir = os.path.dirname(path_result) + os.sep + '_temp'
+    if not os.path.isdir(temp_dir):
+        os.makedirs(temp_dir)
+
+    if param_type == 'climate':
+        # Only load historical paths for available sim
+        historical_paths = [path for path in paths_data if 'historical' in path]
+        rcp_paths =  [path for path in paths_data if 'rcp' in path]
+        historical_dir = [path.split(os.sep)[-4:-1] for path in historical_paths]
+        rcp_dir =  [path.split(os.sep)[-4:-1] for path in rcp_paths]
+
+        indexes_sim = [historical_dir.index(i) for i in rcp_dir]
+        paths_data = [[historical_paths[val], rcp_paths[idx]] for idx, val in enumerate(indexes_sim)]
+    else:
+        if not 'debit' in indicator:
+            paths_data = [[i] for i in paths_data]
+        else:
+            sim_chains = [i.split(os.sep)[-5:-1] for i in paths_data]
+            unique_chains = [list(x) for x in set(tuple(x) for x in sim_chains)]
+            temp_paths = []
+            for chain in unique_chains:
+                positions = [i for i, sub in enumerate(sim_chains) if sub == chain]
+                temp_paths.append([paths_data[i] for i in positions])
+            paths_data = temp_paths
+
+    # Progress bar setup
+    if path_result is None:
+        title = indicator
+    else:
+        title = os.path.basename(path_result)
+    total_iterations = len(paths_data)
+
+    temp_paths = []
+    with (tqdm(total=total_iterations, desc=f"Create {title} file") as pbar):
+        for i, files in enumerate(paths_data):
+            if param_type == "climate":
+                split_name = files[0].split(os.sep)[-4:-1]
+            else:
+                split_name = files[0].split(os.sep)[-5:-1]
+
+            file_name = '_'.join(split_name)
+            var = indicator+'_'+file_name
+
+            # if os.path.isfile(f"{temp_dir}{os.sep}{var}.nc"):
+            #     if f"{temp_dir}{os.sep}{var}.nc" not in temp_paths:
+            #         temp_paths.append(f"{temp_dir}{os.sep}{var}.nc")
+            #     continue
+
+            datasets = []
+            for file in files:
+                print(file)
+                ds = xr.open_dataset(file)
+
+                # Check for coordinates without dimension
+                dims_without_coords = [dim for dim in ds.dims if dim not in ds.coords]
+                for dims in dims_without_coords:
+                    if dims != 'station':
+                        if len(ds[dims]) == len(ds['station']):
+                            ds = ds.assign_coords({dims: ds.station})
+                            ds = ds.swap_dims({dims: "station"}).drop_vars(dims)
+                        else:
+                            ds = ds.assign_coords({dims: ds[dims]})
+                            vars_to_remove = [var for var in ds.data_vars if dims in ds[var].dims]
+                            ds = ds.drop_vars(vars_to_remove + [dims])
+
+                if len(dims_without_coords) > 0:
+                    ds = ds.assign_coords({"station": ds.station})
+
+                # Add sim suffix
+                ds = rename_variables(ds, file_name, indicator.split('_')[0])
+                # Load only selected period
+                if start is not None:
+                    ds = ds.sel(time=slice(dt.datetime(
+                        start, 1, 1), None))
+                if end is not None:
+                    ds = ds.sel(time=slice(None, dt.datetime(
+                        end, 12, 31)))
+
+                # LII generates bug
+                if 'LII' in ds.variables:
+                    del ds['LII']
+
+                # Remove attribute and define code as coordinates
+                ds.attrs = {}
+                ds[file_name].attrs = {}
+                if 'code' in ds.data_vars:
+                    ds = ds.set_coords("code")
+                    ds = ds.swap_dims({'station': 'code'})
+                if len(files) > 1:
+                    datasets.append(ds)
+
+            if len(datasets) > 1:
+                # ds = xr.concat(datasets, dim="time").sortby("time")
+                merge_dim = [file_name, 'L93_X', 'L93_Y']
+                ds = xr.combine_by_coords([temp_ds[merge_dim] for temp_ds in datasets])
+
+            # Compute quantile
+            # if function is not None:
+            print('resample')
+            resampled_var = apply_function_to_ds(ds, function, file_name, timestep)
+            # Create a new dataset
+            coordinates = {}
+            for dim in resampled_var.dims:
+                coordinates |= {dim: resampled_var[dim].values}
+            print(f"Create")
+            if param_type == "climate":
+                if ds[file_name].attrs.get("units") == 'kg.m-2.s-1':
+                    ds[file_name] = ds[file_name] * 86400
+                resampled_var = apply_function_to_ds(ds, function, file_name, timestep)
+                # if timestep is not None:
+                # resampled_var = resample_ds(ds, file_name, timestep)
+                coordinates = {i: ds[i] for i in ds._coord_names if i != 'time'}
+                coordinates['time'] = resampled_var['time']
+                ds = xr.Dataset({
+                    file_name: (('time', 'y', 'x'), resampled_var.values)
+                }, coords=coordinates
+                )
+
+                ds = ds.sel(x=xr.DataArray(sim_points_gdf['x']), y=xr.DataArray(sim_points_gdf['y']))
+                ds = ds.assign_coords(dim_0=sim_points_gdf['name']).rename(dim_0='name')
+                ds = ds.rename({'name': 'gid'})
+
+            else:
+                ds = xr.Dataset({
+                    file_name: (resampled_var.dims, resampled_var.values),
+                    # 'x': (ds.L93_X.dims, ds.L93_X.values),
+                    # 'y': (ds.L93_Y.dims, ds.L93_Y.values)
+                }, coords=coordinates
+                )
+                ds = ds.sel(code=ds["code"] != b'----------')
+                gid_values = np.unique([code.encode() for code in sim_points_gdf.index.values])
+                codes_to_select = [code for code in gid_values if code in ds['code'].values]
+                if len(codes_to_select) > 0:
+                    ds = ds.sel(code=codes_to_select)
+
+            print(f"Save")
+            ds.to_netcdf(path=f"{temp_dir}{os.sep}{var}.nc")
+            print('Saved')
+            temp_paths.append(f"{temp_dir}{os.sep}{var}.nc")
+
+            # Update progress bar
+            pbar.update(1)
+
+    # Open temporary files and merge datasets
+    combined_dataset = xr.open_mfdataset(temp_paths, combine='nested', compat='override')
+
+    # Save as ncdf
+    if path_result is not None:
+        if path_result[-2:] == 'nc':
+            combined_dataset.to_netcdf(path=f"{path_result}")
+            del combined_dataset
+            del ds
+            # Delete temporary directory
+            for path in temp_paths:
+                if os.path.isfile(path):
+                    os.unlink(path)
+            os.removedirs(temp_dir)
+        else:
+            df = combined_dataset.to_dataframe().reset_index()
+            df.to_csv(f"{path_result}", index=False, sep=";")
+    else:
+        return combined_dataset
+
+
 
 # def from_dict_to_df(data_dict):
 #     # Transform dict to DataFrame

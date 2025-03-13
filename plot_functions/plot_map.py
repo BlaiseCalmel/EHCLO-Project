@@ -161,7 +161,7 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     abs_max = max([vmax, -vmin])
     n = 2*abs_max / discretize
     exponent = round(math.log10(n))
-    step = np.round(n, -exponent+1)
+    step = np.round(n, -exponent)
     if step == 0:
         step = n
 
@@ -170,10 +170,10 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     else:
         midpoint = 0
 
-    if cbar_values is None:
-        cbar_values = decimal_places(step)
-    else:
-        step = cbar_values
+    # if cbar_values is None:
+    #     cbar_values = decimal_places(step)
+    # else:
+    #     step = cbar_values
     levels = mirrored(maxval=abs_max, inc=step, val_center=midpoint)
 
     # levels = np.arange(vmin, abs_max+1, 1)
@@ -256,7 +256,8 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     if title:
         figsize = (figsize[0], figsize[1] * 1.02)
     if subplot_titles:
-        figsize= (figsize[0], figsize[1] * (1 + 0.02 * len_rows))
+        subtitles_lines = max(s.count('\n') for s in cols['names_plot'])
+        figsize= (figsize[0], figsize[1] * (1 + 0.02 * len_rows) + subtitles_lines)
 
     fig, axes = plt.subplots(len_rows, len_cols, figsize=figsize, constrained_layout=True)
     # hspace = 0.03

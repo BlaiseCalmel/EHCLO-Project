@@ -130,11 +130,11 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
     path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 
     # Run among data type climate/hydro
-    data_type='hydro'
+    data_type='climate'
     subdict=path_files[data_type]
     rcp='rcp85'
     subdict2=subdict[rcp]
-    indicator = "QA_yr"
+    indicator = "tasAdjust"
     paths = subdict2[indicator]
     for data_type, subdict in path_files.items():
         # Load simulation points for current data type
@@ -260,7 +260,7 @@ while run_plot:
             if name_indicator in runned_data:
                 continue
             print(f'################################ STATS {name_indicator.upper()} ################################', end='\n')
-            # if name_indicator.upper() == "T MOY. SEAS":
+            # if name_indicator.upper() == "T MOY.":
             #     break
             if overwrite:
                 write_fig = True
@@ -300,6 +300,12 @@ while run_plot:
                 path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}_{start_year}-{end_year}.nc"
                 # path_ncdf2 = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}.nc"
                 ds_stats = xr.open_dataset(path_ncdf)
+                if data_type == 'hydro':
+                    ds_stats['gid'] = ds_stats['gid'].astype(str)
+                gid_values = np.unique([code for code in sim_points_gdf_simplified.index.values])
+                codes_to_select = [code for code in gid_values if code in ds_stats['gid'].values]
+                if len(codes_to_select) > 0:
+                    ds_stats = ds_stats.sel(gid=codes_to_select)
 
                 # Compute stats
                 ds_stats, variables = format_dataset(ds=ds_stats, data_type=data_type, files_setup=files_setup,
@@ -307,13 +313,6 @@ while run_plot:
                                                      return_period=settings['return_period'])
                 # ds_stats.sel(gid=ds_stats["gid"] == b'----------')
                 # ds_stats = ds_stats.sel(gid=ds_stats["gid"] != b'----------')
-                ds_stats['gid'] = ds_stats['gid'].astype(str)
-                # Geodataframe
-
-                gid_values = np.unique([code for code in sim_points_gdf_simplified.index.values])
-                codes_to_select = [code for code in gid_values if code in ds_stats['gid'].values]
-                if len(codes_to_select) > 0:
-                    ds_stats = ds_stats.sel(gid=codes_to_select)
 
                 sim_points_gdf_simplified = sim_points_gdf_simplified.loc[ds_stats.gid]
                 dict_shapefiles = define_plot_shapefiles(regions_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified,
@@ -351,7 +350,7 @@ while run_plot:
                                                path_result=path_indicator_figures+f'{title_join}_map_matching_sims.pdf',
                                                cbar_title=f"{title_join} Accord des modèles sur le sens d'évolution (%)", cbar_ticks=None,
                                                title=coordinate_value, dict_shapefiles=dict_shapefiles,
-                                               bounds=bounds, palette='PuOr', cbar_midpoint='zero', cbar_values=settings['cbar_values'],
+                                               bounds=bounds, palette='PuOr', cbar_midpoint='zero', cbar_values=0,
                                                start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
                                                fontsize=settings['fontsize']-2, alpha=1,
                                                font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75,
