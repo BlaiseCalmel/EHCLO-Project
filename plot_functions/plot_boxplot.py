@@ -175,10 +175,9 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
                 # Plot by sub box categories
                 if 'type' in y_var.keys():
                     if y_var['type'] == 'histo':
-                        # del kwargs['type']
                         for cell_idx, cell in enumerate(cell_boxplots):
-                            bp = ax.fill_between(x=[centers[cell_idx] - (len(y_axis['names_plot']) - ignore) / 2,
-                                                 centers[cell_idx] + (len(y_axis['names_plot']) - ignore) / 2],
+                            bp = ax.fill_between(x=[centers[cell_idx] - (len(y_axis['names_plot']) - ignore) / 2 - 0.2,
+                                                 centers[cell_idx] + (len(y_axis['names_plot']) - ignore) / 2 + 0.2],
                                                  y1=[0],
                                                  y2=[np.nanmedian(cell)], **kwargs)
                 else:

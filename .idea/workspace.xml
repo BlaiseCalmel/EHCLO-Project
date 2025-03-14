@@ -1,0 +1,560 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="3e6d2d53-366e-4ba5-b076-c7e6b966608b" name="Changes" comment="Adapt figsize to subtitles">
+      <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_BRANCH_BY_REPOSITORY">
+      <map>
+        <entry key="$PROJECT_DIR$" value="main" />
+      </map>
+    </option>
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="HARD" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;BlaiseCalmel&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;git@github.com:BlaiseCalmel/EHCLO-Project.git&quot;,
+    &quot;accountId&quot;: &quot;9eec3887-0004-4f8f-9ee1-5cfd9b4a292b&quot;
+  }
+}</component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="ProjectErrors" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 4
+}</component>
+  <component name="ProjectId" id="2mSlUWvmjumMFxlg5bKR9yXdg0Y" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Python.main.executor&quot;: &quot;Run&quot;,
+    &quot;Python.plot_common.executor&quot;: &quot;Run&quot;,
+    &quot;Python.plot_data.executor&quot;: &quot;Run&quot;,
+    &quot;Python.plot_map.executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/bcalmel/Documents/1_codes/EHCLO-Project&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;SDKs&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;python.debugger.dataview.autoresize&quot;: &quot;false&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.keymap&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/plot_functions" />
+    </key>
+  </component>
+  <component name="RunManager">
+    <configuration name="main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+      <module name="EHCLO-Project" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="SDK_NAME" value="Python 3.10 (myvenv)" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/main.py" />
+      <option name="PARAMETERS" value="" />
+      <option name="SHOW_COMMAND_LINE" value="false" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+      <option name="REDIRECT_INPUT" value="false" />
+      <option name="INPUT_FILE" value="" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="3e6d2d53-366e-4ba5-b076-c7e6b966608b" name="Changes" comment="" />
+      <created>1727077875549</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1727077875549</updated>
+    </task>
+    <task id="LOCAL-00061" summary="Boxplot functino per narrative">
+      <option name="closed" value="true" />
+      <created>1734113193630</created>
+      <option name="number" value="00061" />
+      <option name="presentableId" value="LOCAL-00061" />
+      <option name="project" value="LOCAL" />
+      <updated>1734113193630</updated>
+    </task>
+    <task id="LOCAL-00062" summary="Boxplot extrema">
+      <option name="closed" value="true" />
+      <created>1734114883488</created>
+      <option name="number" value="00062" />
+      <option name="presentableId" value="LOCAL-00062" />
+      <option name="project" value="LOCAL" />
+      <updated>1734114883488</updated>
+    </task>
+    <task id="LOCAL-00063" summary="Add font to arguments, fix bug to show y axis label while there is only one row">
+      <option name="closed" value="true" />
+      <created>1734424463882</created>
+      <option name="number" value="00063" />
+      <option name="presentableId" value="LOCAL-00063" />
+      <option name="project" value="LOCAL" />
+      <updated>1734424463882</updated>
+    </task>
+    <task id="LOCAL-00064" summary="Work paths">
+      <option name="closed" value="true" />
+      <created>1736169381303</created>
+      <option name="number" value="00064" />
+      <option name="presentableId" value="LOCAL-00064" />
+      <option name="project" value="LOCAL" />
+      <updated>1736169381304</updated>
+    </task>
+    <task id="LOCAL-00065" summary="Compute quantile from raw discharge data">
+      <option name="closed" value="true" />
+      <created>1736350572293</created>
+      <option name="number" value="00065" />
+      <option name="presentableId" value="LOCAL-00065" />
+      <option name="project" value="LOCAL" />
+      <updated>1736350572294</updated>
+    </task>
+    <task id="LOCAL-00066" summary="Compute return period">
+      <option name="closed" value="true" />
+      <created>1736354850961</created>
+      <option name="number" value="00066" />
+      <option name="presentableId" value="LOCAL-00066" />
+      <option name="project" value="LOCAL" />
+      <updated>1736354850961</updated>
+    </task>
+    <task id="LOCAL-00067" summary="Fix many bugs from debit ncdf files coordinates format">
+      <option name="closed" value="true" />
+      <created>1736434648842</created>
+      <option name="number" value="00067" />
+      <option name="presentableId" value="LOCAL-00067" />
+      <option name="project" value="LOCAL" />
+      <updated>1736434648842</updated>
+    </task>
+    <task id="LOCAL-00068" summary="Compute return period value per horizon">
+      <option name="closed" value="true" />
+      <created>1736439414509</created>
+      <option name="number" value="00068" />
+      <option name="presentableId" value="LOCAL-00068" />
+      <option name="project" value="LOCAL" />
+      <updated>1736439414509</updated>
+    </task>
+    <task id="LOCAL-00069" summary="Update files setup format to define extraction and plot settings">
+      <option name="closed" value="true" />
+      <created>1736504005519</created>
+      <option name="number" value="00069" />
+      <option name="presentableId" value="LOCAL-00069" />
+      <option name="project" value="LOCAL" />
+      <updated>1736504005519</updated>
+    </task>
+    <task id="LOCAL-00070" summary="Update files setup climate indicator">
+      <option name="closed" value="true" />
+      <created>1736504092940</created>
+      <option name="number" value="00070" />
+      <option name="presentableId" value="LOCAL-00070" />
+      <option name="project" value="LOCAL" />
+      <updated>1736504092940</updated>
+    </task>
+    <task id="LOCAL-00071" summary="Adapt main.py to changes from files_setup.json">
+      <option name="closed" value="true" />
+      <created>1736505143558</created>
+      <option name="number" value="00071" />
+      <option name="presentableId" value="LOCAL-00071" />
+      <option name="project" value="LOCAL" />
+      <updated>1736505143558</updated>
+    </task>
+    <task id="LOCAL-00072" summary="Load settings info for plot">
+      <option name="closed" value="true" />
+      <created>1736513899048</created>
+      <option name="number" value="00072" />
+      <option name="presentableId" value="LOCAL-00072" />
+      <option name="project" value="LOCAL" />
+      <updated>1736513899048</updated>
+    </task>
+    <task id="LOCAL-00073" summary="Adapt plot section to accept another dimension and run among it (for example months)">
+      <option name="closed" value="true" />
+      <created>1736523757945</created>
+      <option name="number" value="00073" />
+      <option name="presentableId" value="LOCAL-00073" />
+      <option name="project" value="LOCAL" />
+      <updated>1736523757946</updated>
+    </task>
+    <task id="LOCAL-00074" summary="Use narrative color as row title instead of climate simulation for readability">
+      <option name="closed" value="true" />
+      <created>1736528420592</created>
+      <option name="number" value="00074" />
+      <option name="presentableId" value="LOCAL-00074" />
+      <option name="project" value="LOCAL" />
+      <updated>1736528420592</updated>
+    </task>
+    <task id="LOCAL-00075" summary="Remove &quot;.&quot; from files name to prevent error">
+      <option name="closed" value="true" />
+      <created>1736528709131</created>
+      <option name="number" value="00075" />
+      <option name="presentableId" value="LOCAL-00075" />
+      <option name="project" value="LOCAL" />
+      <updated>1736528709131</updated>
+    </task>
+    <task id="LOCAL-00076" summary="Add init setting json file for plot">
+      <option name="closed" value="true" />
+      <created>1736782257837</created>
+      <option name="number" value="00076" />
+      <option name="presentableId" value="LOCAL-00076" />
+      <option name="project" value="LOCAL" />
+      <updated>1736782257837</updated>
+    </task>
+    <task id="LOCAL-00077" summary="Plot seasons together as subplots">
+      <option name="closed" value="true" />
+      <created>1736864002930</created>
+      <option name="number" value="00077" />
+      <option name="presentableId" value="LOCAL-00077" />
+      <option name="project" value="LOCAL" />
+      <updated>1736864002933</updated>
+    </task>
+    <task id="LOCAL-00078" summary="Allow to extract data as a count of days over/below a specified threshold">
+      <option name="closed" value="true" />
+      <created>1736938925542</created>
+      <option name="number" value="00078" />
+      <option name="presentableId" value="LOCAL-00078" />
+      <option name="project" value="LOCAL" />
+      <updated>1736938925542</updated>
+    </task>
+    <task id="LOCAL-00079" summary="Correct format_significant to properly show only 1 digit, fix bugs, convert RR kg.m-2.s-1 to mm">
+      <option name="closed" value="true" />
+      <created>1736958142855</created>
+      <option name="number" value="00079" />
+      <option name="presentableId" value="LOCAL-00079" />
+      <option name="project" value="LOCAL" />
+      <updated>1736958142855</updated>
+    </task>
+    <task id="LOCAL-00080" summary="Automatic plot names">
+      <option name="closed" value="true" />
+      <created>1737020396982</created>
+      <option name="number" value="00080" />
+      <option name="presentableId" value="LOCAL-00080" />
+      <option name="project" value="LOCAL" />
+      <updated>1737020396983</updated>
+    </task>
+    <task id="LOCAL-00081" summary="Put narratives and station references as attributes for plot function">
+      <option name="closed" value="true" />
+      <created>1737462333034</created>
+      <option name="number" value="00081" />
+      <option name="presentableId" value="LOCAL-00081" />
+      <option name="project" value="LOCAL" />
+      <updated>1737462333034</updated>
+    </task>
+    <task id="LOCAL-00082" summary="Update stations of reference (import as json), start narrative selection method">
+      <option name="closed" value="true" />
+      <created>1737555272952</created>
+      <option name="number" value="00082" />
+      <option name="presentableId" value="LOCAL-00082" />
+      <option name="project" value="LOCAL" />
+      <updated>1737555272953</updated>
+    </task>
+    <task id="LOCAL-00083" summary="Use log10 to define map cbar round ticks">
+      <option name="closed" value="true" />
+      <created>1738143227659</created>
+      <option name="number" value="00083" />
+      <option name="presentableId" value="LOCAL-00083" />
+      <option name="project" value="LOCAL" />
+      <updated>1738143227660</updated>
+    </task>
+    <task id="LOCAL-00084" summary="Plot map : set alpha to 1, add it to settings, reduce margin, reduce cbar label space">
+      <option name="closed" value="true" />
+      <created>1738235504594</created>
+      <option name="number" value="00084" />
+      <option name="presentableId" value="LOCAL-00084" />
+      <option name="project" value="LOCAL" />
+      <updated>1738235504594</updated>
+    </task>
+    <task id="LOCAL-00085" summary="Boxplot : specify y_axis as dict and not anymore as list, allow to plot by month">
+      <option name="closed" value="true" />
+      <created>1738258256100</created>
+      <option name="number" value="00085" />
+      <option name="presentableId" value="LOCAL-00085" />
+      <option name="project" value="LOCAL" />
+      <updated>1738258256100</updated>
+    </task>
+    <task id="LOCAL-00086" summary="Fix few details in graphs, add input to main to load only useful data">
+      <option name="closed" value="true" />
+      <created>1738321766230</created>
+      <option name="number" value="00086" />
+      <option name="presentableId" value="LOCAL-00086" />
+      <option name="project" value="LOCAL" />
+      <updated>1738321766230</updated>
+    </task>
+    <task id="LOCAL-00087" summary="Adapt legend to graph size">
+      <option name="closed" value="true" />
+      <created>1738339924724</created>
+      <option name="number" value="00087" />
+      <option name="presentableId" value="LOCAL-00087" />
+      <option name="project" value="LOCAL" />
+      <updated>1738339924725</updated>
+    </task>
+    <task id="LOCAL-00088" summary="Add LF duration and date">
+      <option name="closed" value="true" />
+      <created>1738673671343</created>
+      <option name="number" value="00088" />
+      <option name="presentableId" value="LOCAL-00088" />
+      <option name="project" value="LOCAL" />
+      <updated>1738673671344</updated>
+    </task>
+    <task id="LOCAL-00089" summary="Update map plot to properly extend color bar">
+      <option name="closed" value="true" />
+      <created>1738686331890</created>
+      <option name="number" value="00089" />
+      <option name="presentableId" value="LOCAL-00089" />
+      <option name="project" value="LOCAL" />
+      <updated>1738686331891</updated>
+    </task>
+    <task id="LOCAL-00090" summary="Add chunk to load_data resample to optimize computation">
+      <option name="closed" value="true" />
+      <created>1738779829540</created>
+      <option name="number" value="00090" />
+      <option name="presentableId" value="LOCAL-00090" />
+      <option name="project" value="LOCAL" />
+      <updated>1738779829542</updated>
+    </task>
+    <task id="LOCAL-00091" summary="extract ncdf test">
+      <option name="closed" value="true" />
+      <created>1738791657942</created>
+      <option name="number" value="00091" />
+      <option name="presentableId" value="LOCAL-00091" />
+      <option name="project" value="LOCAL" />
+      <updated>1738791657942</updated>
+    </task>
+    <task id="LOCAL-00092" summary="Simplify map plot cbar range">
+      <option name="closed" value="true" />
+      <created>1738921248844</created>
+      <option name="number" value="00092" />
+      <option name="presentableId" value="LOCAL-00092" />
+      <option name="project" value="LOCAL" />
+      <updated>1738921248844</updated>
+    </task>
+    <task id="LOCAL-00093" summary="Test narratives on qjxa, vcn10, qa to select by sim chain (gcm-rcm, bc, hm)">
+      <option name="closed" value="true" />
+      <created>1738945337720</created>
+      <option name="number" value="00093" />
+      <option name="presentableId" value="LOCAL-00093" />
+      <option name="project" value="LOCAL" />
+      <updated>1738945337720</updated>
+    </task>
+    <task id="LOCAL-00094" summary="Test narratives">
+      <option name="closed" value="true" />
+      <created>1739805704870</created>
+      <option name="number" value="00094" />
+      <option name="presentableId" value="LOCAL-00094" />
+      <option name="project" value="LOCAL" />
+      <updated>1739805704872</updated>
+    </task>
+    <task id="LOCAL-00095" summary="Add hm shape for narrative plot">
+      <option name="closed" value="true" />
+      <created>1739811068362</created>
+      <option name="number" value="00095" />
+      <option name="presentableId" value="LOCAL-00095" />
+      <option name="project" value="LOCAL" />
+      <updated>1739811068362</updated>
+    </task>
+    <task id="LOCAL-00096" summary="Narratives : filter for representative cluster element">
+      <option name="closed" value="true" />
+      <created>1739873943594</created>
+      <option name="number" value="00096" />
+      <option name="presentableId" value="LOCAL-00096" />
+      <option name="project" value="LOCAL" />
+      <updated>1739873943594</updated>
+    </task>
+    <task id="LOCAL-00097" summary="Compute narratives methodology (centroids) and optimize_label_length function">
+      <option name="closed" value="true" />
+      <created>1739953907968</created>
+      <option name="number" value="00097" />
+      <option name="presentableId" value="LOCAL-00097" />
+      <option name="project" value="LOCAL" />
+      <updated>1739953907968</updated>
+    </task>
+    <task id="LOCAL-00098" summary="Clean narrative code, add plot_narratives">
+      <option name="closed" value="true" />
+      <created>1739977942392</created>
+      <option name="number" value="00098" />
+      <option name="presentableId" value="LOCAL-00098" />
+      <option name="project" value="LOCAL" />
+      <updated>1739977942392</updated>
+    </task>
+    <task id="LOCAL-00099" summary="Change plot format to be readable">
+      <option name="closed" value="true" />
+      <created>1740040418309</created>
+      <option name="number" value="00099" />
+      <option name="presentableId" value="LOCAL-00099" />
+      <option name="project" value="LOCAL" />
+      <updated>1740040418309</updated>
+    </task>
+    <task id="LOCAL-00100" summary="Define narratives dict">
+      <option name="closed" value="true" />
+      <created>1740068869025</created>
+      <option name="number" value="00100" />
+      <option name="presentableId" value="LOCAL-00100" />
+      <option name="project" value="LOCAL" />
+      <updated>1740068869025</updated>
+    </task>
+    <task id="LOCAL-00101" summary="Combine narrative selection methods (dist max from 3 other clusters &amp; smaller than average distance from centroid)">
+      <option name="closed" value="true" />
+      <created>1740125395405</created>
+      <option name="number" value="00101" />
+      <option name="presentableId" value="LOCAL-00101" />
+      <option name="project" value="LOCAL" />
+      <updated>1740125395405</updated>
+    </task>
+    <task id="LOCAL-00102" summary="Issue with SAFRAN station (duplicate codes), get Tristan's selection remove/modify files to update codes">
+      <option name="closed" value="true" />
+      <created>1740405906548</created>
+      <option name="number" value="00102" />
+      <option name="presentableId" value="LOCAL-00102" />
+      <option name="project" value="LOCAL" />
+      <updated>1740405906549</updated>
+    </task>
+    <task id="LOCAL-00103" summary="Add date to load_data export">
+      <option name="closed" value="true" />
+      <created>1740406701648</created>
+      <option name="number" value="00103" />
+      <option name="presentableId" value="LOCAL-00103" />
+      <option name="project" value="LOCAL" />
+      <updated>1740406701648</updated>
+    </task>
+    <task id="LOCAL-00104" summary="Update narrative color, subplots for comparison, add .fst opening">
+      <option name="closed" value="true" />
+      <created>1740680953048</created>
+      <option name="number" value="00104" />
+      <option name="presentableId" value="LOCAL-00104" />
+      <option name="project" value="LOCAL" />
+      <updated>1740680953048</updated>
+    </task>
+    <task id="LOCAL-00105" summary="Update narratives structure with subdict, adapt plots, add narratives map, add marker by narrative on top instead of subtitle">
+      <option name="closed" value="true" />
+      <created>1741281561840</created>
+      <option name="number" value="00105" />
+      <option name="presentableId" value="LOCAL-00105" />
+      <option name="project" value="LOCAL" />
+      <updated>1741281561841</updated>
+    </task>
+    <task id="LOCAL-00106" summary="Update boxplot plot to show more thant one tick on y axis">
+      <option name="closed" value="true" />
+      <created>1741340049903</created>
+      <option name="number" value="00106" />
+      <option name="presentableId" value="LOCAL-00106" />
+      <option name="project" value="LOCAL" />
+      <updated>1741340049904</updated>
+    </task>
+    <task id="LOCAL-00107" summary="Select proper paths">
+      <option name="closed" value="true" />
+      <created>1741683264788</created>
+      <option name="number" value="00107" />
+      <option name="presentableId" value="LOCAL-00107" />
+      <option name="project" value="LOCAL" />
+      <updated>1741683264794</updated>
+    </task>
+    <task id="LOCAL-00108" summary="update colorbar plot">
+      <option name="closed" value="true" />
+      <created>1741708482841</created>
+      <option name="number" value="00108" />
+      <option name="presentableId" value="LOCAL-00108" />
+      <option name="project" value="LOCAL" />
+      <updated>1741708482841</updated>
+    </task>
+    <task id="LOCAL-00109" summary="Adapt figsize to subtitles">
+      <option name="closed" value="true" />
+      <created>1741873063657</created>
+      <option name="number" value="00109" />
+      <option name="presentableId" value="LOCAL-00109" />
+      <option name="project" value="LOCAL" />
+      <updated>1741873063658</updated>
+    </task>
+    <option name="localTasksCounter" value="110" />
+    <servers />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="main" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Fix few details in graphs, add input to main to load only useful data" />
+    <MESSAGE value="Adapt legend to graph size" />
+    <MESSAGE value="Add LF duration and date" />
+    <MESSAGE value="Update map plot to properly extend color bar" />
+    <MESSAGE value="Add chunk to load_data resample to optimize computation" />
+    <MESSAGE value="extract ncdf test" />
+    <MESSAGE value="Simplify map plot cbar range" />
+    <MESSAGE value="Test narratives on qjxa, vcn10, qa to select by sim chain (gcm-rcm, bc, hm)" />
+    <MESSAGE value="Test narratives" />
+    <MESSAGE value="Add hm shape for narrative plot" />
+    <MESSAGE value="Narratives : filter for representative cluster element" />
+    <MESSAGE value="Compute narratives methodology (centroids) and optimize_label_length function" />
+    <MESSAGE value="Clean narrative code, add plot_narratives" />
+    <MESSAGE value="Change plot format to be readable" />
+    <MESSAGE value="Define narratives dict" />
+    <MESSAGE value="Combine narrative selection methods (dist max from 3 other clusters &amp; smaller than average distance from centroid)" />
+    <MESSAGE value="Issue with SAFRAN station (duplicate codes), get Tristan's selection remove/modify files to update codes" />
+    <MESSAGE value="Add date to load_data export" />
+    <MESSAGE value="Update narrative color, subplots for comparison, add .fst opening" />
+    <MESSAGE value="Update narratives structure with subdict, adapt plots, add narratives map" />
+    <MESSAGE value="Update narratives structure with subdict, adapt plots, add narratives map, add marker by narrative on top instead of subtitle" />
+    <MESSAGE value="Update boxplot plot to show more thant one tick on y axis" />
+    <MESSAGE value="Select proper paths" />
+    <MESSAGE value="update colorbar plot" />
+    <MESSAGE value="Adapt figsize to subtitles" />
+    <option name="LAST_COMMIT_MESSAGE" value="Adapt figsize to subtitles" />
+  </component>
+</project>

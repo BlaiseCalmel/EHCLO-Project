@@ -160,7 +160,8 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             vmin = -vmax
     abs_max = max([vmax, -vmin])
     n = 2*abs_max / discretize
-    exponent = round(math.log10(n))
+    # exponent = round(math.log10(n))
+    exponent = round(np.floor(math.log10(n)))
     step = np.round(n, -exponent)
     if step == 0:
         step = n
@@ -211,18 +212,18 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
                 extended_levels = np.insert(extended_levels, 0, levels[extended_indices[0] - 1])
                 extended_colors = np.vstack([colors[extended_indices[0] - 1], extended_colors])
 
-        if extended_levels[-1] < plot_vmax and extended_levels[0] > plot_vmin:
+        if extended_levels[-1] < vmax and extended_levels[0] > vmin:
             cmap, norm = from_levels_and_colors(extended_levels, np.vstack([
                 colors[max([extended_indices[0]-1, 0])],
                 extended_colors,
                 colors[min([extended_indices[-1]+1, len(colors)-1])]
             ]), extend='both')
-        elif extended_levels[-1] < plot_vmax:
+        elif extended_levels[-1] < vmax:
             cmap, norm = from_levels_and_colors(extended_levels, np.vstack([
                 extended_colors,
                 colors[min([extended_indices[-1]+1, len(colors)-1])]
             ]), extend='max')
-        elif extended_levels[0] > plot_vmin:
+        elif extended_levels[0] > vmin:
             cmap, norm = from_levels_and_colors(extended_levels, np.vstack([
                 colors[max([extended_indices[0]-1, 0])],
                 extended_colors
@@ -256,7 +257,9 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     if title:
         figsize = (figsize[0], figsize[1] * 1.02)
     if subplot_titles:
-        subtitles_lines = max(s.count('\n') for s in cols['names_plot'])
+        subtitles_lines = 0
+        if isinstance(cols, dict) and 'names_plot' in cols.keys():
+            subtitles_lines = max(s.count('\n') for s in cols['names_plot'])
         figsize= (figsize[0], figsize[1] * (1 + 0.02 * len_rows) + subtitles_lines)
 
     fig, axes = plt.subplots(len_rows, len_cols, figsize=figsize, constrained_layout=True)

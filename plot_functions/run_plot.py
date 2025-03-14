@@ -276,9 +276,9 @@ def plot_boxplot_station_month_horizon(ds, station_references, narratives, path_
 
     narratives_bp = {}
     narratives_bp |= {key: {'type': 'histo', 'kwargs': {
-        'label': value['label'], 'zorder': 1, 'color':'lightgray', 'edgecolor':'k', 'alpha':0.5}} for key, value in
+        'label': value['label'], 'zorder': 1, 'color':'lightgray', 'edgecolor':'k', 'alpha':1}} for key, value in
                       narratives.items() if key == "historical"}
-    narratives_bp |= {key: {'kwargs': {'boxprops': dict(facecolor=value['color'], alpha=0.9),
+    narratives_bp |= {key: {'kwargs': {'boxprops': dict(facecolor=value['color'], alpha=0.8),
                             'medianprops': dict(color="black"), 'widths': 0.8, 'patch_artist': True,
                             'label': value['label'], 'zorder': 2}} for key, value in narratives.items() if key != "historical"}
 

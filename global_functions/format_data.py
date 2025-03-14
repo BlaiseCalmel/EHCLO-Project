@@ -59,7 +59,7 @@ def load_settings(indicator_setup, name_indicator):
         plot_type_name = 'difference'
         percent = False
     else:
-        plot_type_name = 'variation'
+        plot_type_name = 'delta'
         percent = True
         units = " (%)"
 

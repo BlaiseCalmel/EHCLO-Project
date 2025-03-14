@@ -62,7 +62,7 @@ for main_key in ['hydro_indicator', 'climate_indicator']:
 print(f'> Define paths...', end='\n')
 dict_paths = define_paths(config)
 
-#%% Files names
+### Files names
 # Study folder
 print(f'> Create output directories...', end='\n')
 if not os.path.isdir(dict_paths['folder_study_results']):
@@ -118,11 +118,14 @@ climate_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['
 climate_sim_points_gdf_simplified = climate_sim_points_gdf.loc[
     climate_sim_points_gdf.groupby('name')['gid'].idxmin()].reset_index(drop=True)
 
-load_ncdf = input("Load new NCDF ? (y/[n])")
 all_years = files_setup["historical"] + [year for values in files_setup["horizons"].values() for
                                          year in values]
 start_year = min(all_years)
 end_year = max(all_years)
+
+#%% NCDF Loading
+load_ncdf = input("Load new NCDF ? (y/[n])")
+
 if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
     print(f'################################ RUN OVER NCDF ################################', end='\n')
     # Get paths for selected sim
@@ -185,6 +188,8 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                             print(f'> Invalid {indicator} name', end='\n')
                     else:
                         print(f'> {path_ncdf} already exists', end='\n')
+
+#%% Visualize results
 narratives = None
 # narratives =  compute_narratives(dict_paths,
 #                                  stations=list(reference_stations['La Loire'].keys()),
@@ -392,7 +397,7 @@ while run_plot:
                                     plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key),
                                                           variables=variables, plot_type=plot_type,
                                                           path_result=path_indicator_figures+f'{title_join}_map_{plot_type}_median_{key}.pdf',
-                                                          cbar_title=f"{plot_type_name.title()} médiane {title}{units}", title=map_title,
+                                                          cbar_title=f"{plot_type_name.title()} médian {title}{units}", title=map_title,
                                                           cbar_midpoint='zero',
                                                           dict_shapefiles=dict_shapefiles, bounds=bounds, edgecolor=edgecolor,
                                                           markersize=170, discretize=settings['discretize'], palette=settings['palette'],
@@ -489,7 +494,7 @@ while run_plot:
                                                     plot_map_indicator_narratives(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key),
                                                                                   variables=variables, plot_type=plot_type,
                                                                                   path_result=path_indicator_figures+f'{title_join}_map_{plot_type}_narratives_{key}.pdf',
-                                                                                  cbar_title=f"{plot_type_name.title()} médiane {title}{units}", title=map_title,
+                                                                                  cbar_title=f"{plot_type_name.title()} médian {title}{units}", title=map_title,
                                                                                   cbar_midpoint='zero',
                                                                                   dict_shapefiles=dict_shapefiles, bounds=bounds, edgecolor=edgecolor,
                                                                                   markersize=170, discretize=settings['discretize'], palette=settings['palette'],
@@ -598,3 +603,5 @@ while run_plot:
 
 print(f'################################ END ################################', end='\n')
 input("Press Enter to close")
+
+# %%
