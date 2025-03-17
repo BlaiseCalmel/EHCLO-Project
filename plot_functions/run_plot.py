@@ -227,6 +227,46 @@ def plot_linear_time(ds, simulations, path_result, station_references, narrative
     lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
              title=title, percent=percent, legend_items=legend_items, fontsize=fontsize, font=font, ymax=None)
 
+def plot_linear_month(ds, simulations, path_result, station_references, narratives=None,
+                     name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None,
+                     fontsize=14, font='sans-serif'):
+
+    x_axis = {'names_coord': 'month',
+              'name_axis': name_x_axis,
+              'names_plot': [i[0] for i in list(ds.month.values)],
+              'names_sorted': ds.month.values.tolist()
+              }
+
+    y_axis = {'names_coord': 'indicator',
+              'name_axis': name_y_axis
+              }
+
+    dict_sim = {sim_name: {'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}
+       for sim_name in simulations}
+
+    if narratives is not None:
+        for key in dict_sim.keys():
+            for narr_type, narr in narratives.items():
+                for sim_name, kwargs in narr.items():
+                    if sim_name in key:
+                        dict_sim[key] = kwargs
+
+    legend_items = [{'color': 'lightgray', 'alpha': 0.5, 'zorder': 1, 'label': 'Ensemble des projections', 'linewidth': 0.5}]
+    legend_items += [i for narr_value in narratives.values() for i in narr_value.values()]
+
+    indicator_plot = [dict_sim for i in range(len(station_references))]
+
+    rows = {
+        'names_coord': 'gid',
+        'values_var': list(station_references.keys()),
+        'names_plot': list(station_references.values())
+    }
+
+    cols = 2
+
+    lineplot(ds, indicator_plot, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=vlines,
+             title=title, percent=percent, legend_items=legend_items, fontsize=fontsize, font=font, ymax=None)
+
 
 def plot_boxplot_station_narrative(ds, station_references, narratives, references, path_result, name_y_axis='', percent=False,
                                    title=None, fontsize=14, font='sans-serif'):

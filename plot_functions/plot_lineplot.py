@@ -59,6 +59,9 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
     # y_flatten = flatten_to_strings(y_axis.keys())
     # ds_plot = ds_plot[x_flatten + y_flatten]
 
+    if 'names_sorted' in x_axis:
+        ds_plot = ds_plot.sel(month=sorted(ds_plot.month.values, key=lambda m: x_axis['names_sorted'].index(m)))
+
     # Find extrema
     xmin, xmax, ymin, ymax = find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax)
 
@@ -123,9 +126,17 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
             ds_selection = ds_selection.sortby(x_axis['names_coord'])
 
             for key, value in current_indicator.items():
-                valid = ((np.logical_not(np.isnan(ds_selection[key].values))) &
-                         (np.logical_not(np.isnan(ds_selection[x_axis['names_coord']].values))))
-
+                if np.issubdtype(ds_selection[key].values.dtype, np.floating):
+                    valid_1 = (np.logical_not(np.isnan(ds_selection[key].values))) 
+                else:
+                    valid_1 = np.full(ds_selection[key].values.shape, True, dtype=bool)
+                if np.issubdtype(ds_selection[x_axis['names_coord']].values.dtype, np.floating):
+                    valid_2 = (np.logical_not(np.isnan(ds_selection[x_axis['names_coord']].values)))
+                else:
+                    valid_2 = np.full(ds_selection[x_axis['names_coord']].values.shape, True, dtype=bool)
+                
+                valid = valid_1 & valid_2                
+                
                 ax.plot(ds_selection[x_axis['names_coord']].values[valid], ds_selection[key].values[valid], **value)
 
                 if value not in legend_items:
@@ -181,6 +192,7 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
     if step == 0:
         step = n
     ticks = mirrored(abs_max, inc=step, val_center=0)
+
     for ax in axes_flatten:
         ax.set_yticks(ticks)
         ax.set_xlim(xmin, xmax)
@@ -189,10 +201,19 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
         ax.grid(True, linestyle="--", color='lightgray', linewidth=0.1, alpha=0.4)
 
         sbs = ax.get_subplotspec()
+        remove_x = True
+        if del_axes:
+            n_rows, n_cols = sbs.get_geometry()[:2]
+            c_row, c_col = sbs.rowspan.stop, sbs.colspan.stop
+            if c_row == n_rows - 1 and c_col > n_cols-del_axes:
+                remove_x = False
+
         if not sbs.is_first_col():
             ax.set_yticklabels([])
-        if not sbs.is_last_row():
+        if not sbs.is_last_row() and remove_x:
             ax.set_xticklabels([])
+        elif 'names_plot' in x_axis:
+            ax.set_xticklabels(x_axis['names_plot'])
 
     # Legend
     legend_handles = []

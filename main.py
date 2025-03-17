@@ -16,7 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import pyfiglet
-ascii_banner = pyfiglet.figlet_format("FORMAT NCDF")
+ascii_banner = pyfiglet.figlet_format("EHCLO PROJECT")
 print(f'##########################################################################################', end='\n')
 print(ascii_banner, end='\n')
 
@@ -516,20 +516,18 @@ while run_plot:
                                                            path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_PK_narratives_horizon.pdf')
                                     else:
                                         print(f"{name_indicator} >> Linear {plot_type} PK Narratives method comparison")
-                                        plot_linear_pk(ds,
-                                                       simulations=variables[f'simulation-horizon_by-sims_{plot_type}'],
-                                                       narratives=narratives,
-                                                       title=coordinate_value,
-                                                       name_x_axis=f'PK (km)',
-                                                       name_y_axis=name_y_axis,
-                                                       percent=percent,
-                                                       vlines=vlines,
-                                                       fontsize=settings['fontsize'],
-                                                       font=settings['font'],
-                                                       by_narrative=True,
-                                                       path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_PK_narratives-method-comparison.pdf')
-
-
+                                        plot_linear_time(ds,
+                                                        simulations=variables[f'simulation_{plot_type}'],
+                                                        station_references=extended_station_name,
+                                                        narratives=narratives,
+                                                        title=coordinate_value,
+                                                        name_x_axis='Date',
+                                                        name_y_axis=name_y_axis,
+                                                        percent=percent,
+                                                        vlines=None,
+                                                        fontsize=settings['fontsize'],
+                                                        font=settings['font'],
+                                                        path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_stations-{river}_timeseries.pdf',)
 
                 elif settings['additional_coordinates'] == 'month':
                     print(f'################################ PLOT {name_indicator.upper()} Monthly variation ################################', end='\n')
@@ -579,6 +577,20 @@ while run_plot:
                                                            fontsize=settings['fontsize'],
                                                            font=settings['font'],
                                                            path_result=path_indicator+f'{title_join}_boxplot_{plot_type}_{river}_month.pdf')
+
+                        print(f"{name_indicator} >> Linear {plot_type} month per station")
+                        plot_linear_month(ds=ds_stats.sel(horizon='horizon3'),
+                                        station_references=extended_station_name,
+                                        simulations=variables[f'simulation-horizon_by-sims_{plot_type}'],
+                                        narratives=narratives,
+                                        title='Horizon 3',
+                                        name_x_axis=f'Mois',
+                                        name_y_axis=name_y_axis,
+                                        percent=percent,
+                                        vlines=None,
+                                        fontsize=settings['fontsize'],
+                                        font=settings['font'],
+                                        path_result=path_indicator+f'{title_join}_lineplot_{plot_type}_{river}_month_narratives.pdf')
             # Save name indicator
             runned_data.append(name_indicator)
 
