@@ -146,23 +146,39 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
 
 def add_header(ax, rows_plot, cols_plot, ylabel='', xlabel=''):
     sbs = ax.get_subplotspec()
+
+    # Labels of horizontal and vertical axes
+    row_kwargs = {}
+    col_kwargs = {}
+    if isinstance(rows_plot['names_plot'][0], dict):
+        row_kwargs = [{key: value} for item in rows_plot['names_plot'] for key, value in item.items() if key != 'label'][sbs.rowspan.start]
+        row_names = [val['label'] for val in rows_plot['names_plot']]
+    else:
+        row_names = [val for val in rows_plot['names_plot']]
+    
+    if isinstance(cols_plot['names_plot'][0], dict):
+        col_kwargs = [{key: value} for item in cols_plot['names_plot'] for key, value in item.items() if key != 'label'][sbs.colspan.start]
+        col_names = [val['label'] for val in cols_plot['names_plot']]
+    else:
+        col_names = [val for val in cols_plot['names_plot']]
+
     if sbs.is_first_col():
         name_row = None
-        if sbs.rowspan.start < len(rows_plot['names_plot']):
-            name_row = rows_plot['names_plot'][sbs.rowspan.start]
+        if sbs.rowspan.start < len(row_names):
+            name_row = row_names[sbs.rowspan.start]
             if name_row is not None:
                 name_row = name_row.replace(' ', '~')
 
         if name_row is None:
-            ax.set_ylabel(f"{ylabel}")
+            ax.set_ylabel(f"{ylabel}", **row_kwargs)
         elif ylabel is None or len(ylabel) == 0:
-            ax.set_ylabel(f"$\\bf{{{name_row}}}$")
+            ax.set_ylabel(f"$\\bf{{{name_row}}}$", **row_kwargs)
         else:
-            ax.set_ylabel(f"$\\bf{{{name_row}}}$ \n\n{ylabel}")
+            ax.set_ylabel(f"$\\bf{{{name_row}}}$ \n\n{ylabel}", **row_kwargs)
 
     if sbs.is_first_row():
-        if sbs.colspan.start < len(cols_plot['names_plot']):
-            name_col = cols_plot['names_plot'][sbs.colspan.start]
+        if sbs.colspan.start < len(col_names):
+            name_col = col_names[sbs.colspan.start]
             if name_col is not None:
                 ax.annotate(
                             name_col,
@@ -173,6 +189,7 @@ def add_header(ax, rows_plot, cols_plot, ylabel='', xlabel=''):
                             ha="center",
                             va="baseline",
                             **{'weight': 'bold'},
+                            **col_kwargs
                         )
 
     if sbs.is_last_row():

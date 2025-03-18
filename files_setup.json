@@ -129,8 +129,7 @@
         "palette": "PuOr_r",
         "start_cbar_ticks": "sign",
         "cbar_values": 0,
-        "discretize": 11,
-        "vmin": 0
+        "discretize": 11
       }
     },
     "prtotAdjust": {

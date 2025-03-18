@@ -46,7 +46,7 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         len_rows = int(len_rows / len_cols)
         subplot_titles = rows['names_plot']
         rows_plot['names_plot'] = [None]
-
+    
     # if vmax is None:
     #     specified_vmax = False
     # else:

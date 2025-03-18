@@ -445,30 +445,41 @@ def plot_map_indicator(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds
             font=font, vmax=vmax, vmin=vmin, markersize=markersize, alpha=alpha,
             start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks)
 
-def plot_map_narratives(gdf, ds, narratives, path_result, cbar_title, dict_shapefiles, bounds,
+def plot_map_narratives(gdf, ds, narratives, variables, path_result, cbar_title, dict_shapefiles, bounds,
                                cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,
                                font='sans-serif', title=None, vmin=None, vmax=None, edgecolor='k',
                                cbar_midpoint=None, markersize=50, alpha=1, cbar_values=None,
                                start_cbar_ticks='', end_cbar_ticks=''):
 
     narr = [key for narr_values in narratives.values() for key in narr_values.keys()]
-    stats_by_narr = [sim for sim in variables[f'simulation-horizon_by-sims_{plot_type}'] if any(n in sim for n in narr)]
+    stats_by_narr = [sim for sim in variables if any(n in sim for n in narr)]
     
-    cols = {
+    # rows = {
+    #     'names_coord': 'indicator',
+    #     'values_var': stats_by_narr,
+    #     'names_plot': [v['label'].split(' ')[0] for narr in narratives.values() for v in narr.values()]
+    #     }
+
+    rows = {
         'names_coord': 'indicator',
         'values_var': stats_by_narr,
-        'names_plot': [v['label'].split(' ')[0] for narr in narratives.values() for v in narr.values()]
-        }
+        'names_plot': [{'label': v['label'].split(' ')[0], 'color': v['color']} for narr in narratives.values() for v in narr.values()]
+    }
 
     used_coords = [dim for dim in ds[stats_by_narr].dims if dim in ds.coords]
     if 'season' in used_coords:
-        rows = {
+        cols = {
             'names_coord': 'season',
             'values_var': ['Hiver', 'Printemps', 'Été', 'Automne'],
             'names_plot': ['Hiver', 'Printemps', 'Été', 'Automne']
         }
     else:
-        rows = 2
+        # cols = 2
+        cols = {
+            'names_coord': 'horizon',
+            'values_var': ['horizon1', 'horizon2', 'horizon3'],
+            'names_plot': ['Horizon 1\n(2021-2050)', 'Horizon 2\n(2041-2070)', 'Horizon 3\n(2070-2099)']
+             }
 
     mapplot(gdf=gdf, ds=ds, indicator_plot=stats_by_narr,
             path_result=path_result,

@@ -394,17 +394,31 @@ while run_plot:
                                 if len(narratives) == 1:
                                     # Climate Narratives
                                     if len(list(list(narratives.values())[0].keys())[0].split("_")) == 3:
-                                        for key, value in horizons.items():
-                                            print(f"{name_indicator} >>>  {plot_type_name.title()} narratives map plot {value}")
-                                            plot_map_narratives(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), narratives=narratives, 
-                                                   path_result=path_indicator_figures+f'{title_join}_narrative_map_{plot_type}.pdf',
-                                                   cbar_title=f"{plot_type_name.title()} {function_name} {title}{units}", cbar_ticks=settings['cbar_ticks'],
-                                                   title=value, dict_shapefiles=dict_shapefiles,
-                                                   bounds=bounds, palette=settings['palette'], cbar_midpoint='zero', cbar_values=settings['cbar_values'],
-                                                   start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
-                                                   fontsize=settings['fontsize'], alpha=1,
-                                                   font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75,
-                                                   vmin=settings['vmin'], vmax=settings['vmax'])
+                                        if 'season' in ds.coords:
+                                            for key, value in horizons.items():
+                                                print(f"{name_indicator} >>>  {plot_type_name.title()} narratives map plot {value}")
+                                                plot_map_narratives(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), narratives=narratives, 
+                                                    variables=variables[f'simulation-horizon_by-sims_{plot_type}'],
+                                                    path_result=path_indicator_figures+f'{title_join}_narrative_map_{key}.pdf',
+                                                    cbar_title=f"{plot_type_name.title()} {function_name} {title}{units}", cbar_ticks=settings['cbar_ticks'],
+                                                    title=value, dict_shapefiles=dict_shapefiles,
+                                                    bounds=bounds, palette=settings['palette'], cbar_midpoint='zero', cbar_values=settings['cbar_values'],
+                                                    start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
+                                                    fontsize=settings['fontsize'], alpha=1,
+                                                    font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75,
+                                                    vmin=settings['vmin'], vmax=settings['vmax'])
+                                        else:
+                                            print(f"{name_indicator} >>>  {plot_type_name.title()} narratives map plot")
+                                            plot_map_narratives(gdf=sim_points_gdf_simplified, ds=ds, narratives=narratives, 
+                                                variables=variables[f'simulation-horizon_by-sims_{plot_type}'],
+                                                path_result=path_indicator_figures+f'{title_join}_narrative_map.pdf',
+                                                cbar_title=f"{plot_type_name.title()} {function_name} {title}{units}", cbar_ticks=settings['cbar_ticks'],
+                                                title=coordinate_value, dict_shapefiles=dict_shapefiles,
+                                                bounds=bounds, palette=settings['palette'], cbar_midpoint='zero', cbar_values=settings['cbar_values'],
+                                                start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
+                                                fontsize=settings['fontsize'], alpha=1,
+                                                font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75,
+                                                vmin=settings['vmin'], vmax=settings['vmax'])                                             
 
 
                                 # Histogramme Différence par moyenne multi-modèle annuelle par rapport à la période de référence
