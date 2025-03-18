@@ -198,8 +198,11 @@ narratives = None
 #                                  indictor_values=["QJXA", "QA", "VCN10"],
 #                                  threshold=0.8*len(reference_stations['La Loire']),
 #                                  narrative_method=None)
-#
+
 # df = pd.read_csv(f"/home/bcalmel/Documents/2_data/Antoine_25-02/hydrologie_csv/dataEX_Explore2_criteria_diagnostic_LF.csv",
+#                  sep=";")
+
+# df = pd.read_csv(f"/home/bcalmel/Documents/2_data/Antoine_25-02/VCN10/.csv",
 #                  sep=";")
 
 
@@ -275,6 +278,21 @@ while run_plot:
             # Get plot settings
             settings, title, units, plot_type, plot_type_name, percent, start_cbar_ticks, end_cbar_ticks = (
                 load_settings(indicator_setup, name_indicator))
+            if plot_type_name in ['difference']:
+                var_genre = 'f'
+            else:
+                var_genre = 'm'
+            
+            if var_genre == 'f':
+                function_name = "médiane"
+            else:
+                function_name = "médian"
+
+            # Define horizons
+            horizons = {'horizon1': 'Horizon 1 (2021-2050)',
+                        'horizon2': 'Horizon 2 (2041-2070)',
+                        'horizon3': 'Horizon 3 (2070-2099)',
+            }
 
             # Create folder
             title_join = name_indicator.replace(" ", "-").replace(".", "")
@@ -348,7 +366,7 @@ while run_plot:
                             else:
                                 ds = copy.deepcopy(ds_stats)
                                 path_indicator_figures = path_indicator
-
+                            
                             print(f"> Map plot...")
                             print(f"{name_indicator} >> {plot_type_name.title()} matching map plot")
                             plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_matching',
@@ -365,22 +383,34 @@ while run_plot:
                                 print(f"{name_indicator} >> {plot_type_name.title()} map plot")
                                 plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=f'horizon_{plot_type}-median',
                                                    path_result=path_indicator_figures+f'{title_join}_map_{plot_type}.pdf',
-                                                   cbar_title=f"{plot_type_name.title()} médiane {title}{units}", cbar_ticks=settings['cbar_ticks'],
+                                                   cbar_title=f"{plot_type_name.title()} {function_name} {title}{units}", cbar_ticks=settings['cbar_ticks'],
                                                    title=coordinate_value, dict_shapefiles=dict_shapefiles,
                                                    bounds=bounds, palette=settings['palette'], cbar_midpoint='zero', cbar_values=settings['cbar_values'],
                                                    start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
-                                                   fontsize=settings['fontsize']-2, alpha=0.8,
+                                                   fontsize=settings['fontsize']-2, alpha=1,
                                                    font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75,
                                                    vmin=settings['vmin'], vmax=settings['vmax'])
+                                
+                                if len(narratives) == 1:
+                                    # Climate Narratives
+                                    if len(list(list(narratives.values())[0].keys())[0].split("_")) == 3:
+                                        for key, value in horizons.items():
+                                            print(f"{name_indicator} >>>  {plot_type_name.title()} narratives map plot {value}")
+                                            plot_map_narratives(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), narratives=narratives, 
+                                                   path_result=path_indicator_figures+f'{title_join}_narrative_map_{plot_type}.pdf',
+                                                   cbar_title=f"{plot_type_name.title()} {function_name} {title}{units}", cbar_ticks=settings['cbar_ticks'],
+                                                   title=value, dict_shapefiles=dict_shapefiles,
+                                                   bounds=bounds, palette=settings['palette'], cbar_midpoint='zero', cbar_values=settings['cbar_values'],
+                                                   start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
+                                                   fontsize=settings['fontsize'], alpha=1,
+                                                   font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75,
+                                                   vmin=settings['vmin'], vmax=settings['vmax'])
+
 
                                 # Histogramme Différence par moyenne multi-modèle annuelle par rapport à la période de référence
                                 # timeline_difference_mean mais pour l'ensemble du territoire
                             elif indicator_setup['type'] == 'hydro_indicator':
                                 print(f">> {plot_type_name.title()} map plot by HM")
-                                horizons = {'horizon1': 'Horizon 1 (2021-2050)',
-                                            'horizon2': 'Horizon 2 (2041-2070)',
-                                            'horizon3': 'Horizon 3 (2070-2099)',
-                                            }
                                 median_by_hm = [s for sublist in variables[f'hydro-model_{plot_type}'].values() for s in sublist if "median" in s]
                                 label_df = sim_points_gdf_simplified['S_HYDRO'].astype(int).astype(str) + 'km² [' + sim_points_gdf_simplified['n'].astype(str) + 'HM]'
                                 # if settings['vmax'] is None:
@@ -397,7 +427,7 @@ while run_plot:
                                     plot_map_indicator_hm(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key),
                                                           variables=variables, plot_type=plot_type,
                                                           path_result=path_indicator_figures+f'{title_join}_map_{plot_type}_median_{key}.pdf',
-                                                          cbar_title=f"{plot_type_name.title()} médian {title}{units}", title=map_title,
+                                                          cbar_title=f"{plot_type_name.title()} {function_name} {title}{units}", title=map_title,
                                                           cbar_midpoint='zero',
                                                           dict_shapefiles=dict_shapefiles, bounds=bounds, edgecolor=edgecolor,
                                                           markersize=170, discretize=settings['discretize'], palette=settings['palette'],
@@ -494,7 +524,7 @@ while run_plot:
                                                     plot_map_indicator_narratives(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key),
                                                                                   variables=variables, plot_type=plot_type,
                                                                                   path_result=path_indicator_figures+f'{title_join}_map_{plot_type}_narratives_{key}.pdf',
-                                                                                  cbar_title=f"{plot_type_name.title()} médian {title}{units}", title=map_title,
+                                                                                  cbar_title=f"{plot_type_name.title()} {function_name} {title}{units}", title=map_title,
                                                                                   cbar_midpoint='zero',
                                                                                   dict_shapefiles=dict_shapefiles, bounds=bounds, edgecolor=edgecolor,
                                                                                   markersize=170, discretize=settings['discretize'], palette=settings['palette'],
@@ -578,19 +608,20 @@ while run_plot:
                                                            font=settings['font'],
                                                            path_result=path_indicator+f'{title_join}_boxplot_{plot_type}_{river}_month.pdf')
 
-                        print(f"{name_indicator} >> Linear {plot_type} month per station")
-                        plot_linear_month(ds=ds_stats.sel(horizon='horizon3'),
-                                        station_references=extended_station_name,
-                                        simulations=variables[f'simulation-horizon_by-sims_{plot_type}'],
-                                        narratives=narratives,
-                                        title='Horizon 3',
-                                        name_x_axis=f'Mois',
-                                        name_y_axis=name_y_axis,
-                                        percent=percent,
-                                        vlines=None,
-                                        fontsize=settings['fontsize'],
-                                        font=settings['font'],
-                                        path_result=path_indicator+f'{title_join}_lineplot_{plot_type}_{river}_month_narratives.pdf')
+                        for key, value in horizons.items():
+                            print(f"{name_indicator} >> Linear {plot_type} month per station {value}")
+                            plot_linear_month(ds=ds_stats.sel(horizon=key),
+                                            station_references=extended_station_name,
+                                            simulations=variables[f'simulation-horizon_by-sims_{plot_type}'],
+                                            narratives=narratives,
+                                            title=value,
+                                            name_x_axis=f'Mois',
+                                            name_y_axis=name_y_axis,
+                                            percent=percent,
+                                            vlines=None,
+                                            fontsize=settings['fontsize'],
+                                            font=settings['font'],
+                                            path_result=path_indicator+f'{title_join}_lineplot_{plot_type}_{river}_month_narratives_{key}.pdf')
             # Save name indicator
             runned_data.append(name_indicator)
 

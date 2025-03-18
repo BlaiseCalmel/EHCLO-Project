@@ -445,19 +445,22 @@ def plot_map_indicator(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds
             font=font, vmax=vmax, vmin=vmin, markersize=markersize, alpha=alpha,
             start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks)
 
-def plot_map_matching_sim(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds,
-                               indicator_plot, cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,
+def plot_map_narratives(gdf, ds, narratives, path_result, cbar_title, dict_shapefiles, bounds,
+                               cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,
                                font='sans-serif', title=None, vmin=None, vmax=None, edgecolor='k',
                                cbar_midpoint=None, markersize=50, alpha=1, cbar_values=None,
                                start_cbar_ticks='', end_cbar_ticks=''):
 
+    narr = [key for narr_values in narratives.values() for key in narr_values.keys()]
+    stats_by_narr = [sim for sim in variables[f'simulation-horizon_by-sims_{plot_type}'] if any(n in sim for n in narr)]
+    
     cols = {
-        'names_coord': 'horizon',
-        'values_var': ['horizon1', 'horizon2', 'horizon3'],
-        'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2099)']
-    }
+        'names_coord': 'indicator',
+        'values_var': stats_by_narr,
+        'names_plot': [v['label'].split(' ')[0] for narr in narratives.values() for v in narr.values()]
+        }
 
-    used_coords = [dim for dim in ds[indicator_plot].dims if dim in ds.coords]
+    used_coords = [dim for dim in ds[stats_by_narr].dims if dim in ds.coords]
     if 'season' in used_coords:
         rows = {
             'names_coord': 'season',
@@ -465,9 +468,9 @@ def plot_map_matching_sim(gdf, ds, path_result, cbar_title, dict_shapefiles, bou
             'names_plot': ['Hiver', 'Printemps', 'Été', 'Automne']
         }
     else:
-        rows = 1
+        rows = 2
 
-    mapplot(gdf=gdf, ds=ds, indicator_plot=indicator_plot,
+    mapplot(gdf=gdf, ds=ds, indicator_plot=stats_by_narr,
             path_result=path_result,
             cols=cols, rows=rows, cbar_ticks=cbar_ticks,
             cbar_title=cbar_title, title=title, dict_shapefiles=dict_shapefiles, cbar_midpoint=cbar_midpoint,
