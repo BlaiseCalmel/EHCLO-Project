@@ -1,0 +1,191 @@
+{
+  "gid": "",
+  "hydro_indicator": {
+      "QA_yr": {
+        "QA": {
+          "units": "m3/s",
+          "label": "du QA"
+        }
+      },
+    "QJXA": {
+      "QJXA": {
+        "units": "m3/s",
+        "label": "du QJXA"
+      }
+    },
+      "VCN10_hyr": {
+        "VCN10": {
+          "units": "m3/s",
+          "label": "du VCN10"
+        }
+      },
+      "Q10A": {
+        "Q10": {
+          "units": "m3/s",
+          "label": "du Q10"
+        }
+      },
+      "Q90A": {
+        "Q90": {
+          "units": "m3/s",
+          "label": "du Q90"
+        }
+      },
+      "QA_mon": {
+        "QMNA5": {
+          "units": "m3/s",
+          "label": "du QMNA5",
+          "plot_function": "min",
+          "return_period": 5
+        },
+        "QMN5": {
+          "units": "m3/s",
+          "label": "du QMN5",
+          "additional_coordinates": "month",
+          "return_period": 5,
+          "timestep": "ME",
+          "vmin": -75,
+          "vmax": 100
+        },
+        "Qm": {
+          "units": "m3/s",
+          "label": "du Qm",
+          "additional_coordinates": "month",
+          "timestep": "ME"
+        }
+      },
+      "dtLF_yr": {
+        "LF-duration": {
+          "units": "en jours",
+          "label": "de durée des basses eaux",
+          "plot_type": "difference",
+          "palette": "PuOr_r"
+        }
+      },
+      "startLF_yr": {
+        "LF-start": {
+          "units": "en jours",
+          "label": "de date de début des basses eaux",
+          "plot_type": "difference",
+          "palette": "PuOr",
+          "vmin": -30,
+          "vmax": 20
+        }
+      },
+    "endLF_yr": {
+      "LF-end": {
+        "units": "en jours",
+        "label": "de date de fin des basses eaux",
+        "plot_type": "difference",
+        "palette": "PuOr_r"
+      }
+    },
+      "debit": {
+        "Q2": {
+          "units": "m3/s",
+          "label": "du Q2",
+          "extract_function": "quantile2"
+        }
+      }
+    },
+  "climate_indicator": {
+    "tasAdjust": {
+      "T moy. seas": {
+        "units": "°C",
+        "label": "de la T moy. saisonnière",
+        "timestep": "ME",
+        "plot_type": "difference",
+        "additional_coordinates": "season",
+        "palette": "RdBu_r",
+        "cbar_values": 0,
+        "discretize": 12,
+        "vmin": 0
+      },
+      "T moy.": {
+        "units": "°C",
+        "label": "de la T moy.",
+        "timestep": "ME",
+        "plot_type": "difference",
+        "palette": "RdBu_r",
+        "cbar_values": 0,
+        "discretize": 12,
+        "vmin": 0
+      },
+      "NJ<0": {
+        "units": "",
+        "label": "du nombre de j/an T<0°C",
+        "extract_function": "inf0",
+        "plot_type": "difference",
+        "palette": "PuOr",
+        "cbar_values": 0,
+        "discretize": 8,
+        "vmax": 0
+      },
+      "NJ>30": {
+        "units": "",
+        "label": "du nombre de j/an T>30°C",
+        "extract_function": "sup30",
+        "plot_type": "difference",
+        "palette": "PuOr_r",
+        "start_cbar_ticks": "sign",
+        "cbar_values": 0,
+        "discretize": 11
+      }
+    },
+    "prtotAdjust": {
+      "RRm": {
+        "units": "mm",
+        "label": "des précipitations mensuelles",
+        "extract_function": "sum",
+        "timestep": "ME",
+        "plot_type": "deviation",
+        "additional_coordinates": "season",
+        "palette": "BrBG"
+      },
+      "RRa": {
+        "units": "mm",
+        "label": "des précipitations annuelles",
+        "extract_function": "sum",
+        "timestep": "YE",
+        "plot_type": "deviation",
+        "palette": "BrBG"
+      }
+    },
+    "evspsblpotAdjust": {
+      "ETPm": {
+        "units": "mm",
+        "label": "de l'évapo-transpiration mensuelle",
+        "extract_function": "sum",
+        "timestep": "ME",
+        "plot_type": "deviation",
+        "additional_coordinates": "season",
+        "palette": "BrBG_r",
+        "vmin": 0
+      },
+      "ETPa": {
+        "units": "mm",
+        "label": "de l'évapo-transpiration annuelle",
+        "extract_function": "sum",
+        "timestep": "YE",
+        "plot_type": "deviation",
+        "palette": "BrBG_r",
+        "cbar_values": 1,
+        "vmin": 0
+      }
+    }
+  },
+  "select_rcp": ["rcp85"],
+  "select_gcm": [],
+  "select_rcm": [],
+  "select_bc": ["ADAMONT"],
+  "select_hm": [],
+
+  "historical": [1991, 2020],
+  "horizons": {
+    "horizon1": [2021, 2050],
+    "horizon2": [2041, 2070],
+    "horizon3": [2070, 2099]
+  },
+  "function": ["median", "mean"],
+  "quantile": []
+}
