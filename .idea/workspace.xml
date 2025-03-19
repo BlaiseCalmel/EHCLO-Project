@@ -5,6 +5,7 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3e6d2d53-366e-4ba5-b076-c7e6b966608b" name="Changes" comment="Adapt figsize to subtitles">
+      <change beforePath="$PROJECT_DIR$/global_functions/__init__.py" beforeDir="false" afterPath="$PROJECT_DIR$/global_functions/__init__.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

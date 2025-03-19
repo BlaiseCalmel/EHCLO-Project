@@ -191,13 +191,13 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
 
 #%% Visualize results
 narratives = None
-# narratives =  compute_narratives(dict_paths,
-#                                  stations=list(reference_stations['La Loire'].keys()),
-#                                  files_setup=files_setup,
-#                                  hydro_sim_points_gdf_simplified=hydro_sim_points_gdf_simplified,
-#                                  indictor_values=["QJXA", "QA", "VCN10"],
-#                                  threshold=0.8*len(reference_stations['La Loire']),
-#                                  narrative_method=None)
+narratives =  compute_narratives(dict_paths,
+                                 stations=list(reference_stations['La Loire'].keys()),
+                                 files_setup=files_setup,
+                                 hydro_sim_points_gdf_simplified=hydro_sim_points_gdf_simplified,
+                                 indictor_values=["QJXA", "QA", "VCN10"],
+                                 threshold=0.8*len(reference_stations['La Loire']),
+                                 narrative_method=None)
 
 # df = pd.read_csv(f"/home/bcalmel/Documents/2_data/Antoine_25-02/hydrologie_csv/dataEX_Explore2_criteria_diagnostic_LF.csv",
 #                  sep=";")
