@@ -118,10 +118,21 @@ climate_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['
 climate_sim_points_gdf_simplified = climate_sim_points_gdf.loc[
     climate_sim_points_gdf.groupby('name')['gid'].idxmin()].reset_index(drop=True)
 
-all_years = files_setup["historical"] + [year for values in files_setup["horizons"].values() for
-                                         year in values]
+all_years = files_setup["historical"] + [year for key, values in files_setup["horizons"].items() for
+                                            year in values if key != "tracc" ]
 start_year = min(all_years)
-end_year = max(all_years)
+tracc_year = None
+if 'tracc' in files_setup["horizons"].keys():
+    print(f'> Load TRACC...', end='\n')
+    tracc_year = pd.read_csv(config['path_tracc'], sep=";")
+    tracc_year = tracc_year[tracc_year['Niveau_de_rechauffement'].isin(files_setup["horizons"]['tracc'])]
+    tracc_year = tracc_year.set_index('Niveau_de_rechauffement')
+    end_year = 2100
+    extended_name = f"TRACC"
+else:
+    end_year = max(all_years)
+    extended_name = f"{start_year}-{end_year}"
+
 
 #%% NCDF Loading
 load_ncdf = input("Load new NCDF ? (y/[n])")
@@ -133,11 +144,11 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
     path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 
     # Run among data type climate/hydro
-    data_type='climate'
+    data_type='hydro'
     subdict=path_files[data_type]
     rcp='rcp85'
     subdict2=subdict[rcp]
-    indicator = "tasAdjust"
+    indicator = "debit"
     paths = subdict2[indicator]
     for data_type, subdict in path_files.items():
         # Load simulation points for current data type
@@ -163,7 +174,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
 
                     name_join = name_indicator.replace(" ", "-").replace(".", "")
 
-                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{start_year}-{end_year}.nc"
+                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{extended_name}.nc"
 
                     if not os.path.isfile(path_ncdf):
                         print(f'> Create {indicator} export...', end='\n')
@@ -178,10 +189,11 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                             # path_result=path_ncdf
                             # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{start}-{end}.csv"
                             extract_ncdf_indicator(
-                                paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
+                                paths_data=paths[:5], param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
                                 indicator=indicator, function=function, timestep=timestep,
                                 start=start_year,
                                 end=end_year,
+                                tracc_year=tracc_year,
                                 path_result=path_ncdf,
                             )
                         else:
@@ -289,10 +301,16 @@ while run_plot:
                 function_name = "médian"
 
             # Define horizons
-            horizons = {'horizon1': 'Horizon 1 (2021-2050)',
-                        'horizon2': 'Horizon 2 (2041-2070)',
-                        'horizon3': 'Horizon 3 (2070-2099)',
-            }
+            if tracc_year is not None:
+                horizons = {'1.4': 'Horizon 1 (+1.4°C)',
+                            '2.1': 'Horizon 2 (+2.1°C)',
+                            '3.4': 'Horizon 3 (+3.4°C)',
+                }
+            else:
+                horizons = {'horizon1': 'Horizon 1 (2021-2050)',
+                            'horizon2': 'Horizon 2 (2041-2070)',
+                            'horizon3': 'Horizon 3 (2070-2099)',
+                }
 
             # Create folder
             title_join = name_indicator.replace(" ", "-").replace(".", "")
@@ -333,7 +351,8 @@ while run_plot:
                 # Compute stats
                 ds_stats, variables = format_dataset(ds=ds_stats, data_type=data_type, files_setup=files_setup,
                                                      plot_function=settings['additional_coordinates'],
-                                                     return_period=settings['return_period'])
+                                                     return_period=settings['return_period'],
+                                                     tracc_year=tracc_year)
                 # ds_stats.sel(gid=ds_stats["gid"] == b'----------')
                 # ds_stats = ds_stats.sel(gid=ds_stats["gid"] != b'----------')
 

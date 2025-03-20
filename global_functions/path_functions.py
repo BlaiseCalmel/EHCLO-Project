@@ -56,7 +56,7 @@ def define_paths(config):
 
     return dict_paths
 
-def get_files_path(dict_paths, setup, extension='.nc'):
+def get_files_path(dict_paths, setup, extension='.nc', tracc=False):
 
     ext_files = []
     for p in [dict_paths[f'folder_hydro_data']]+[dict_paths[f'folder_climate_data']]+[dict_paths[f'folder_raw_hydro_data']]:
@@ -81,7 +81,10 @@ def get_files_path(dict_paths, setup, extension='.nc'):
 
         # Run on selected rcp
         if len(setup['select_rcp']) == 0:
-            setup['select_rcp'] = ["rcp26", "rcp45", "rcp85"]
+            if not tracc:
+                setup['select_rcp'] = ["rcp26", "rcp45", "rcp85"]
+            else:
+                setup['select_rcp'] = ["rcp85"]
             # setup['select_rcp'] = ["SAFRAN"]
 
         for rcp in setup['select_rcp']:

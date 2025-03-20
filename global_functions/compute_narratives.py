@@ -66,11 +66,12 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
     datasets_list = []
     for indicator in indictor_values:
         # Open ncdf dataset
-        path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_rcp85_YE.nc"
+        path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_rcp85_YE_{start_year}-{end_year}.nc"
         ds_stats  = xr.open_dataset(path_ncdf)
 
         # Compute stats
         ds_stats, var_names = format_dataset(ds=ds_stats, data_type='hydro', files_setup=files_setup)
+        ds_stats['gid'] = ds_stats['gid'].astype(str)
         datasets_list.append(ds_stats)
 
     data_arrays = []
@@ -161,6 +162,10 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
     with (ro.default_converter + pandas2ri.converter).context():
         df = ro.conversion.get_conversion().rpy2py(df)
 
+    meta_df = fst.read_fst(f"/home/bcalmel/Documents/2_data/hydrologie/metaEX_Explore2_criteria_diagnostic_BF.fst")
+    with (ro.default_converter + pandas2ri.converter).context():
+        meta_df = ro.conversion.get_conversion().rpy2py(meta_df)
+
     cluster_names = ['A', 'B', 'C', 'D']
 
     # Rank clusters
@@ -187,7 +192,10 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
         methods = ['closest', 'furthest', 'combine']
         rows = ['Proche', 'Lointain', 'Mixte']
     else:
-        methods = [narrative_method]
+        if isinstance(narrative_method, str):
+            methods = [narrative_method]
+        else:
+            methods = narrative_method
     meth_list = []
     for narrative_method in methods:
         representative_groups = {}
@@ -224,22 +232,24 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
         meth_list.append(representative_groups)
 
     narratives = {methods[i] : {f"{value['gcm-rcm']}_{value['bc']}_{value['hm']}": {'color': value['color'], 'zorder': 10,
-                                                                       'label': f"{value['name'].title()}", # [{value['gcm-rcm']}_{value['bc']}_{value['hm']}]",
-                                                                       'linewidth': 1} for key, value in rp.items()} for i, rp in enumerate(meth_list)}
-    df = ds_stacked.to_dataframe()
-    df = df.reset_index(drop=True)
-    df["cluster"] = [cluster_names[i] for i in labels]
-    for key in narratives.keys():
-        df[key] = None
-        for id_row, row in df.iterrows():
-            # print(row)
-            name = f"{row.loc['gcm-rcm']}_{row['bc']}_{row['hm']}"
-            if name in narratives[key].keys():
-                print()
-                df.loc[id_row, key] = narratives[key][name]['label']
+    'label': f"{value['name'].title()}", # [{value['gcm-rcm']}_{value['bc']}_{value['hm']}]",
+    'linewidth': 1} for key, value in rp.items()} for i, rp in enumerate(meth_list)}
+    narratives['furthest']
+                                      
+    # # Generate dataframe to export
+    # df = ds_stacked.to_dataframe()
+    # df = df.reset_index(drop=True)
+    # df["cluster"] = [cluster_names[i] for i in labels]
+    # for key in narratives.keys():
+    #     df[key] = None
+    #     for id_row, row in df.iterrows():
+    #         # print(row)
+    #         name = f"{row.loc['gcm-rcm']}_{row['bc']}_{row['hm']}"
+    #         if name in narratives[key].keys():
+    #             print()
+    #             df.loc[id_row, key] = narratives[key][name]['label']
+    # df.to_csv(f"/home/bcalmel/Documents/3_results/test.csv", sep=";")
 
-
-    df.to_csv(f"/home/bcalmel/Documents/3_results/test.csv", sep=";")
     # PCA for 2D visualisation
     pca = PCA(n_components=2)
     X_pca = pca.fit_transform(X_imputed)

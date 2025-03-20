@@ -80,7 +80,7 @@ def get_season(month):
     elif month in [9, 10, 11]:
         return 4
 
-def format_dataset(ds, data_type, files_setup, plot_function=None, return_period=None):
+def format_dataset(ds, data_type, files_setup, plot_function=None, return_period=None, tracc_year=None):
     other_dimension = None
     dimension_names = None
     if plot_function is not None:
@@ -111,6 +111,7 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
 
     columns = {}
     print(f'>> Define horizons...', end='\n')
+
     # Define horizons
     ds = define_horizon(ds, files_setup)
     simulation_cols = [i for i in list(ds.data_vars)]

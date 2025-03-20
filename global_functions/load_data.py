@@ -84,7 +84,7 @@ def apply_function_to_ds(ds, function, file_name, timestep):
     return resampled_var
 
 def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, timestep=None, function=None,
-                           start=None, end=None, path_result=None):
+                           start=None, end=None, tracc_year=None, path_result=None):
 
     # Create temporary directory
     temp_dir = os.path.dirname(path_result) + os.sep + '_temp'
@@ -274,6 +274,38 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                 ds.sel(code=np.unique(ds.code.values))
                 if len(codes_to_select) > 0:
                     ds = ds.sel(code=codes_to_select)
+
+            
+            # Apply Tracc
+            if tracc_year is not None:
+                data_vars = list(ds.data_vars)
+                climate_model = '_'.join(split_name[:2])
+                selected_tracc = tracc_year[['Annee_correspondante', climate_model]]
+
+                tracc_levels = [(year-10, year+9) for year in selected_tracc[climate_model]]
+                # Création dynamique du masque
+                time_mask = np.zeros(len(ds.time), dtype=bool)
+
+                tracc_datasets = []
+                for i, (start_tracc, end_tracc) in enumerate(tracc_levels):
+                    # Data selection
+                    time_mask = (ds.time.dt.year >= start_tracc) & (ds.time.dt.year <= end_tracc)
+                    subset = ds.sel(time=ds.time[time_mask])
+
+                    # Match tracc year to actual year
+                    matching_year = selected_tracc.iloc[i]['Annee_correspondante']
+                    year_diff = matching_year - 10 - start_tracc
+
+                    # Convert to pandas DatetimeIndex and add N years
+                    updated_dates = pd.DatetimeIndex(subset.time) + pd.DateOffset(years=year_diff)
+                    updated_dates_np = updated_dates.to_numpy()
+
+                    # Change time coordinate
+                    subset = subset.assign_coords(time=(updated_dates_np))
+
+                    tracc_datasets.append(subset)
+                
+                ds = xr.concat(tracc_datasets, dim="time")
 
             # Create temporary file
             ds.to_netcdf(path=f"{temp_dir}{os.sep}{var}.nc")
