@@ -1,6 +1,6 @@
 {
-  "folder_path_hydro_data": "/media/bcalmel/Explore2/hydrological-projection_yearly-variables_by-chain_netcdf",
-  "folder_path_climate_data": "/media/bcalmel/Explore2/climatological-projection_daily-time-series_by-chain_netcdf",
+  "folder_path_hydro_data": "/media/bcalmel/One Touch/2_Travail/3_INRAE_EHCLO/20_data/Explore2/hydrological-projection_yearly-variables_by-chain_netcdf",
+  "folder_path_climate_data": "/media/bcalmel/One Touch/2_Travail/3_INRAE_EHCLO/20_data/Explore2/climatological-projection_daily-time-series_by-chain_netcdf",
   "folder_path_raw_hydro_data": "/home/bcalmel/Documents/2_data/historical-rcp85/",
   "folder_path_contour_data": "/home/bcalmel/Documents/2_data/contours",
   "study_name":  "HMUC_Loire_Bretagne",

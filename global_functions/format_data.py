@@ -236,8 +236,9 @@ def define_horizon(ds, files_setup):
     period_mask = (years >= files_setup['historical'][0]) & (years <= files_setup['historical'][1])
     ds = ds.assign_coords({'historical': period_mask})
     for horizon, dates in files_setup['horizons'].items():
-        period_mask = (years >= dates[0]) & (years <= dates[1])
-        ds = ds.assign_coords({horizon: period_mask})
+        if horizon != 'tracc':
+            period_mask = (years >= dates[0]) & (years <= dates[1])
+            ds = ds.assign_coords({horizon: period_mask})
 
     return ds
 
@@ -254,16 +255,18 @@ def compute_mean_by_horizon(ds, indicator_cols, files_setup, other_dimension=Non
     horizon_list = [mean_historical[indicator_cols]]
 
     for horizon, dates in files_setup['horizons'].items():
-        # Select period
-        mean_horizon = ds.sel(time=ds[horizon])
-        # Compute mean
-        if other_dimension:
-            mean_horizon = mean_horizon[indicator_cols].groupby(other_dimension).mean(dim='time')
-        else:
-            mean_horizon = mean_horizon.mean(dim='time')
-        # Add horizon
-        mean_horizon = mean_horizon.assign_coords(horizon=horizon)
-        horizon_list.append(mean_horizon[indicator_cols])
+        if horizon != 'tracc':
+            print(horizon)
+            # Select period
+            mean_horizon = ds.sel(time=ds[horizon])
+            # Compute mean
+            if other_dimension:
+                mean_horizon = mean_horizon[indicator_cols].groupby(other_dimension).mean(dim='time')
+            else:
+                mean_horizon = mean_horizon.mean(dim='time')
+            # Add horizon
+            mean_horizon = mean_horizon.assign_coords(horizon=horizon)
+            horizon_list.append(mean_horizon[indicator_cols])
 
     combined_means = xr.concat(objs=horizon_list, dim='horizon')
     combined_means = combined_means.rename({i: i+'_by-horizon' for i in indicator_cols})

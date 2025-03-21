@@ -182,7 +182,8 @@
 
   "historical": [1991, 2020],
   "horizons": {
-    "tracc" : [1.4, 2.1, 3.4]
+    "tracc" : [1.4, 2.1, 3.4],
+    "horizon3": [2070, 2099]
   },
   "function": ["median", "mean"],
   "quantile": []

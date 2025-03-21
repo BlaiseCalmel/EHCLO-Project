@@ -174,7 +174,8 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
 
                     name_join = name_indicator.replace(" ", "-").replace(".", "")
 
-                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{extended_name}.nc"
+                    # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{extended_name}.nc"
+                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_narratest.nc"
 
                     if not os.path.isfile(path_ncdf):
                         print(f'> Create {indicator} export...', end='\n')
@@ -189,7 +190,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                             # path_result=path_ncdf
                             # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{start}-{end}.csv"
                             extract_ncdf_indicator(
-                                paths_data=paths[:5], param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
+                                paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
                                 indicator=indicator, function=function, timestep=timestep,
                                 start=start_year,
                                 end=end_year,
@@ -203,10 +204,17 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
 
 #%% Visualize results
 narratives = None
+
+# Global bv
+hydro_shp_bv = open_shp(path_shp='/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_bv.shp')
+hydro_shp_bv = hydro_shp_bv[hydro_shp_bv['n'] >= 4]
+hydro_shp_bv = hydro_shp_bv.reset_index(drop=True).set_index('Suggestion')
+hydro_shp_bv.index.names = ['name']
+
 narratives =  compute_narratives(dict_paths,
                                  stations=list(reference_stations['La Loire'].keys()),
                                  files_setup=files_setup,
-                                 hydro_sim_points_gdf_simplified=hydro_sim_points_gdf_simplified,
+                                 data_shp=hydro_shp_bv,
                                  indictor_values=["QJXA", "QA", "VCN10"],
                                  threshold=0.8*len(reference_stations['La Loire']),
                                  narrative_method=None)
