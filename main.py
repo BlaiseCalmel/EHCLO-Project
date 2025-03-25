@@ -174,8 +174,8 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
 
                     name_join = name_indicator.replace(" ", "-").replace(".", "")
 
-                    # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{extended_name}.nc"
-                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_narratest.nc"
+                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{extended_name}.nc"
+                    # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_narratest.nc"
 
                     if not os.path.isfile(path_ncdf):
                         print(f'> Create {indicator} export...', end='\n')
@@ -216,8 +216,8 @@ narratives =  compute_narratives(dict_paths,
                                  files_setup=files_setup,
                                  data_shp=hydro_shp_bv,
                                  indictor_values=["QJXA", "QA", "VCN10"],
-                                 threshold=0.8*len(reference_stations['La Loire']),
-                                 narrative_method=None)
+                                 threshold=0.7,
+                                 narrative_method='combine')
 
 # df = pd.read_csv(f"/home/bcalmel/Documents/2_data/Antoine_25-02/hydrologie_csv/dataEX_Explore2_criteria_diagnostic_LF.csv",
 #                  sep=";")

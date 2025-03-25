@@ -21,13 +21,14 @@ import numpy as np
 from sklearn.decomposition import PCA
 from global_functions.format_data import format_dataset
 from plot_functions.plot_narratives import plot_narratives
+from global_functions.load_data import open_fst
 
-from rpy2.robjects.packages import importr
-import rpy2.robjects as ro
-from rpy2.robjects import pandas2ri
-
-def representative_item(X_cluster, centroids, cluster, cluster_id, indices_cluster, method='closest'):
+def representative_item(X_cluster, centroids, cluster, cluster_id, indices_cluster, method='closest',
+                        weight=None, distance_max=None):
     idx = None
+    if weight is None:
+        weight = 1
+    
     if method == 'closest':
         # Compute distance from cluster centroid
         distances = np.linalg.norm(X_cluster - centroids[cluster], axis=1)
@@ -45,28 +46,30 @@ def representative_item(X_cluster, centroids, cluster, cluster_id, indices_clust
             idx = indices_cluster[np.argmax(distances)]
     elif method == 'combine':
         # Compute distance from cluster centroid
-        distances_cluster = np.linalg.norm(X_cluster - centroids[cluster], axis=1)
-        mask_cluster = distances_cluster < np.mean(distances_cluster)
+        distances_cluster = np.linalg.norm(X_cluster - centroids[cluster], axis=1) 
+        mask_cluster = distances_cluster < distance_max
+        # mask_cluster = np.tile(True, distances_cluster.shape)
 
         # Compute distance from other cluster centroids
         distances_list = []
         for c in cluster_id:
             if c != cluster:
-                distances_list.append(np.linalg.norm(X_cluster - centroids[c], axis=1))
+                distances_list.append(np.linalg.norm(X_cluster - centroids[c], axis=1) * weight) 
         distances_other = np.mean(distances_list, axis=0)
-        idx = indices_cluster[mask_cluster][np.argmax(distances_other[mask_cluster])]
+        if np.any(distances_other):
+            idx = indices_cluster[mask_cluster][np.argmax(distances_other[mask_cluster])]
 
     return idx
 
 
-def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_simplified,
+def compute_narratives(dict_paths, stations, files_setup, data_shp,
                        indictor_values=["QJXA", "QA", "VCN10"], threshold=0, narrative_method='closest'):
 
     # Load selected indicators
     datasets_list = []
     for indicator in indictor_values:
         # Open ncdf dataset
-        path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_rcp85_YE_{start_year}-{end_year}.nc"
+        path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_rcp85_YE_TRACC.nc"
         ds_stats  = xr.open_dataset(path_ncdf)
 
         # Compute stats
@@ -109,7 +112,7 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
     combined_da = combined_da.mean(dim='gid')
 
     # # Weighted mean by cumulative distance between station
-    # gdf = hydro_sim_points_gdf_simplified.loc[stations]
+    # gdf = data_shp.loc[stations]
     # gdf["sum_distance"] = gdf.geometry.apply(lambda p: gdf.distance(p).sum())
     # gdf["sum_distance"] = gdf["sum_distance"] / gdf["sum_distance"].mean()
     #
@@ -139,7 +142,7 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
     centroids = kmeans.cluster_centers_  # de forme (n_clusters, n_features)
 
     # Create mask for sim above threshold
-    above_threshold = count_stations > threshold
+    # above_threshold = count_stations > threshold
     # Run on each cluster
     cluster_id = np.unique(labels)
     # Cluster info
@@ -152,19 +155,49 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
     # utils.install_packages('fst')
     # utils.install_packages('data.table')
 
-    # load the installed R packages
-    fst = importr('fst')
-    dt = importr('data.table')
+    performances = ['Biais', 'Q10', 'Q90']
+    # Baseflow performance
+    df = open_fst(f"/home/bcalmel/Documents/2_data/hydrologie/dataEX_Explore2_criteria_diagnostic_performance.fst")
+    baseflow_criteria = df[['HM', 'code','Biais']]
 
-    # Read the .fst file
-    df = fst.read_fst(f"/home/bcalmel/Documents/2_data/hydrologie/dataEX_Explore2_criteria_diagnostic_BF.fst")
-    # Convert to pandas dataframe
-    with (ro.default_converter + pandas2ri.converter).context():
-        df = ro.conversion.get_conversion().rpy2py(df)
+    # Highflow performance
+    df = open_fst(f"/home/bcalmel/Documents/2_data/hydrologie/dataEX_Explore2_criteria_diagnostic_HF.fst")
+    highflow_criteria = df[['HM', 'code','Q10']]
 
-    meta_df = fst.read_fst(f"/home/bcalmel/Documents/2_data/hydrologie/metaEX_Explore2_criteria_diagnostic_BF.fst")
-    with (ro.default_converter + pandas2ri.converter).context():
-        meta_df = ro.conversion.get_conversion().rpy2py(meta_df)
+    # Lowflow performance
+    df = open_fst(f"/home/bcalmel/Documents/2_data/hydrologie/dataEX_Explore2_criteria_diagnostic_LF.fst")
+    lowflow_criteria = df[['HM', 'code','Q90']]
+
+    merged_performances = pd.merge(pd.merge(baseflow_criteria, lowflow_criteria, on=['HM', 'code']), 
+                                   highflow_criteria, on=['HM', 'code'])
+    
+    # Define threshold for each criteria
+    performance_thresholds = {'Biais': 0.2, 'Q10': 0.2, 'Q90': 0.8}
+
+    # Get selected stations
+    merged_performances = merged_performances[merged_performances['code'].isin(data_shp.index)]
+    count_stations = len(np.unique(merged_performances['code']))
+
+    # Compare to thresholds
+    merged_performances[performances] = abs(merged_performances[performances])
+    valid_performance = []
+    for key, value in performance_thresholds.items():
+        merged_performances[key+'_valid'] = merged_performances[key] < value
+        valid_performance.append(key+'_valid')
+
+    # Compute percentage of station above threshold for each HM
+    hm_performances = merged_performances.groupby(['HM']).agg({v: 'sum' for v in valid_performance})
+    # hm_performances['sum'] = hm_performances[valid_performance].sum(axis=1)
+    hm_count_stations = merged_performances.groupby(['HM']).size()
+    # hm_performances[[f'{i}_ratio' for i in valid_performance]] = hm_performances[valid_performance].div(
+    #     hm_performances.index.map(hm_count_stations), axis=0) >= threshold
+    
+    hm_performances[[f'{i}_ratio' for i in valid_performance]] = hm_performances[valid_performance].div(
+        count_stations, axis=0) >= threshold
+    hm_performances['sum'] = hm_performances[[f'{i}_ratio' for i in valid_performance]].all(axis=1)
+    
+    hydrological_models = ds_stacked["hm"].values
+    above_threshold = np.array([hm_performances.loc[hm]['sum'] for hm in hydrological_models])
 
     cluster_names = ['A', 'B', 'C', 'D']
 
@@ -203,6 +236,8 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
             # Index of cluster values
             indices_cluster = np.where(labels == cluster)[0]
 
+            distance_max = 1.5 * np.mean(np.linalg.norm(X_imputed[indices_cluster, :] - centroids[cluster], axis=1))
+
             # Filter indices for sim above threshold
             indices_mask = above_threshold[indices_cluster]
             if len(indices_mask) > 0:
@@ -211,30 +246,31 @@ def compute_narratives(dict_paths, stations, files_setup, hydro_sim_points_gdf_s
             # Get vector of these sims
             X_cluster = X_imputed[indices_cluster, :]
 
-            idx = representative_item(X_cluster, centroids, cluster, cluster_id, indices_cluster, method=narrative_method)
+            idx = representative_item(
+                X_cluster, centroids, cluster, cluster_id, indices_cluster, method=narrative_method, distance_max=distance_max)
+            if idx is not None:
 
-            # Extract coordinate (gcm-rcm, bc, hm) of selected sim
-            coords_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx).values
-            coords_bc      = ds_stacked["bc"].isel(sample=idx).values
-            coords_hm      = ds_stacked["hm"].isel(sample=idx).values
+                # Extract coordinate (gcm-rcm, bc, hm) of selected sim
+                coords_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx).values
+                coords_bc      = ds_stacked["bc"].isel(sample=idx).values
+                coords_hm      = ds_stacked["hm"].isel(sample=idx).values
 
-            # Save result in dict
-            representative_groups[cluster] = {
-                "gcm-rcm": coords_gcm_rcm,
-                "bc": coords_bc,
-                "hm": coords_hm,
-                # "distance": distances[np.argmin(distances)],
-                "idx": idx,
-                "color": hex_colors[cluster],
-                "name": cluster_names[cluster],
-                "method": narrative_method
-            }
+                # Save result in dict
+                representative_groups[cluster] = {
+                    "gcm-rcm": coords_gcm_rcm,
+                    "bc": coords_bc,
+                    "hm": coords_hm,
+                    # "distance": distances[np.argmin(distances)],
+                    "idx": idx,
+                    "color": hex_colors[cluster],
+                    "name": cluster_names[cluster],
+                    "method": narrative_method
+                }
         meth_list.append(representative_groups)
 
     narratives = {methods[i] : {f"{value['gcm-rcm']}_{value['bc']}_{value['hm']}": {'color': value['color'], 'zorder': 10,
     'label': f"{value['name'].title()}", # [{value['gcm-rcm']}_{value['bc']}_{value['hm']}]",
     'linewidth': 1} for key, value in rp.items()} for i, rp in enumerate(meth_list)}
-    narratives['furthest']
                                       
     # # Generate dataframe to export
     # df = ds_stacked.to_dataframe()
