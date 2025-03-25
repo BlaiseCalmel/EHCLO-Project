@@ -109,6 +109,22 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
             other_dimension = 'season'
             dimension_names = {1: "Hiver", 2: "Printemps", 3: "Été", 4: "Automne"}
 
+    if 'tracc' in files_setup['horizons'].keys() and len(files_setup['horizons']['tracc']) > 0:
+        horizons = {}
+        i = 0
+        if 1.4 in files_setup['horizons']['tracc']:
+            i += 1
+            horizons |= {f"horizon{i}" : [2020, 2039]}
+        
+        if 2.1 in files_setup['horizons']['tracc']:
+            i += 1
+            horizons |= {f"horizon{i}" : [2040, 2059]}
+        
+        if 3.4 in files_setup['horizons']['tracc']:
+            i += 1
+            horizons |= {f"horizon{i}" : [2090, 2109]}
+        
+        files_setup['horizons'] = horizons
     columns = {}
     print(f'>> Define horizons...', end='\n')
 
@@ -231,7 +247,7 @@ def weighted_mean_per_region(ds, var, sim_points_gdf, region_col='gid'):
     return ds_selection
 
 def define_horizon(ds, files_setup):
-    # Define horizon
+    # Define temporal horizon
     years = ds['time'].dt.year
     period_mask = (years >= files_setup['historical'][0]) & (years <= files_setup['historical'][1])
     ds = ds.assign_coords({'historical': period_mask})
