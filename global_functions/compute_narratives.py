@@ -16,12 +16,14 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from sklearn.cluster import KMeans
+from sklearn_extra.cluster import KMedoids
 import xarray as xr
 import numpy as np
 from sklearn.decomposition import PCA
 from global_functions.format_data import format_dataset
 from plot_functions.plot_narratives import plot_narratives
 from global_functions.load_data import open_fst
+import pandas as pd
 
 def representative_item(X_cluster, centroids, cluster, cluster_id, indices_cluster, method='closest',
                         weight=None, distance_max=None):
@@ -47,7 +49,10 @@ def representative_item(X_cluster, centroids, cluster, cluster_id, indices_clust
     elif method == 'combine':
         # Compute distance from cluster centroid
         distances_cluster = np.linalg.norm(X_cluster - centroids[cluster], axis=1) 
-        mask_cluster = distances_cluster < distance_max
+        if distance_max is not None:
+            mask_cluster = distances_cluster <= distance_max
+        else:
+            mask_cluster = np.logical_not(np.isnan(distances_cluster))
         # mask_cluster = np.tile(True, distances_cluster.shape)
 
         # Compute distance from other cluster centroids
@@ -55,8 +60,10 @@ def representative_item(X_cluster, centroids, cluster, cluster_id, indices_clust
         for c in cluster_id:
             if c != cluster:
                 distances_list.append(np.linalg.norm(X_cluster - centroids[c], axis=1) * weight) 
-        distances_other = np.mean(distances_list, axis=0)
-        if np.any(distances_other):
+        distances_other = np.min(distances_list, axis=0)
+
+        # min_distances = np.minimum.reduce([distances_other[0], distances_other[1], distances_other[2]])
+        if np.any(distances_other) and np.any(mask_cluster):
             idx = indices_cluster[mask_cluster][np.argmax(distances_other[mask_cluster])]
 
     return idx
@@ -69,7 +76,8 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp,
     datasets_list = []
     for indicator in indictor_values:
         # Open ncdf dataset
-        path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_rcp85_YE_TRACC.nc"
+        # path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_rcp85_YE_1991-2099_noeud_gestion.nc"
+        path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_rcp85_YE_TRACC_noeud_gestion.nc"
         ds_stats  = xr.open_dataset(path_ncdf)
 
         # Compute stats
@@ -77,9 +85,11 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp,
         ds_stats['gid'] = ds_stats['gid'].astype(str)
         datasets_list.append(ds_stats)
 
+    horizon = 'horizon3'
+    
     data_arrays = []
     datasets = [ds_i[var_names[f'simulation-horizon_by-sims_deviation']].sel(
-        horizon='horizon3', gid=stations) for ds_i in datasets_list]
+        horizon=horizon, gid=stations) for ds_i in datasets_list]
     for i in range(len(datasets)):
         ds = datasets[i]
         for var_name, da in ds.data_vars.items():
@@ -109,7 +119,7 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp,
     count_stations = combined_da[["QA"]].count(dim="gid")['QA'].values.flatten()
 
     # Compute mean on selected stations
-    combined_da = combined_da.mean(dim='gid')
+    combined_da = combined_da.median(dim='gid')
 
     # # Weighted mean by cumulative distance between station
     # gdf = data_shp.loc[stations]
@@ -186,14 +196,18 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp,
         valid_performance.append(key+'_valid')
 
     # Compute percentage of station above threshold for each HM
+    threshold = 0.75
     hm_performances = merged_performances.groupby(['HM']).agg({v: 'sum' for v in valid_performance})
-    # hm_performances['sum'] = hm_performances[valid_performance].sum(axis=1)
-    hm_count_stations = merged_performances.groupby(['HM']).size()
+
+    # # Normalize by stations available per HM
+    # hm_count_stations = merged_performances.groupby(['HM']).size()
     # hm_performances[[f'{i}_ratio' for i in valid_performance]] = hm_performances[valid_performance].div(
     #     hm_performances.index.map(hm_count_stations), axis=0) >= threshold
     
+    # Normalize by total station among area
     hm_performances[[f'{i}_ratio' for i in valid_performance]] = hm_performances[valid_performance].div(
         count_stations, axis=0) >= threshold
+    
     hm_performances['sum'] = hm_performances[[f'{i}_ratio' for i in valid_performance]].all(axis=1)
     
     hydrological_models = ds_stacked["hm"].values
@@ -236,7 +250,9 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp,
             # Index of cluster values
             indices_cluster = np.where(labels == cluster)[0]
 
-            distance_max = 1.5 * np.mean(np.linalg.norm(X_imputed[indices_cluster, :] - centroids[cluster], axis=1))
+            # Distance max from current centroid
+            distance_max = 1.5 * np.median(np.linalg.norm(X_imputed[indices_cluster, :] - centroids[cluster], axis=1))
+            # distance_max = None
 
             # Filter indices for sim above threshold
             indices_mask = above_threshold[indices_cluster]

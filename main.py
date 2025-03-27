@@ -208,31 +208,32 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
 #%% Visualize results
 narratives = None
 
-# Global bv
-hydro_shp_bv = open_shp(path_shp='/home/bcalmel/Documents/2_data/point_nodaux_sdage20222027_LB_bassin_Loire/point_nodaux_sdage20222027_LB_bassin_Loire.shp')
-# hydro_shp_bv = hydro_shp_bv[hydro_shp_bv['n'] >= 4]
+# # Global bv
+# hydro_shp_bv = open_shp(path_shp='/home/bcalmel/Documents/2_data/point_nodaux_sdage20222027_LB_bassin_Loire/point_nodaux_sdage20222027_LB_bassin_Loire.shp')
+# # hydro_shp_bv = hydro_shp_bv[hydro_shp_bv['n'] >= 4]
 
-sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim']['hydro'])
+# sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim']['hydro'])
 
-def closest_point(multipoint, points):
-    """Trouve le point le plus proche d'un Multipoint parmi une liste de Points"""
-    return min(points, key=lambda p: multipoint.distance(p))
+# def closest_point(multipoint, points):
+#     """Trouve le point le plus proche d'un Multipoint parmi une liste de Points"""
+#     return min(points, key=lambda p: multipoint.distance(p))
 
-# Liste des points disponibles
-all_points = list(sim_all_points_info.geometry)
+# # Liste des points disponibles
+# all_points = list(sim_all_points_info.geometry)
 
-# Calcul du point le plus proche pour chaque Multipoint
-hydro_shp_bv['closest_point'] = hydro_shp_bv['geometry'].apply(lambda mp: closest_point(mp, all_points))
+# # Calcul du point le plus proche pour chaque Multipoint
+# hydro_shp_bv['closest_point'] = hydro_shp_bv['geometry'].apply(lambda mp: closest_point(mp, all_points))
 
-# Convertir en colonne géométrique pour affichage
-hydro_shp_bv['closest_point'] = hydro_shp_bv['closest_point'].astype('geometry')
+# # Convertir en colonne géométrique pour affichage
+# hydro_shp_bv['closest_point'] = hydro_shp_bv['closest_point'].astype('geometry')
 
-selected_points_narratives = sim_all_points_info[sim_all_points_info['geometry'].isin(hydro_shp_bv['closest_point'])]
-selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
-selected_points_narratives = selected_points_narratives[pd.isna(selected_points_narratives['PointsSupp'])]
-selected_points_narratives.to_file('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp', index=True)
+# selected_points_narratives = sim_all_points_info[sim_all_points_info['geometry'].isin(hydro_shp_bv['closest_point'])]
+# selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
+# selected_points_narratives = selected_points_narratives[pd.isna(selected_points_narratives['PointsSupp'])]
+# selected_points_narratives.to_file('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp', index=True)
 
 selected_points_narratives = open_shp('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp')
+selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
 
 narratives =  compute_narratives(dict_paths,
                                  stations=list(selected_points_narratives.index),
