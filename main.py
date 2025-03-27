@@ -122,7 +122,9 @@ all_years = files_setup["historical"] + [year for key, values in files_setup["ho
                                             year in values if key != "tracc" ]
 start_year = min(all_years)
 tracc_year = None
-if 'tracc' in files_setup["horizons"].keys():
+if 'tracc' in files_setup.keys() and files_setup['tracc']:
+    if not 'tracc' in files_setup['horizons']:
+        files_setup['horizons']['tracc'] = [1.4, 2.1, 3.4]
     print(f'> Load TRACC...', end='\n')
     tracc_year = pd.read_csv(config['path_tracc'], sep=";")
     tracc_year = tracc_year[tracc_year['Niveau_de_rechauffement'].isin(files_setup["horizons"]['tracc'])]
@@ -148,14 +150,15 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
     subdict=path_files[data_type]
     rcp='rcp85'
     subdict2=subdict[rcp]
-    indicator = "debit"
+    indicator = "QA_yr"
     paths = subdict2[indicator]
     for data_type, subdict in path_files.items():
         # Load simulation points for current data type
         # sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim'][data_type])
 
         if data_type == "hydro":
-            sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
+            # sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
+            sim_points_gdf_simplified = selected_points_narratives
         else:
             sim_points_gdf_simplified = climate_sim_points_gdf_simplified
             # sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
@@ -174,7 +177,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
 
                     name_join = name_indicator.replace(" ", "-").replace(".", "")
 
-                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{extended_name}.nc"
+                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{extended_name}_noeud_gestion.nc"
                     # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_narratest.nc"
 
                     if not os.path.isfile(path_ncdf):
@@ -206,10 +209,39 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
 narratives = None
 
 # Global bv
-hydro_shp_bv = open_shp(path_shp='/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_bv.shp')
-hydro_shp_bv = hydro_shp_bv[hydro_shp_bv['n'] >= 4]
-hydro_shp_bv = hydro_shp_bv.reset_index(drop=True).set_index('Suggestion')
-hydro_shp_bv.index.names = ['name']
+hydro_shp_bv = open_shp(path_shp='/home/bcalmel/Documents/2_data/point_nodaux_sdage20222027_LB_bassin_Loire/point_nodaux_sdage20222027_LB_bassin_Loire.shp')
+# hydro_shp_bv = hydro_shp_bv[hydro_shp_bv['n'] >= 4]
+
+sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim']['hydro'])
+
+def closest_point(multipoint, points):
+    """Trouve le point le plus proche d'un Multipoint parmi une liste de Points"""
+    return min(points, key=lambda p: multipoint.distance(p))
+
+# Liste des points disponibles
+all_points = list(sim_all_points_info.geometry)
+
+# Calcul du point le plus proche pour chaque Multipoint
+hydro_shp_bv['closest_point'] = hydro_shp_bv['geometry'].apply(lambda mp: closest_point(mp, all_points))
+
+# Convertir en colonne géométrique pour affichage
+hydro_shp_bv['closest_point'] = hydro_shp_bv['closest_point'].astype('geometry')
+
+selected_points_narratives = sim_all_points_info[sim_all_points_info['geometry'].isin(hydro_shp_bv['closest_point'])]
+selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
+selected_points_narratives = selected_points_narratives[pd.isna(selected_points_narratives['PointsSupp'])]
+selected_points_narratives.to_file('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp', index=True)
+
+selected_points_narratives = open_shp('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp')
+
+narratives =  compute_narratives(dict_paths,
+                                 stations=list(selected_points_narratives.index),
+                                 files_setup=files_setup,
+                                 data_shp=selected_points_narratives,
+                                 indictor_values=["QJXA", "QA", "VCN10"],
+                                 threshold=0.7,
+                                 narrative_method='combine')
+
 
 narratives =  compute_narratives(dict_paths,
                                  stations=list(reference_stations['La Loire'].keys()),
@@ -218,13 +250,6 @@ narratives =  compute_narratives(dict_paths,
                                  indictor_values=["QJXA", "QA", "VCN10"],
                                  threshold=0.7,
                                  narrative_method='combine')
-
-# df = pd.read_csv(f"/home/bcalmel/Documents/2_data/Antoine_25-02/hydrologie_csv/dataEX_Explore2_criteria_diagnostic_LF.csv",
-#                  sep=";")
-
-# df = pd.read_csv(f"/home/bcalmel/Documents/2_data/Antoine_25-02/VCN10/.csv",
-#                  sep=";")
-
 
 run_plot = True
 while run_plot:
@@ -310,9 +335,9 @@ while run_plot:
 
             # Define horizons
             if tracc_year is not None:
-                horizons = {'1.4': 'Horizon 1 (+1.4°C)',
-                            '2.1': 'Horizon 2 (+2.1°C)',
-                            '3.4': 'Horizon 3 (+3.4°C)',
+                horizons = {1.4: 'Horizon 1 (+1.4°C)',
+                            2.1: 'Horizon 2 (+2.1°C)',
+                            3.4: 'Horizon 3 (+3.4°C)',
                 }
             else:
                 horizons = {'horizon1': 'Horizon 1 (2021-2050)',
