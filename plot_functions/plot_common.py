@@ -198,16 +198,20 @@ def add_header(ax, rows_plot, cols_plot, ylabel='', xlabel=''):
 
 
 def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax):
+    data_x = None
+    data_y = None
 
     if xmin is None:
         try:
             x_min_temp = 0
             if x_axis['names_coord'] != 'indicator':
-                x_min_temp = ds_plot.variables[x_axis['names_coord']].min().values
+                data_x = ds_plot.variables[x_axis['names_coord']]
+                x_min_temp = data_x.min().values
                 xmin = np.nanmin(x_min_temp)
             else:
                 var_names = [i for subdict in indicator_plot for i in subdict]
-                xmin = math.ceil((ds_plot[var_names].to_array()).min())
+                data_x = ds_plot[var_names].to_array()
+                xmin = math.ceil((ds_plot[var_names]).min())
         except ValueError:
             xmin = min(x_min_temp)
         except KeyError:
@@ -218,27 +222,40 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
         try:
             x_max_temp = 0
             if x_axis['names_coord'] != 'indicator':
+                data_x = ds_plot.variables[x_axis['names_coord']]
                 x_max_temp = ds_plot.variables[x_axis['names_coord']].max().values
                 xmax = np.nanmin(x_max_temp)
             else:
                 var_names = [i for subdict in indicator_plot for i in subdict]
-                xmax = math.ceil((ds_plot[var_names].to_array()).max())
+                data_x = ds_plot[var_names].to_array()
+                xmax = math.ceil((ds_plot[var_names]).max())
         except ValueError:
             xmax = max(x_max_temp)
         except KeyError:
             xmax = None
         except OverflowError:
             xmax = None
+    
+    # if data_x is not None:
+    #     q1, q3 = np.nanpercentile(data_x, [25, 75])  
+    #     iqr = q3 - q1  
+    #     lower_bound = q1 - 1.5 * iqr  
+    #     upper_bound = q3 + 1.5 * iqr 
+
+    #     xmin = max(xmin, lower_bound)
+    #     xmax = min(xmax, upper_bound)
 
     if ymin is None:
         try:
             y_min_temp = 0
             if y_axis['names_coord'] != 'indicator':
-                y_min_temp = ds_plot.variables[y_axis['names_coord']].min().values
+                data_y = ds_plot.variables[y_axis['names_coord']]
+                y_min_temp = data_y.min().values
                 ymin = np.nanmin(y_min_temp)
             else:
                 var_names = [i for subdict in indicator_plot for i in subdict]
-                ymin = math.ceil((ds_plot[var_names].to_array()).min())
+                data_y = ds_plot[var_names].to_array()
+                ymin = math.ceil(data_y.min())
         except ValueError:
             ymin = min(y_min_temp)
         except KeyError:
@@ -250,17 +267,28 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
         try:
             y_max_temp = 0
             if y_axis['names_coord'] != 'indicator':
-                y_max_temp = ds_plot.variables[y_axis['names_coord']].max().values
+                data_y = ds_plot.variables[y_axis['names_coord']]
+                y_max_temp = data_y.max().values
                 ymax = np.nanmax(y_max_temp)
             else:
                 var_names = [i for subdict in indicator_plot for i in subdict]
-                ymax = math.ceil((ds_plot[var_names].to_array()).max())
+                data_y = ds_plot[var_names].to_array()
+                ymax = math.ceil(data_y.max())
         except ValueError:
             ymax = max(y_max_temp)
         except KeyError:
             ymax = None
         except OverflowError:
             ymax = None
+
+    # if data_y is not None:
+    #     q1, q3 = np.nanpercentile(data_y, [25, 75])  
+    #     iqr = q3 - q1  
+    #     lower_bound = q1 - 1.5 * iqr  
+    #     upper_bound = q3 + 1.5 * iqr 
+
+    #     ymin = max(ymin, lower_bound)
+    #     ymax = min(ymax, upper_bound)
 
     return xmin, xmax, ymin, ymax
 

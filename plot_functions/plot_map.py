@@ -261,6 +261,9 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         if isinstance(cols, dict) and 'names_plot' in cols.keys():
             subtitles_lines = max(s.count('\n') for s in cols['names_plot'])
         figsize= (figsize[0], figsize[1] * (1 + 0.02 * len_rows) + subtitles_lines)
+    
+    if len_rows == 1:
+        figsize= (figsize[0] * 1.05, figsize[1])
 
     fig, axes = plt.subplots(len_rows, len_cols, figsize=figsize, constrained_layout=True)
     # hspace = 0.03
@@ -390,6 +393,13 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             ax.set_yticks([])
             plt.setp(ax.spines.values(), color=None)
 
+    if cbar_values is None:
+        nombre_str = str(step).rstrip('0')
+        if '.' in nombre_str:
+            cbar_values = len(nombre_str.split('.')[1]) 
+        else:
+            cbar_values = 0
+        
     cbar = define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap=extended_levels,
                        cbar_title=cbar_title, cbar_values=cbar_values, cbar_ticks=cbar_ticks,
                        start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks,

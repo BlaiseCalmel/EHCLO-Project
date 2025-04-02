@@ -183,7 +183,7 @@ def plot_narratives(x_data, ds_stacked, representative_groups, labels, cluster_n
                 sm = mpl.cm.ScalarMappable(cmap=cmap, norm=norm)
                 # cax = axes_flatten[idx_ax-1]
                 cbar = plt.colorbar(sm, cax=cbar_ax, drawedges=True)
-                cbar.set_label("Cluster")
+                cbar.set_label("Groupe")
                 cbar.set_ticks([0,1,2,3])
                 cbar.set_ticklabels(cluster_names)
                 cbar.ax.invert_yaxis()
@@ -192,7 +192,7 @@ def plot_narratives(x_data, ds_stacked, representative_groups, labels, cluster_n
                     ax.legend(handles=representative_legends, loc='center left', bbox_to_anchor=(1.34, 0.5),
                               title="Narratifs", ncol=1)
                 else:
-                    ax.legend(handles=representative_legends, loc='center left', bbox_to_anchor=(1.28, 0.28),
+                    ax.legend(handles=representative_legends, loc='center left', bbox_to_anchor=(2, 0.28),
                               title="Narratifs", ncol=1)
 
     if len(axes_flatten) > 1:
@@ -206,7 +206,7 @@ def plot_narratives(x_data, ds_stacked, representative_groups, labels, cluster_n
             fig.legend(handles=hm_legends, loc='upper center', bbox_to_anchor=(0.5, 0.06),
                        title="Modèles Hydro", ncol=2+len(cols))
     else:
-        fig.legend(handles=hm_legends, loc='upper left', bbox_to_anchor=(1.11, 0.9),
+        fig.legend(handles=hm_legends, loc='upper left', bbox_to_anchor=(1.28, 0.9),
                    title="Modèles Hydro", ncol=3)
 
     # plt.subplots_adjust(hspace=0.12, wspace=0.32)

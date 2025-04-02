@@ -98,7 +98,7 @@ def apply_function_to_ds(ds, function, file_name, timestep):
 
     return resampled_var
 
-def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, timestep=None, function=None,
+def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, files_setup, timestep=None, function=None,
                            start=None, end=None, tracc_year=None, path_result=None):
 
     # Create temporary directory
@@ -297,26 +297,29 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, ti
                 climate_model = '_'.join(split_name[:2])
                 selected_tracc = tracc_year[['Annee_correspondante', climate_model]]
 
-                tracc_levels = [(year-10, year+9) for year in selected_tracc[climate_model]]
+                tracc_levels = [tuple(files_setup["historical"])]
+                tracc_levels += [(year-10, year+9) for year in selected_tracc[climate_model]]
                 # Création dynamique du masque
-                time_mask = np.zeros(len(ds.time), dtype=bool)
+                time_mask = np.zeros(len(ds.time), dtype=bool)                
 
                 tracc_datasets = []
-                for i, (start_tracc, end_tracc) in enumerate(tracc_levels):
+                for idx, (start_tracc, end_tracc) in enumerate(tracc_levels):
                     # Data selection
                     time_mask = (ds.time.dt.year >= start_tracc) & (ds.time.dt.year <= end_tracc)
                     subset = ds.sel(time=ds.time[time_mask])
 
-                    # Match tracc year to actual year
-                    matching_year = selected_tracc.iloc[i]['Annee_correspondante']
-                    year_diff = matching_year - 10 - start_tracc
+                    i = idx - 1
+                    if i > -1:
+                        # Match tracc year to actual year
+                        matching_year = selected_tracc.iloc[i]['Annee_correspondante']
+                        year_diff = matching_year - 10 - start_tracc
 
-                    # Convert to pandas DatetimeIndex and add N years
-                    updated_dates = pd.DatetimeIndex(subset.time) + pd.DateOffset(years=year_diff)
-                    updated_dates_np = updated_dates.to_numpy()
+                        # Convert to pandas DatetimeIndex and add N years
+                        updated_dates = pd.DatetimeIndex(subset.time) + pd.DateOffset(years=year_diff-300) 
+                        updated_dates_np = updated_dates.to_numpy()
 
-                    # Change time coordinate
-                    subset = subset.assign_coords(time=(updated_dates_np))
+                        # Change time coordinate
+                        subset = subset.assign_coords(time=(updated_dates_np))
 
                     tracc_datasets.append(subset)
                 

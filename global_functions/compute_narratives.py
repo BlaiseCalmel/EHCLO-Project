@@ -72,12 +72,42 @@ def representative_item(X_cluster, centroids, cluster, cluster_id, indices_clust
 def compute_narratives(dict_paths, stations, files_setup, data_shp,
                        indictor_values=["QJXA", "QA", "VCN10"], threshold=0, narrative_method='closest'):
 
+    # path = f"/home/bcalmel/Documents/2_data/Extraction_variables_hydrologiques_Blaise/"
+    # chaine = f"NorESM1-M_WRF381P_ADAMONT_"
+    # dir_path = path + chaine + os.sep + indicator
+    # files_tracc = [os.path.join(dir_path, fn) for fn in next(os.walk(dir_path))[2]]
+    # i = 0
+    # df = pd.read_csv(files_tracc[i], sep=";")
+    # data = ds_stats[chaine+files_tracc[i].split('_')[-1][:-4]]
+
+    # sel_gid = data.gid.values[10]
+
+    # df[df['Station'] == sel_gid.astype(str)][df['Annee'] >= 2035]
+    # data.sel(gid=sel_gid, time=data.time.dt.year >= 2035)
+
+    # df[df['Station'] == 'A107020001'][:20]
+
+    # path_drias = f"/home/bcalmel/Documents/2_data/Indicateurs_Debit-VCN10_Annuel_EXPLORE2-2024_MF-ADAMONT_historical-rcp85_SMASH_serie-temporelle_modeles-individuels_csv/K/"
+    # csv_drias = f"VCN10_yr_1976_2098_TIMEseries_GEOstation_K_EXPLORE2-2024_MF-ADAMONT_historical-rcp85_NorESM1-M_WRF381P_SMASH.csv"
+    
+    # df_drias = pd.read_csv(path_drias+csv_drias)
+
+
+    # df = open_fst(path+"VCN10.fst")
+    # # Définir la date de référence (exemple : 1er janvier 2000)
+    # date_reference = pd.Timestamp("1970-01-01")
+
+    # # Ajouter le nombre de jours et convertir en date
+    # df["year"] = date_reference + pd.to_timedelta(df["date"], unit="D")
+
+    # df_station = df[df['code'] == sel_gid.astype(str)]
+    # df_station[df_station['year'] >= pd.Timestamp("2035-01-01")]
     # Load selected indicators
     datasets_list = []
     for indicator in indictor_values:
         # Open ncdf dataset
         # path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_rcp85_YE_1991-2099_noeud_gestion.nc"
-        path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_rcp85_YE_TRACC_noeud_gestion.nc"
+        path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_rcp85_YE_TRACC_noeuds-gestion.nc"
         ds_stats  = xr.open_dataset(path_ncdf)
 
         # Compute stats
@@ -196,7 +226,6 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp,
         valid_performance.append(key+'_valid')
 
     # Compute percentage of station above threshold for each HM
-    threshold = 0.75
     hm_performances = merged_performances.groupby(['HM']).agg({v: 'sum' for v in valid_performance})
 
     # # Normalize by stations available per HM
@@ -213,8 +242,10 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp,
     hydrological_models = ds_stacked["hm"].values
     above_threshold = np.array([hm_performances.loc[hm]['sum'] for hm in hydrological_models])
 
-    cluster_names = ['A', 'B', 'C', 'D']
-
+    # cluster_names = ['A', 'B', 'C', 'D']
+    cluster_names = ['Argousier', 'Cèdre', 'Genévrier', 'Séquoia']
+    hex_colors = ["#E66912", "#016367", "#0B1C48", "#9E3A14"]
+    
     # Rank clusters
     # ranks = np.argsort(np.argsort(centroids, axis=0), axis=0) + 1
     # cumulative_ranks = ranks[:, 0] + ranks[:, 2]
@@ -230,7 +261,7 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp,
     #
     # narra_idx = [flood, dry, last, extreme]
     # narra_idx = [1, 2, 0, 3]
-    hex_colors = ["#016367", "#9E3A14", "#E66912", "#0B1C48"]
+    # hex_colors = ["#016367", "#9E3A14", "#E66912", "#0B1C48"]
     # Bleunavy Orange Brun Turquoise https://www.canva.com/colors/color-palettes/freshly-sliced-fruit/
     # hex_colors = [hex_colors[i] for i in narra_idx]
 
@@ -251,7 +282,7 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp,
             indices_cluster = np.where(labels == cluster)[0]
 
             # Distance max from current centroid
-            distance_max = 1.5 * np.median(np.linalg.norm(X_imputed[indices_cluster, :] - centroids[cluster], axis=1))
+            distance_max = 2 * np.median(np.linalg.norm(X_imputed[indices_cluster, :] - centroids[cluster], axis=1))
             # distance_max = None
 
             # Filter indices for sim above threshold
@@ -336,26 +367,26 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp,
                     above_threshold=above_threshold, palette=hex_colors, n=4, rows=rows,
                     cols=indictor_values)
 
-    # PLOT BY INDICATOR
-    for idx1 in range(len(indictor_values)):
-        if idx1 != len(indictor_values)-1:
-            idx2 =idx1+1
-        else:
-            idx2 = 0
+    # # PLOT BY INDICATOR
+    # for idx1 in range(len(indictor_values)):
+    #     if idx1 != len(indictor_values)-1:
+    #         idx2 =idx1+1
+    #     else:
+    #         idx2 = 0
 
-        # Construire les noms des axes
-        if indictor_values[idx2] == 'QA':
-            idx1, idx2 = idx2, idx1
-        print(f"Narrative Plot {indictor_values[idx1]} & {indictor_values[idx2]}")
-        xlabel = f"Variation {indictor_values[idx1]} (%)"
-        ylabel = f"Variation {indictor_values[idx2]} (%)"
-        title = "Clusters et points représentatifs"
-        path_result=f"/home/bcalmel/Documents/3_results/narratest_{indictor_values[idx1]}-{indictor_values[idx2]}.pdf"
-        # path_result=f"/home/bcalmel/Documents/3_results/narratest_spatial_mean_comparison.pdf"
+    #     # Construire les noms des axes
+    #     if indictor_values[idx2] == 'QA':
+    #         idx1, idx2 = idx2, idx1
+    #     print(f"Narrative Plot {indictor_values[idx1]} & {indictor_values[idx2]}")
+    #     xlabel = f"Variation {indictor_values[idx1]} (%)"
+    #     ylabel = f"Variation {indictor_values[idx2]} (%)"
+    #     title = "Clusters et points représentatifs"
+    #     path_result=f"/home/bcalmel/Documents/3_results/narratest_{indictor_values[idx1]}-{indictor_values[idx2]}.pdf"
+    #     # path_result=f"/home/bcalmel/Documents/3_results/narratest_spatial_mean_comparison.pdf"
 
-        plot_narratives(X_imputed[:, [idx1, idx2]], ds_stacked, meth_list, labels, cluster_names,
-                        path_result, xlabel, ylabel, title=None, centroids=None, count_stations=None,
-                        above_threshold=above_threshold, palette=hex_colors, n=4, rows=rows)
+    #     plot_narratives(X_imputed[:, [idx1, idx2]], ds_stacked, meth_list, labels, cluster_names,
+    #                     path_result, xlabel, ylabel, title=None, centroids=None, count_stations=None,
+    #                     above_threshold=above_threshold, palette=hex_colors, n=4, rows=rows)
 
     return narratives
 

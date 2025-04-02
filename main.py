@@ -49,7 +49,7 @@ print(f'> Load json inputs...', end='\n')
 with open('config.json') as config_file:
     config = json.load(config_file)
 
-with open('files_setup.json') as files_setup:
+with open('files_setup-tracc.json') as files_setup:
     files_setup = json.load(files_setup)
 
 settings_flatten = {}
@@ -139,6 +139,9 @@ else:
 #%% NCDF Loading
 load_ncdf = input("Load new NCDF ? (y/[n])")
 
+selected_points_narratives = open_shp('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp')
+selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
+
 if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
     print(f'################################ RUN OVER NCDF ################################', end='\n')
     # Get paths for selected sim
@@ -157,8 +160,8 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
         # sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim'][data_type])
 
         if data_type == "hydro":
-            # sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
-            sim_points_gdf_simplified = selected_points_narratives
+            sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
+            # sim_points_gdf_simplified = selected_points_narratives
         else:
             sim_points_gdf_simplified = climate_sim_points_gdf_simplified
             # sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
@@ -177,7 +180,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
 
                     name_join = name_indicator.replace(" ", "-").replace(".", "")
 
-                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{extended_name}_noeud_gestion.nc"
+                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{extended_name}.nc"
                     # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_narratest.nc"
 
                     if not os.path.isfile(path_ncdf):
@@ -194,7 +197,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
                             # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{start}-{end}.csv"
                             extract_ncdf_indicator(
                                 paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
-                                indicator=indicator, function=function, timestep=timestep,
+                                indicator=indicator, function=function, files_setup=files_setup, timestep=timestep, 
                                 start=start_year,
                                 end=end_year,
                                 tracc_year=tracc_year,
@@ -222,7 +225,7 @@ narratives = None
 # all_points = list(sim_all_points_info.geometry)
 
 # # Calcul du point le plus proche pour chaque Multipoint
-# hydro_shp_bv['closest_point'] = hydro_shp_bv['geometry'].apply(lambda mp: closest_point(mp, all_points))
+# hydro_shp_bv['closest_point'] = hydro_shp_bv['geometry'].apply(lambda mp: closest_point(mp, all_points))tasAdjust
 
 # # Convertir en colonne géométrique pour affichage
 # hydro_shp_bv['closest_point'] = hydro_shp_bv['closest_point'].astype('geometry')
@@ -232,25 +235,33 @@ narratives = None
 # selected_points_narratives = selected_points_narratives[pd.isna(selected_points_narratives['PointsSupp'])]
 # selected_points_narratives.to_file('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp', index=True)
 
-selected_points_narratives = open_shp('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp')
-selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
+path_narratives = f"{dict_paths['folder_study_data']}narratives_{extended_name}.json"
+if not os.path.isfile(path_narratives):
+    print('> Define Narratives')
+    selected_points_narratives = open_shp('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp')
+    selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
 
-narratives =  compute_narratives(dict_paths,
-                                 stations=list(selected_points_narratives.index),
-                                 files_setup=files_setup,
-                                 data_shp=selected_points_narratives,
-                                 indictor_values=["QJXA", "QA", "VCN10"],
-                                 threshold=0.7,
-                                 narrative_method='combine')
+    narratives =  compute_narratives(dict_paths,
+                                    stations=list(selected_points_narratives.index),
+                                    files_setup=files_setup,
+                                    data_shp=selected_points_narratives,
+                                    indictor_values=["QJXA", "QA", "VCN10"],
+                                    threshold=0.75,
+                                    narrative_method='combine')
+    with open(path_narratives, "w", encoding="utf-8") as f:
+        json.dump(narratives, f, ensure_ascii=False, indent=4)
+else:
+    print('> Load Narratives')
+    with open(path_narratives, "r", encoding="utf-8") as f:
+        narratives = json.load(f) 
 
-
-narratives =  compute_narratives(dict_paths,
-                                 stations=list(reference_stations['La Loire'].keys()),
-                                 files_setup=files_setup,
-                                 data_shp=hydro_shp_bv,
-                                 indictor_values=["QJXA", "QA", "VCN10"],
-                                 threshold=0.7,
-                                 narrative_method='combine')
+# narratives =  compute_narratives(dict_paths,
+#                                  stations=list(reference_stations['La Loire'].keys()),
+#                                  files_setup=files_setup,
+#                                  data_shp=hydro_shp_bv,
+#                                  indictor_values=["QJXA", "QA", "VCN10"],
+#                                  threshold=0.7,
+#                                  narrative_method='combine')
 
 run_plot = True
 while run_plot:
@@ -336,9 +347,9 @@ while run_plot:
 
             # Define horizons
             if tracc_year is not None:
-                horizons = {1.4: 'Horizon 1 (+1.4°C)',
-                            2.1: 'Horizon 2 (+2.1°C)',
-                            3.4: 'Horizon 3 (+3.4°C)',
+                horizons = {'horizon1': 'Horizon +2°C | 2030',
+                            'horizon2': 'Horizon +2.7°C | 2050',
+                            'horizon3': 'Horizon +4°C | 2100',
                 }
             else:
                 horizons = {'horizon1': 'Horizon 1 (2021-2050)',
@@ -372,7 +383,7 @@ while run_plot:
                     edgecolor = None
 
                 # Open ncdf dataset
-                path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}_{start_year}-{end_year}.nc"
+                path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}_{extended_name}.nc"
                 # path_ncdf2 = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}.nc"
                 ds_stats = xr.open_dataset(path_ncdf)
                 if data_type == 'hydro':
@@ -423,7 +434,7 @@ while run_plot:
                             print(f"> Map plot...")
                             print(f"{name_indicator} >> {plot_type_name.title()} matching map plot")
                             plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_matching',
-                                               path_result=path_indicator_figures+f'{title_join}_map_matching_sims.pdf',
+                                               path_result=path_indicator_figures+f'{title_join}_map_matching_sims.pdf', horizons=horizons,
                                                cbar_title=f"{title_join} Accord des modèles sur le sens d'évolution (%)", cbar_ticks=None,
                                                title=coordinate_value, dict_shapefiles=dict_shapefiles,
                                                bounds=bounds, palette='PuOr', cbar_midpoint='zero', cbar_values=0,
@@ -435,7 +446,7 @@ while run_plot:
                             if indicator_setup['type'] == 'climate_indicator':
                                 print(f"{name_indicator} >> {plot_type_name.title()} map plot")
                                 plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=f'horizon_{plot_type}-median',
-                                                   path_result=path_indicator_figures+f'{title_join}_map_{plot_type}.pdf',
+                                                   path_result=path_indicator_figures+f'{title_join}_map_{plot_type}.pdf', horizons=horizons,
                                                    cbar_title=f"{plot_type_name.title()} {function_name} {title}{units}", cbar_ticks=settings['cbar_ticks'],
                                                    title=coordinate_value, dict_shapefiles=dict_shapefiles,
                                                    bounds=bounds, palette=settings['palette'], cbar_midpoint='zero', cbar_values=settings['cbar_values'],
@@ -517,8 +528,8 @@ while run_plot:
                                         vlines['fontsize'] = settings['fontsize'] - 2
 
                                         # Limit size of y axis label
-                                        name_y_axis = optimize_label_length(f'{plot_type_name.title()} {title}{units}', settings,
-                                                                            )
+                                        name_y_axis = optimize_label_length(f'{plot_type_name.title()} {title}{units}', settings)
+
                                     if len(narratives) == 1:
                                         # Climate Narratives
                                         if len(list(list(narratives.values())[0].keys())[0].split("_")) == 3:
@@ -589,7 +600,7 @@ while run_plot:
                                                 else:
                                                     map_title = f"{value}"
                                                     plot_map_indicator_narratives(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key),
-                                                                                  variables=variables, plot_type=plot_type,
+                                                                                  narratives=narratives, variables=variables, plot_type=plot_type,
                                                                                   path_result=path_indicator_figures+f'{title_join}_map_{plot_type}_narratives_{key}.pdf',
                                                                                   cbar_title=f"{plot_type_name.title()} {function_name} {title}{units}", title=map_title,
                                                                                   cbar_midpoint='zero',
@@ -603,6 +614,7 @@ while run_plot:
                                             plot_linear_pk(ds,
                                                            simulations=variables[f'simulation-horizon_by-sims_{plot_type}'],
                                                            narratives=narratives,
+                                                           horizons=horizons,
                                                            title=coordinate_value,
                                                            name_x_axis=f'PK (km)',
                                                            name_y_axis=name_y_axis,
@@ -629,16 +641,30 @@ while run_plot:
                 elif settings['additional_coordinates'] == 'month':
                     print(f'################################ PLOT {name_indicator.upper()} Monthly variation ################################', end='\n')
                     label_df = sim_points_gdf_simplified['S_HYDRO'].astype(int).astype(str) + 'km² [' + sim_points_gdf_simplified['n'].astype(str) + 'HM]'
+                    # horizon_boxes = {
+                    #     "historical": {'color': '#f5f5f5', 'zorder': 10, 'label': 'Historique (1991-2020)',
+                    #                    'linewidth': 1},
+                    #     "horizon1": {'color': '#80cdc1', 'zorder': 10, 'label': 'Horizon 1 (2021-2050)',
+                    #                  'linewidth': 1},
+                    #     "horizon2": {'color': '#dfc27d', 'zorder': 10, 'label': 'Horizon 2 (2041-2070)',
+                    #                  'linewidth': 1},
+                    #     "horizon3": {'color': '#a6611a', 'zorder': 10, 'label': 'Horizon 3 (2070-2099)',
+                    #                  'linewidth': 1},
+                    # }
+
                     horizon_boxes = {
                         "historical": {'color': '#f5f5f5', 'zorder': 10, 'label': 'Historique (1991-2020)',
-                                       'linewidth': 1},
-                        "horizon1": {'color': '#80cdc1', 'zorder': 10, 'label': 'Horizon 1 (2021-2050)',
-                                     'linewidth': 1},
-                        "horizon2": {'color': '#dfc27d', 'zorder': 10, 'label': 'Horizon 2 (2041-2070)',
-                                     'linewidth': 1},
-                        "horizon3": {'color': '#a6611a', 'zorder': 10, 'label': 'Horizon 3 (2070-2099)',
-                                     'linewidth': 1},
+                                       'linewidth': 1}
                     }
+                    horizon_boxes |= {key: {'zorder': 10, 'label': 'Horizon 1 (2021-2050)',
+                                     'linewidth': 1} for key, val in horizons.items()}
+                    color_boxes = ['#80cdc1',  '#dfc27d', '#a6611a']
+                    i = -1
+                    for val in horizon_boxes.values():
+                        if 'color' not in val.keys():
+                            i+=1
+                            val |= {'color': color_boxes[i]}
+
 
                     for river, river_stations in reference_stations.items():
                         extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}

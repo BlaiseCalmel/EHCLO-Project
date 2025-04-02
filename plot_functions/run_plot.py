@@ -134,7 +134,7 @@ def plot_linear_pk_narrative(ds, simulations, path_result, narratives=None,
              legend_items=unique_legend_items, title=title, percent=percent, ymax=ymax, xmax=xmax,
              fontsize=fontsize, font=font)
 
-def plot_linear_pk(ds, simulations, path_result, narratives=None,
+def plot_linear_pk(ds, simulations, path_result, horizons, narratives=None,
                    name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None,
                    fontsize=14, font='sans-serif', by_narrative=False, xmax=None, ymax=None):
     x_axis = {'names_coord': 'PK',
@@ -174,8 +174,8 @@ def plot_linear_pk(ds, simulations, path_result, narratives=None,
 
     cols = {
         'names_coord': 'horizon',
-        'values_var': ['horizon1', 'horizon2', 'horizon3'],
-        'names_plot': ['Horizon 1 (2021-2050)', 'Horizon 2 (2041-2070)', 'Horizon 3 (2070-2099)']
+        'values_var': [key for key in horizons.keys()],
+        'names_plot': [val for val in horizons.values()]
     }
 
     rows = {
@@ -404,7 +404,7 @@ def plot_map_indicator_narratives(gdf, ds, narratives, path_result, cbar_title, 
             discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
             font=font, vmax=vmax, vmin=vmin, markersize=markersize, alpha=alpha)
 
-def plot_map_indicator(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds,
+def plot_map_indicator(gdf, ds, path_result, horizons, cbar_title, dict_shapefiles, bounds,
                        indicator_plot, cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,
                        font='sans-serif', title=None, vmin=None, vmax=None, edgecolor='k',
                        cbar_midpoint=None, markersize=50, alpha=1, cbar_values=None,
@@ -412,9 +412,14 @@ def plot_map_indicator(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds
 
     cols = {
             'names_coord': 'horizon',
-            'values_var': ['horizon1', 'horizon2', 'horizon3'],
-            'names_plot': ['Horizon 1\n(2021-2050)', 'Horizon 2\n(2041-2070)', 'Horizon 3\n(2070-2099)']
+            'values_var': [key for key in horizons.keys()],
+            'names_plot': [val for val in horizons.values()]
              }
+    # cols = {
+    #         'names_coord': 'horizon',
+    #         'values_var': ['horizon1', 'horizon2', 'horizon3'],
+    #         'names_plot': ['Horizon 1\n(2021-2050)', 'Horizon 2\n(2041-2070)', 'Horizon 3\n(2070-2099)']
+    #          }
 
     used_coords = [dim for dim in ds[indicator_plot].dims if dim in ds.coords]
     if 'season' in used_coords:
