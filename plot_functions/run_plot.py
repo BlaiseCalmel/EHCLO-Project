@@ -310,6 +310,55 @@ def plot_boxplot_station_narrative(ds, station_references, narratives, reference
     boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=True,
              title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=0.25)
 
+def plot_boxplot_station_narrative_tracc(ds, station_references, narratives, path_result, name_y_axis='', percent=False,
+                                   title=None, fontsize=14, font='sans-serif'):
+
+    simulations = list(ds.data_vars)
+
+    # narratives_bp = {key: {'boxprops':dict(facecolor=value['color'], alpha=0.9),
+    # 'medianprops': dict(color="black"), 'widths':0.9, 'patch_artist':True,
+    # 'label': value['label']} for narr_value in narratives.values() for key, value in narr_value.items()}
+
+    references = {key: {'color': value['color'], 'alpha': 0.9, 'zorder': 1, 'label': value['label'], 'linewidth': 2} 
+                  for narr_value in narratives.values() for key, value in narr_value.items()}
+    
+    references = {}
+    for n in narratives.values():
+        for narr_name, kwargs in n.items():
+            # dict_sims[narr_name] = {'values': [], 'kwargs': kwargs}
+            for sim_name in simulations:
+                if narr_name in sim_name:
+                    references[sim_name] = {'color': kwargs['color'], 'alpha': 0.9, 'zorder': 10, 'label': kwargs['label'], 'linewidth': 3} 
+
+    dict_sims = {}
+    dict_sims['simulations'] = {'values': simulations, 'kwargs': {'boxprops':dict(facecolor='lightgray', alpha=0.8),
+                                                                  'medianprops': dict(color="black"), 'widths': 0.3,
+                                                                  'patch_artist':True, 'label': 'Ensemble des projections',
+                                                                  'zorder': 0}}
+
+    # indicator_plot = [dict_sims]
+    y_axis = {'names_coord': 'indicator',
+              'values_var': dict_sims, #indicator_plot
+              'names_plot': list(dict_sims.keys()),
+              'name_axis': name_y_axis
+              }
+
+    x_axis = {
+        'names_coord': 'horizon',
+        'values_var': ['horizon1', 'horizon2', 'horizon3'],
+        'names_plot': ['+2°C', '+2.7°C', '+4°C']
+    }
+
+    cols = 2
+    rows = {
+        'names_coord': 'gid',
+        'values_var': list(station_references.keys()),
+        'names_plot': list(station_references.values())
+    }
+
+    boxplot(ds, x_axis, y_axis, path_result=path_result, references=references, cols=cols, rows=rows, vlines=True,
+             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=0.1)
+
 def plot_boxplot_station_month_horizon(ds, station_references, narratives, path_result, name_y_axis='', percent=False,
                                        title=None, fontsize=14, font='sans-serif', common_yaxes=False, normalized=False,
                                        ymin=None, ymax=None):
@@ -392,7 +441,7 @@ def plot_map_indicator_narratives(gdf, ds, narratives, path_result, cbar_title, 
     rows = {
         'names_coord': 'indicator',
         'values_var': stats_by_narr,
-        'names_plot': [{'label': v['label'], 'color': v['color']} for narr in narratives.values() for v in narr.values()]
+        'names_plot': [{'label': v['label'][0], 'color': v['color']} for narr in narratives.values() for v in narr.values()]
     }
     cols = 2
 

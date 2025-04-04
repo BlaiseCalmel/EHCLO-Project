@@ -366,7 +366,12 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             if subplot_title:
                 if title:
                     if isinstance(subplot_title, dict):
-                        ax.text(bounds[0], bounds[3], subplot_title['label'], fontsize=14, color='w',
+                        # ax.text(bounds[0], bounds[3], subplot_title['label'], fontsize=18, color='w',
+                        #         ha='center', va='center', fontweight='bold',
+                        #         bbox=dict(facecolor=subplot_title['color'], edgecolor=subplot_title['color'],
+                        #                   boxstyle='circle'))
+                        ax.text(0.05, 0.95, subplot_title['label'], horizontalalignment='center', verticalalignment='center',
+                                transform=ax.transAxes, fontsize=18, color='w',
                                 ha='center', va='center', fontweight='bold',
                                 bbox=dict(facecolor=subplot_title['color'], edgecolor=subplot_title['color'],
                                           boxstyle='circle'))
@@ -375,10 +380,15 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
 
                 else:
                     if isinstance(subplot_title, dict):
-                        ax.text(bounds[0], bounds[3], subplot_title['label'], fontsize=14, color=subplot_title['color'],
+                        # ax.text(bounds[0], bounds[3], subplot_title['label'], fontsize=14, color=subplot_title['color'],
+                        #         ha='center', va='center', fontweight='bold',
+                        #         bbox=dict(facecolor=subplot_title['color'], edgecolor=subplot_title['color'],
+                        #                   boxstyle='circle,pad=0.1'))
+                        ax.text(0.05, 0.95, subplot_title['label'], horizontalalignment='center', verticalalignment='center',
+                                transform=ax.transAxes, fontsize=18, color='w',
                                 ha='center', va='center', fontweight='bold',
                                 bbox=dict(facecolor=subplot_title['color'], edgecolor=subplot_title['color'],
-                                          boxstyle='circle,pad=0.1'))
+                                          boxstyle='circle'))
                     else:
                         ax.set_title(subplot_title, weight='bold')
 

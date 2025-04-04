@@ -189,10 +189,10 @@ def plot_narratives(x_data, ds_stacked, representative_groups, labels, cluster_n
                 cbar.ax.invert_yaxis()
 
                 if len(axes_flatten) > 1:
-                    ax.legend(handles=representative_legends, loc='center left', bbox_to_anchor=(1.34, 0.5),
+                    ax.legend(handles=representative_legends, loc='center left', bbox_to_anchor=(1.7, 0.5),
                               title="Narratifs", ncol=1)
                 else:
-                    ax.legend(handles=representative_legends, loc='center left', bbox_to_anchor=(2, 0.28),
+                    ax.legend(handles=representative_legends, loc='center left', bbox_to_anchor=(1.5, 0.28),
                               title="Narratifs", ncol=1)
 
     if len(axes_flatten) > 1:

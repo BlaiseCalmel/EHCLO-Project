@@ -243,8 +243,8 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp,
     above_threshold = np.array([hm_performances.loc[hm]['sum'] for hm in hydrological_models])
 
     # cluster_names = ['A', 'B', 'C', 'D']
-    cluster_names = ['Argousier', 'Cèdre', 'Genévrier', 'Séquoia']
-    hex_colors = ["#E66912", "#016367", "#0B1C48", "#9E3A14"]
+    cluster_names = ['Argousier', 'Cèdre', 'Séquoia', 'Genévrier']
+    hex_colors = ["#E66912", "#016367", "#9E3A14", "#0B1C48"]
     
     # Rank clusters
     # ranks = np.argsort(np.argsort(centroids, axis=0), axis=0) + 1
@@ -317,7 +317,7 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp,
 
     narratives = {methods[i] : {f"{value['gcm-rcm']}_{value['bc']}_{value['hm']}": {'color': value['color'], 'zorder': 10,
     'label': f"{value['name'].title()}", # [{value['gcm-rcm']}_{value['bc']}_{value['hm']}]",
-    'linewidth': 1} for key, value in rp.items()} for i, rp in enumerate(meth_list)}
+    'linewidth': 2} for key, value in rp.items()} for i, rp in enumerate(meth_list)}
                                       
     # # Generate dataframe to export
     # df = ds_stacked.to_dataframe()

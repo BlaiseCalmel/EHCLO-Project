@@ -623,6 +623,22 @@ while run_plot:
                                                            fontsize=settings['fontsize'],
                                                            font=settings['font'],
                                                            path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_PK_narratives_horizon.pdf')
+                                            
+                                            for river, river_stations in reference_stations.items():
+                                                extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
+                                                for key, value in extended_station_name.items():
+                                                    extended_station_name[key] = optimize_label_length(value, settings, length=30)
+                                                
+                                                print(f"{name_indicator} >> Boxplot {plot_type} for selected stations with narratives")
+                                                plot_boxplot_station_narrative(ds=ds[variables[f'simulation-horizon_by-sims_{plot_type}']],
+                                                                               station_references=extended_station_name,
+                                                                               narratives=narratives,
+                                                                               title=coordinate_value,
+                                                                               name_y_axis=name_y_axis,
+                                                                               percent=percent,
+                                                                               fontsize=settings['fontsize'],
+                                                                               font=settings['font'],
+                                                                               path_result=path_indicator_figures+f'{title_join}_boxplot_{plot_type}_stations-{river}_horizons_narratives.pdf',)
                                     else:
                                         print(f"{name_indicator} >> Linear {plot_type} PK Narratives method comparison")
                                         plot_linear_time(ds,
