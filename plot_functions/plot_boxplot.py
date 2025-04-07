@@ -16,10 +16,12 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import matplotlib.ticker as mtick
+from matplotlib.lines import Line2D
+from matplotlib.collections import LineCollection
 from plot_functions.plot_common import *
 
-def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ymax=None, vlines=None,
-             title=None, percent=False, fontsize=14, font='sans-serif', blank_space=1, common_yaxes=True):
+def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=None, ymin=None, ymax=None, vlines=None,
+             title=None, percent=False, fontsize=14, font='sans-serif', blank_space=1, common_yaxes=True, strip=False):
 
     ds_plot = copy.deepcopy(ds)
     len_cols, cols_plot, ds_plot = init_grid(cols, ds_plot)
@@ -77,9 +79,9 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
         if 'type' in value.keys():
             ignore += 1
 
-    xmin = - blank_space / 2 - 1
+    xmin = - blank_space / 2 - 0.5
     xmax = (len(x_axis['names_plot']) * (len(y_axis['names_plot']) - ignore) + 2 * blank_space *
-            (len(x_axis['names_plot'])) - 2 * blank_space)
+            (len(x_axis['names_plot'])) - 2 * blank_space) - 0.5
 
     legend_items = []
     legend_labels = []
@@ -180,6 +182,15 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
                                                  centers[cell_idx] + (len(y_axis['names_plot']) - ignore) / 2 + 0.2],
                                                  y1=[0],
                                                  y2=[np.nanmedian(cell)], **kwargs)
+                elif strip:
+                    i += 1
+                    current_position = [i + (len(y_axis['names_plot']) - ignore + 2 * blank_space) * j for j in
+                                        range(len(x_axis['names_plot']))]
+                    width = 0.5 * (current_position[1] - current_position[0])
+                    for cell_idx, cell in enumerate(cell_boxplots):
+                        bp = ax.hlines(y=cell, xmin=[current_position[cell_idx] - width/2] * len(cell), 
+                                       xmax=[current_position[cell_idx] + width/2] * len(cell), 
+                                       **kwargs)
                 else:
                     i += 1
                     current_position = [i + (len(y_axis['names_plot']) - ignore + 2 * blank_space) * j for j in
@@ -187,6 +198,19 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
                     bp = ax.boxplot(cell_boxplots, positions=current_position, vert=True,
                                     whiskerprops=dict(linewidth=0.4),
                                     flierprops=dict(marker='.', markersize=4, markerfacecolor='k'), **kwargs)
+                
+                if references is not None:
+                    # w = 1
+                    # if 'widths' in kwargs:
+                    #     w = kwargs['widths']
+                    width = 0.5 * (current_position[1] - current_position[0])
+                    hline_values = plot_selection(ds_selection=cell_data, names_var=x_axis['names_coord'], value=x_axis['values_var'])
+                    for ref, ref_args in references.items():
+                        ax.hlines(y=hline_values[ref].values, xmin=[val - width/2 for val in current_position], 
+                                       xmax=[val + width/1.75 for val in current_position], **ref_args)
+                        ax.scatter(x=[val + width/1.75 for val in current_position], y=hline_values[ref].values, s=25, **ref_args)
+                        # ax.hlines(y=hline_values[ref].values, xmin=[j+w/1.5 for j in current_position], xmax=[j+w+blank_space for j in current_position], **ref_args)
+                        # ax.scatter(x=[j+w+blank_space for j in current_position], y=hline_values[ref].values, s=25, **ref_args)
 
                 y_temp_max.append(np.nanmax(cell_boxplots))
                 y_temp_min.append(np.nanmin(cell_boxplots))
@@ -199,14 +223,18 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
                 if label not in legend_labels:
                     if isinstance(bp, dict) and "boxes" in bp.keys():
                         legend_items.append(bp["boxes"][0])
+                    elif isinstance(bp, LineCollection):
+                        handle = Line2D([0], [0], color=bp._original_edgecolor, linewidth=5, alpha=1)
+                        legend_items.append(handle)
                     else:
                         legend_items.append(bp)
+                        
                     legend_labels.append(label)
                     # if 'label' in kwargs:
                     #     legend_labels.append(kwargs['label'])
                     # else:
                     #     legend_labels.append(y_axis['names_plot'][i])
-
+            
             # Set ticks
             ax.set_xticks(centers)
             ax.set_xticklabels(x_axis['names_plot'])
@@ -263,7 +291,13 @@ def boxplot(ds, x_axis, y_axis, path_result, cols=None, rows=None, ymin=None, ym
     else:
         for ax_idx, ax in enumerate(axes_flatten):
             ax.set_ylim(min_values[ax_idx], max_values[ax_idx])
-
+   
+    if references is not None:
+        for key, value in references.items():
+            handle = Line2D([0], [0], color=value['color'], linewidth=5, alpha=1)
+            legend_items.append(handle)
+            legend_labels.append(value['label'])
+    
     imported_labels = [y_axis['values_var'][i]['kwargs']['label'] for i in y_axis['names_plot']]
     if set(imported_labels) == set(legend_labels):
         imported_order = [imported_labels.index(x) for x in legend_labels]
