@@ -109,7 +109,8 @@ print(f'> Simplify shapefiles...', end='\n')
 study_hydro_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified, regions_shp_simplified, bounds = (
     simplify_shapefiles(study_hydro_shp, study_climate_shp, rivers_shp, regions_shp, tolerance=1000, zoom=1000))
 
-hydro_sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
+# hydro_sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
+hydro_sim_points_gdf_simplified = open_shp(path_shp='/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_all-BV.shp')
 hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified[hydro_sim_points_gdf_simplified['n'] >= 4]
 hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified.reset_index(drop=True).set_index('Suggestion')
 hydro_sim_points_gdf_simplified.index.names = ['name']
@@ -148,14 +149,28 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
     print(f'> Load ncdf data paths...', end='\n')
     path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 
-    # Run among data type climate/hydro
-    data_type='hydro'
-    subdict=path_files[data_type]
     rcp='rcp85'
-    subdict2=subdict[rcp]
-    indicator = "QA_yr"
-    paths = subdict2[indicator]
-    for data_type, subdict in path_files.items():
+
+    data_input = input('What should I run ?')
+    data_input_list = re.split(r"[ ]", data_input)
+    if len(data_input) == 0:
+        data_dict = path_files
+    else:
+        data_dict = {'hydro': {rcp: {}}, 'climate': {rcp: {}}}
+        for key, value in settings_flatten.items():
+            if value['parent'] in data_input_list:
+                data_type = value['type'].split('_')[0]
+                data_dict[data_type][rcp][value['parent']] = path_files[data_type][rcp][value['parent']]
+                break
+
+    # # Run among data type climate/hydro
+    # data_type='hydro'
+    # subdict=path_files[data_type]
+    # rcp='rcp85'
+    # subdict2=subdict[rcp]
+    # indicator = "debit"
+    # paths = subdict2[indicator]
+    for data_type, subdict in data_dict.items():
         # Load simulation points for current data type
         # sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim'][data_type])
 
@@ -180,7 +195,7 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
 
                     name_join = name_indicator.replace(" ", "-").replace(".", "")
 
-                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{extended_name}.nc"
+                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{extended_name}_all-BV.nc"
                     # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_narratest.nc"
 
                     if not os.path.isfile(path_ncdf):
@@ -235,25 +250,40 @@ narratives = None
 # selected_points_narratives = selected_points_narratives[pd.isna(selected_points_narratives['PointsSupp'])]
 # selected_points_narratives.to_file('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp', index=True)
 
-path_narratives = f"{dict_paths['folder_study_data']}narratives_{extended_name}.json"
-if not os.path.isfile(path_narratives):
+# if tracc_year is not None:
+#     horizons = [f'horizon{i}' for i in range(1, len(tracc_year)+1)]
+# else:
+#     horizons = [i for i in files_setup['horizons'] if 'horizon' in i]
+
+
+load_narratives = input("Compute new narrative ? (y/[n])")
+
+path_narratives = f"{dict_paths['folder_study_data']}narratives_{extended_name}_horizon3.json"
+
+if load_narratives.lower().replace(" ", "") in ['y', 'yes']:
+
+    horizons_narrative = ['horizon1','horizon2', 'horizon3']
+
     print('> Define Narratives')
     selected_points_narratives = open_shp('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp')
     selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
 
-    narratives =  compute_narratives(dict_paths,
-                                    stations=list(selected_points_narratives.index),
-                                    files_setup=files_setup,
-                                    data_shp=selected_points_narratives,
-                                    indictor_values=["QJXA", "QA", "VCN10"],
-                                    threshold=0.75,
-                                    narrative_method='combine')
-    with open(path_narratives, "w", encoding="utf-8") as f:
-        json.dump(narratives, f, ensure_ascii=False, indent=4)
-else:
-    print('> Load Narratives')
-    with open(path_narratives, "r", encoding="utf-8") as f:
-        narratives = json.load(f) 
+    compute_narratives( dict_paths,
+                        stations=list(selected_points_narratives.index),
+                        files_setup=files_setup,
+                        data_shp=selected_points_narratives,
+                        indicator_values=["QJXA", "QA", "VCN10"],
+                        horizons=horizons_narrative,
+                        threshold=0.75,
+                        narrative_method='combine',
+                        path_narratives=path_narratives
+                        )
+
+print('> Load Narratives')
+with open(path_narratives, "r", encoding="utf-8") as f:
+    narratives = json.load(f) 
+
+# narratives = {'horizon2' : narratives['horizon2']}
 
 # narratives =  compute_narratives(dict_paths,
 #                                  stations=list(reference_stations['La Loire'].keys()),
@@ -322,6 +352,8 @@ while run_plot:
             }}
 
         for name_indicator, indicator_setup in data_to_plot.items():
+            # if name_indicator != 'T moy.':
+            #     continue
             if name_indicator in runned_data:
                 continue
             print(f'################################ STATS {name_indicator.upper()} ################################', end='\n')
@@ -347,9 +379,9 @@ while run_plot:
 
             # Define horizons
             if tracc_year is not None:
-                horizons = {'horizon1': 'Horizon +2°C | 2030',
+                horizons = {'horizon1': 'Horizon +2.0°C | 2030',
                             'horizon2': 'Horizon +2.7°C | 2050',
-                            'horizon3': 'Horizon +4°C | 2100',
+                            'horizon3': 'Horizon +4.0°C | 2100',
                 }
             else:
                 horizons = {'horizon1': 'Horizon 1 (2021-2050)',
@@ -431,8 +463,8 @@ while run_plot:
                                 ds = copy.deepcopy(ds_stats)
                                 path_indicator_figures = path_indicator
                             
-                            print(f"> Map plot...")
-                            print(f"{name_indicator} >> {plot_type_name.title()} matching map plot")
+                            print(f">> Map plot...")
+                            print(f"{name_indicator} >>> {plot_type_name.title()} matching map plot")
                             plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot='horizon_matching',
                                                path_result=path_indicator_figures+f'{title_join}_map_matching_sims.pdf', horizons=horizons,
                                                cbar_title=f"{title_join} Accord des modèles sur le sens d'évolution (%)", cbar_ticks=None,
@@ -453,7 +485,7 @@ while run_plot:
                                                    start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
                                                    fontsize=settings['fontsize']-2, alpha=1,
                                                    font=settings['font'], discretize=settings['discretize'], edgecolor=edgecolor, markersize=75,
-                                                   vmin=settings['vmin'], vmax=settings['vmax'])
+                                                   vmin=settings['vmin'], vmax=settings['vmax'], uncertainty='horizon_matching')
                                 
                                 if len(narratives) == 1:
                                     # Climate Narratives
@@ -534,6 +566,30 @@ while run_plot:
                                         # Climate Narratives
                                         if len(list(list(narratives.values())[0].keys())[0].split("_")) == 3:
                                             print(f"{name_indicator} >> Linear {plot_type} PK Narratives comparison")
+
+                                            simulations=variables[f'simulation-horizon_by-sims_{plot_type}']
+                                            ds[simulations[0]]
+                                            for i in flatten_reference_stations:
+                                                temp_dict = {}
+                                                for nom_var in simulations:
+                                                    valeur = ds.sel(gid=i, horizon='horizon2')[nom_var].item()
+                                                    nom_split = nom_var.split('_')
+                                                    name = f"{nom_split[0]}-{nom_split[1]}_{nom_split[3]}"
+                                                    temp_dict[name] = valeur
+                                            
+                                                df = pd.DataFrame([
+                                                                    {"climate": k.split('_')[0], "hydro": k.split('_')[1], "valeur": v}
+                                                                    for k, v in temp_dict.items()
+                                                                ])
+                                                # Pivot pour créer une matrice
+                                                mat = df.pivot(index="hydro", columns="climate", values="valeur")
+                                                import seaborn as sns
+                                                plt.clf()
+                                                sns.heatmap(mat,cmap="YlGnBu")
+                                                plt.title(f"Heatmap QJXA {i}") 
+                                                plt.savefig(f"/home/bcalmel/Documents/3_results/Heatmap_{i}_horizon2.png")
+
+
                                             plot_linear_pk_narrative(ds,
                                                                      simulations=variables[f'simulation-horizon_by-sims_{plot_type}'],
                                                                      narratives=narratives,
@@ -639,20 +695,24 @@ while run_plot:
                                                                                         fontsize=settings['fontsize'],
                                                                                         font=settings['font'],
                                                                                         path_result=path_indicator_figures+f'{title_join}_boxplot_{plot_type}_stations-{river}_horizons_narratives.pdf',)
-                                    else:
-                                        print(f"{name_indicator} >> Linear {plot_type} PK Narratives method comparison")
-                                        plot_linear_time(ds,
-                                                        simulations=variables[f'simulation_{plot_type}'],
-                                                        station_references=extended_station_name,
-                                                        narratives=narratives,
-                                                        title=coordinate_value,
-                                                        name_x_axis='Date',
-                                                        name_y_axis=name_y_axis,
-                                                        percent=percent,
-                                                        vlines=None,
-                                                        fontsize=settings['fontsize'],
-                                                        font=settings['font'],
-                                                        path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_stations-{river}_timeseries.pdf',)
+                                    # else:
+                                    #      for river, river_stations in reference_stations.items():
+                                    #         extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
+                                    #         for key, value in extended_station_name.items():
+                                    #             extended_station_name[key] = optimize_label_length(value, settings, length=30)
+                                    #         print(f"{name_indicator} >> Linear {plot_type} PK Narratives method comparison")
+                                    #         plot_linear_time(ds,
+                                    #                             simulations=variables[f'simulation_{plot_type}'],
+                                    #                             station_references=extended_station_name,
+                                    #                             narratives=narratives,
+                                    #                             title=coordinate_value,
+                                    #                             name_x_axis='Date',
+                                    #                             name_y_axis=name_y_axis,
+                                    #                             percent=percent,
+                                    #                             vlines=None,
+                                    #                             fontsize=settings['fontsize'],
+                                    #                             font=settings['font'],
+                                    #                             path_result=path_indicator_figures+f'{title_join}_lineplot_{plot_type}_stations-{river}_timeseries.pdf',)
 
                 elif settings['additional_coordinates'] == 'month':
                     print(f'################################ PLOT {name_indicator.upper()} Monthly variation ################################', end='\n')
@@ -738,7 +798,11 @@ while run_plot:
     if keep_plotting.lower().replace(" ", "") in ['n', 'no']:
         run_plot = False
 
-
+# Plot map of station for narratives computation
+mapplot(gdf=selected_points_narratives, indicator_plot='n', path_result='/home/bcalmel/Documents/3_results/stations_narrative.pdf', ds=None,
+            cols=None, rows=None,  cbar_ticks='mid', cbar_values=1, dict_shapefiles=dict_shapefiles, 
+            cbar_title=f"Nombre\nde HM", title=None, palette='RdBu_r', font='sans-serif', edgecolor='k',
+            cbar_midpoint=6, vmin=3, vmax=9,  discretize=6, markersize=90)
 
 # print(f'################################ PLOT GLOBAL ################################', end='\n')
 # path_global_figures = dict_paths['folder_study_figures'] + 'global' + os.sep

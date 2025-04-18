@@ -70,7 +70,7 @@ def format_significant(lst, n=0, start_cbar_ticks='', end_cbar_ticks=''):
 
 def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
                 cbar_title=None, cbar_values=None, cbar_ticks='border',
-                start_cbar_ticks='sign', end_cbar_ticks='', **text_kwargs):
+                start_cbar_ticks='sign', end_cbar_ticks='', hatching_patch=None, **text_kwargs):
     # Scalar mappable
     sm = mpl.cm.ScalarMappable(cmap=cmap, norm=mpl.colors.BoundaryNorm(bounds_cmap, cmap.N))
 
@@ -92,10 +92,17 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
 
         # bottom = axes_flatten[middle].get_position().y0 - 0.2
         # height = axes_flatten[middle].get_position().y1 + 0.2
+    
+    if hatching_patch is not None:
+        y_hatching = (axes_flatten[-1].get_position().y1 + axes_flatten[-1].get_position().y0) / 5
+        bottom = bottom + y_hatching
+        height = height - y_hatching
 
     distance = (axes_flatten[len_cols - 1].get_position().x1 - axes_flatten[len_cols - 1].get_position().x0) / 10
     cbar_ax = fig.add_axes([axes_flatten[len_cols - 1].get_position().x1 + distance, bottom, #0.025
-                            max([0.02, 0.3*distance]), height]) #0.02
+                            0.02, height]) #max([0.02, 0.3*distance])
+
+    # cbar_ax = fig.add_axes([1 + 0.02, 0.0, 0.03, 1.0])
 
     sm._A = []
     # if percent:
@@ -141,6 +148,18 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
         # cbar.ax.yaxis.label.set_horizontalalignment('center')
 
         # cbar.set_label(cbar_title, rotation=0, wrap=True, labelpad=25, **text_kwargs)
+    
+    if hatching_patch is not None:
+        cbar_box = cbar_ax.get_position()
+        legend_x = cbar_box.x0 - 0.02
+        legend_y = cbar_box.y0 + y_hatching / 6
+        fig.legend(
+            handles=[hatching_patch],
+            loc='upper left',
+            bbox_to_anchor=(legend_x, legend_y),
+            ncol=1,
+            frameon=False
+        )
 
     return cbar
 

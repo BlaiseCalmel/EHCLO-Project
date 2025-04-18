@@ -16,8 +16,10 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 from matplotlib.colors import from_levels_and_colors
+from matplotlib.patches import Circle, Rectangle 
 from plot_functions.plot_common import *
 import matplotlib.cm as cm
+import matplotlib.patches as mpatches
 # from adjustText import adjust_text
 
 def decimal_places(x):
@@ -29,10 +31,10 @@ def decimal_places(x):
 
 def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             cbar_title=None, title=None, dict_shapefiles=None, bounds=None, discretize=7,
-            vmin=None, vmax=None, palette='BrBG', cbar_midpoint=None,
+            vmin_user=None, vmax_user=None, palette='BrBG', cbar_midpoint=None,
             fontsize=14, edgecolor='k', cbar_values=None, cbar_ticks='border',
             font='sans-serif', references=None, markersize=50, start_cbar_ticks='', end_cbar_ticks='',
-            alpha=1):
+            alpha=1, uncertainty=None):
 
     ds_plot = copy.deepcopy(ds)
     len_cols, cols_plot, ds_plot = init_grid(cols, ds_plot)
@@ -46,94 +48,6 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         len_rows = int(len_rows / len_cols)
         subplot_titles = rows['names_plot']
         rows_plot['names_plot'] = [None]
-    
-    # if vmax is None:
-    #     specified_vmax = False
-    # else:
-    #     specified_vmax = True
-    #
-    # if vmin is None:
-    #     specified_vmin = False
-    # else:
-    #     specified_vmin = True
-    #
-    # if '%' in cbar_title:
-    #     if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
-    #         plot_vmax = math.ceil(abs(gdf[indicator_plot]).max() / 5) * 5
-    #     else:
-    #         if np.logical_not(isinstance(indicator_plot, list)):
-    #             plot_vmax = math.ceil(abs(ds[indicator_plot]).max() / 5) * 5
-    #         else:
-    #             plot_vmax = math.ceil(abs(ds[indicator_plot].to_array()).max() / 5) * 5
-    #     if vmax is None:
-    #         vmax = plot_vmax
-    #
-    #     plot_vmin = -plot_vmax
-    #     if vmin is None:
-    #         vmin = -vmax
-    # else:
-    #     if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
-    #         plot_vmax = gdf[indicator_plot].max().values
-    #     else:
-    #         if np.logical_not(isinstance(indicator_plot, list)):
-    #             plot_vmax = ds[indicator_plot].max().values
-    #         else:
-    #             plot_vmax = ds[indicator_plot].to_array().max().values
-    #     if vmax is None:
-    #         vmax = plot_vmax
-    #
-    #     if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
-    #         plot_vmin = gdf[indicator_plot].min().values
-    #     else:
-    #         if np.logical_not(isinstance(indicator_plot, list)):
-    #             plot_vmin = ds[indicator_plot].min().values
-    #         else:
-    #             plot_vmin = ds[indicator_plot].to_array().min().values
-    #     if vmin is None:
-    #         vmin = plot_vmin
-    #
-    # if cbar_midpoint == 'min':
-    #     midpoint = vmin
-    # elif cbar_midpoint == 'zero':
-    #     midpoint = 0
-    #     # plot_vmin = -vmax
-    # else:
-    #     midpoint = None
-    #
-    # # if vmin is None:
-    # #     if midpoint is not None:
-    # #        vmin = midpoint
-    # #     else:
-    # #         vmin = -vmax
-    #
-    # abs_max = max([-vmin, vmax])
-    # if midpoint is not None:
-    #     selected_min = midpoint# min([vmin, midpoint])
-    # else:
-    #     selected_min = vmin
-
-    # n = abs(vmax - selected_min) / discretize
-    # exponent = round(math.log10(n))
-    # step = np.round(n, -exponent+1)
-    # if step == 0:
-    #     step = n
-    #
-    # if specified_vmax:
-    #     if vmax % step != 0:
-    #         step = np.round(vmax / (vmax // step), -exponent+1)
-    # if specified_vmin:
-    #     if vmin < 0:
-    #         check_vmin = -vmin
-    #     else:
-    #         check_vmin = vmin
-    #     if check_vmin % step != 0:
-    #         step = check_vmin / (check_vmin // step)
-    #
-    # if cbar_values is None:
-    #     cbar_values = decimal_places(step)
-    #
-    # start_value = vmin
-    # stop_value = vmax
 
     if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
         plot_vmax = abs(gdf[indicator_plot]).max()
@@ -142,8 +56,10 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             plot_vmax = abs(ds[indicator_plot]).max().values
         else:
             plot_vmax = abs(ds[indicator_plot].to_array()).max().values
-    if vmax is None:
+    if vmax_user is None:
         vmax = plot_vmax
+    else:
+        vmax =vmax_user
 
     if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
         plot_vmin = gdf[indicator_plot].min()
@@ -153,23 +69,28 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         else:
             plot_vmin = ds[indicator_plot].to_array().min().values
 
-    if vmin is None:
+    if vmin_user is None:
         if abs(plot_vmin) >= vmax:
             vmin = plot_vmin
         else:
             vmin = -vmax
+    else:
+        vmin = vmin_user
+    
+    if cbar_midpoint == 'min':
+        midpoint = vmin
+    elif isinstance(cbar_midpoint, (float, int)):
+        midpoint = cbar_midpoint
+    else:
+        midpoint = 0
+
     abs_max = max([vmax, -vmin])
-    n = 2*abs_max / discretize
+    n = 2*(abs_max-midpoint) / discretize
     # exponent = round(math.log10(n))
     exponent = round(np.floor(math.log10(n)))
     step = np.round(n, -exponent)
     if step == 0:
         step = n
-
-    if cbar_midpoint == 'min':
-        midpoint = vmin
-    else:
-        midpoint = 0
 
     # if cbar_values is None:
     #     cbar_values = decimal_places(step)
@@ -185,32 +106,56 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
 
     if cbar_ticks == 'mid':
         levels = np.array([levels[0] - step/2] + [i + step/2 for i in levels])
-
+        
     # levels = np.linspace(vmin, vmax, discretize+1)
     extended_levels = copy.deepcopy(levels)
     if midpoint is not None:
         midp = np.mean(np.c_[levels[:-1], levels[1:]], axis=1)
-        vals = np.interp(midp, [midpoint-max(abs(vmin), abs(vmax)), midpoint, midpoint+max(abs(vmin), abs(vmax))],
+        # vals = np.interp(midp, [midpoint-max(abs(vmin), abs(vmax)), midpoint, midpoint+max(abs(vmin), abs(vmax))],
+        #                  [0, 0.5, 1])
+        vals = np.interp(midp, [vmin, midpoint, vmax],
                          [0, 0.5, 1])
         colormap = getattr(plt.cm, palette)
         colors = colormap(vals)
 
-        # Limit values to extrema
-        extended_indices = np.where((levels >= vmin) & (levels <= vmax))[0]
-
-        # extended_indices = np.unique(np.concatenate([indices - 1, indices, indices + 1]))
-        # extended_indices = extended_indices[(extended_indices >= 0) & (extended_indices < len(levels))]
-        extended_colors = colors[extended_indices[:-1]]
+        # Limit values to extrema        
+        extended_indices = ((levels >= min((plot_vmin, midpoint))) & (levels <= max((plot_vmax, midpoint))))
+        # extended_indices = np.where((levels >= vmin) & (levels <= vmax))[0]
+        import bisect
         extended_levels = extended_levels[extended_indices]
         if extended_levels[-1] < vmax:
             if extended_indices[-1] < len(levels):
-                extended_levels = np.append(extended_levels, levels[extended_indices[-1] + 1])
-                extended_colors = np.vstack([extended_colors, colors[extended_indices[:-1][-1] + 1]])
-
+                next_idx = bisect.bisect_right(levels.tolist(), extended_levels[-1])
+                extended_levels = np.append(extended_levels, levels[next_idx])
+        
         if extended_levels[0] > vmin:
-            if extended_indices[0] > 0:
-                extended_levels = np.insert(extended_levels, 0, levels[extended_indices[0] - 1])
-                extended_colors = np.vstack([colors[extended_indices[0] - 1], extended_colors])
+            if extended_indices[0] < len(levels):
+                prev_idx = bisect.bisect_left(levels.tolist(), extended_levels[0])
+                extended_levels = np.append(levels[prev_idx], extended_levels)
+
+
+        midp = np.mean(np.c_[extended_levels[:-1], extended_levels[1:]], axis=1)
+        vals = np.interp(midp, [min(extended_levels), midpoint, max(extended_levels)],
+                         [0, 0.5, 1])
+        colormap = getattr(plt.cm, palette)
+        colors = colormap(vals)
+        extended_colors = colors
+
+        # # extended_indices = np.unique(np.concatenate([indices - 1, indices, indices + 1]))
+        # # extended_indices = extended_indices[(extended_indices >= 0) & (extended_indices < len(levels))]
+        # extended_colors = colors[extended_indices[:-1]]
+        # extended_levels = extended_levels[extended_indices]
+        # if extended_levels[-1] < vmax:
+        #     if extended_indices[-1] < len(levels):
+        #         next_idx = bisect.bisect_right(levels.tolist(), extended_levels[-1])
+
+        #         extended_levels = np.append(extended_levels, levels[next_idx])
+        #         extended_colors = np.vstack([extended_colors, colors[extended_indices[:-1][-1] + 1]])
+
+        # if extended_levels[0] > vmin:
+        #     if extended_indices[0] > 0:
+        #         extended_levels = np.insert(extended_levels, 0, levels[extended_indices[0] - 1])
+        #         extended_colors = np.vstack([colors[extended_indices[0] - 1], extended_colors])
 
         if extended_levels[-1] < vmax and extended_levels[0] > vmin:
             cmap, norm = from_levels_and_colors(extended_levels, np.vstack([
@@ -242,17 +187,19 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     plt.rcParams['font.family'] = font
     plt.rcParams['font.size'] = fontsize
     text_kwargs ={'weight': 'bold', 'fontsize': fontsize}
+    hatching = False
 
     fig_dim = 4
     # ratio = fontsize / 18
-    if bounds is not None:
-        x_y_ratio = abs((bounds[2] - bounds[0]) / (bounds[3] - bounds[1]))
-        if x_y_ratio > 1:
-            figsize = (fig_dim * len_cols , len_rows * fig_dim / x_y_ratio)
-        else:
-            figsize = (fig_dim * len_cols * x_y_ratio , len_rows * fig_dim)
-    else:
-        figsize = (fig_dim * len_cols, len_rows * fig_dim)
+    figsize = (fig_dim * len_cols, len_rows * fig_dim)
+    # if bounds is not None:
+    #     x_y_ratio = abs((bounds[2] - bounds[0]) / (bounds[3] - bounds[1]))
+    #     if x_y_ratio > 1:
+    #         figsize = (fig_dim * len_cols , len_rows * fig_dim / x_y_ratio)
+    #     else:
+    #         figsize = (fig_dim * len_cols * x_y_ratio , len_rows * fig_dim)
+    # else:
+    #     figsize = (fig_dim * len_cols, len_rows * fig_dim)
 
     if title:
         figsize = (figsize[0], figsize[1] * 1.02)
@@ -262,8 +209,8 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
             subtitles_lines = max(s.count('\n') for s in cols['names_plot'])
         figsize= (figsize[0], figsize[1] * (1 + 0.02 * len_rows) + subtitles_lines)
     
-    if len_rows == 1:
-        figsize= (figsize[0] * 1.05, figsize[1])
+    # if len_rows == 1:
+    #     figsize= (figsize[0] * 1.05, figsize[1])
 
     fig, axes = plt.subplots(len_rows, len_cols, figsize=figsize, constrained_layout=True)
     # hspace = 0.03
@@ -322,6 +269,11 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
                     temp_dict |= {rows_plot['names_coord']: row}
 
                 row_data = ds_plot.sel(temp_dict)[current_indicator].values
+
+                if uncertainty is not None:
+                    uncertainty_data = abs(ds_plot.sel(temp_dict)[uncertainty].values) < 80
+                    gdf_plot[uncertainty] = uncertainty_data
+
                 gdf_plot[current_indicator] = row_data
 
             # Background shapefiles
@@ -332,36 +284,26 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
 
             # Plot
             gdf_plot.plot(column=current_indicator, cmap=cmap, norm=norm, ax=ax, legend=False, markersize=markersize,
-                          edgecolor=edgecolor, alpha=alpha, zorder=10, )
+                          edgecolor=edgecolor, alpha=alpha, zorder=18, )
+            
+
+            if uncertainty is not None:
+                if any(gdf_plot[uncertainty]):
+                    gdf_plot[gdf_plot[uncertainty]].plot(ax=ax, legend=False, facecolor='none',   
+                                edgecolor='k', hatch='////', linewidth=0, alpha=0.7, zorder=19)
+                    hatching = True
 
 
             if references is not None:
-                # texts = [
-                #     plt.text(value['x'] + 0.8, value['y'] + 0.8, value['text']['text'], fontsize=9)  # Décalage initial
-                #     for key, value in references.items()
-                # ]
-                # adjust_text(
-                #     texts,
-                #     only_move={'points': 'xy', 'text': 'xy'},  # Permet de bouger librement
-                #     force_text=0.7,  # Force appliquée pour éloigner les textes entre eux
-                #     force_points=1.0,  # Force appliquée pour éloigner les textes des points
-                #     expand_text=(1.8, 1.8),  # Distance minimale entre le texte et les autres textes
-                #     expand_points=(2.0, 2.0),  # Distance minimale entre le texte et les points
-                #     arrowprops=dict(
-                #         arrowstyle='->',  # Style de flèche
-                #         color='k',     # Couleur de la flèche
-                #         lw=0.8            # Épaisseur de la flèche
-                #     )
-                # )
-
                 for key, values in references.items():
-                    scatter_kwarg = {i: j for i, j in values.items() if i != 'text'}
+                    scatter_kwarg = {i: j for i, j in values.items() if i != 'text'}          
+                    
                     ax.scatter(**scatter_kwarg)
                     if 'text' in values.keys():
                         text_kwarg = values['text']
                         ax.annotate(xycoords='data',
                                     weight='bold',
-                                    fontsize=plt.rcParams['font.size'] - 2, **text_kwarg)
+                                    fontsize=plt.rcParams['font.size'], **text_kwarg)
 
             if subplot_title:
                 if title:
@@ -370,27 +312,29 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
                         #         ha='center', va='center', fontweight='bold',
                         #         bbox=dict(facecolor=subplot_title['color'], edgecolor=subplot_title['color'],
                         #                   boxstyle='circle'))
-                        ax.text(0.05, 0.95, subplot_title['label'], horizontalalignment='center', verticalalignment='center',
-                                transform=ax.transAxes, fontsize=18, color='w',
-                                ha='center', va='center', fontweight='bold',
-                                bbox=dict(facecolor=subplot_title['color'], edgecolor=subplot_title['color'],
-                                          boxstyle='circle'))
+                        
+                        rectangle = Rectangle((0, 0.9), 0.1, 0.3, facecolor=subplot_title['color'], edgecolor=subplot_title['color'], 
+                                              transform=ax.transAxes, zorder=20)
+                        ax.add_patch(rectangle) 
+                        ax.text(0.05, 0.945, subplot_title['label'], ha='center', va='center', fontweight='bold',
+                                transform=ax.transAxes, fontsize=18, color='w', zorder=21)
+                                # ha='center', va='center', fontweight='bold',
+                                # bbox=dict(facecolor=subplot_title['color'], edgecolor=subplot_title['color'],
+                                #           boxstyle='circle'))
                     else:
                         ax.set_title(subplot_title, fontsize=plt.rcParams['font.size'] - 2)
 
                 else:
                     if isinstance(subplot_title, dict):
-                        # ax.text(bounds[0], bounds[3], subplot_title['label'], fontsize=14, color=subplot_title['color'],
-                        #         ha='center', va='center', fontweight='bold',
-                        #         bbox=dict(facecolor=subplot_title['color'], edgecolor=subplot_title['color'],
-                        #                   boxstyle='circle,pad=0.1'))
-                        ax.text(0.05, 0.95, subplot_title['label'], horizontalalignment='center', verticalalignment='center',
-                                transform=ax.transAxes, fontsize=18, color='w',
-                                ha='center', va='center', fontweight='bold',
-                                bbox=dict(facecolor=subplot_title['color'], edgecolor=subplot_title['color'],
-                                          boxstyle='circle'))
+                        # cercle = Circle((0.05, 0.95), 0.06, facecolor=subplot_title['color'], edgecolor=subplot_title['color'], 
+                        #                 transform=ax.transAxes, zorder=20)
+                        rectangle = Rectangle((0, 0.9), 0.1, 0.3, facecolor=subplot_title['color'], edgecolor=subplot_title['color'], 
+                                              transform=ax.transAxes, zorder=20)
+                        ax.add_patch(rectangle) 
+                        ax.text(0.05, 0.945, subplot_title['label'], ha='center', va='center', fontweight='bold',
+                                transform=ax.transAxes, fontsize=18, color='w', zorder=21)
                     else:
-                        ax.set_title(subplot_title, weight='bold')
+                        ax.set_title(subplot_title, weight='bold', fontsize=plt.rcParams['font.size'])
 
             # Headers and axes label
             add_header(ax, rows_plot, cols_plot, ylabel='', xlabel='')
@@ -410,9 +354,13 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         else:
             cbar_values = 0
         
+    hatching_patch = None
+    if hatching:
+        hatching_patch = mpatches.Patch(facecolor='white', hatch='///', edgecolor='black', label=f"Signe de\nchangement\nincertain")
+
     cbar = define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap=extended_levels,
                        cbar_title=cbar_title, cbar_values=cbar_values, cbar_ticks=cbar_ticks,
-                       start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks,
+                       start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks, hatching_patch=hatching_patch,
                        **text_kwargs)
 
     plt.savefig(path_result, bbox_inches='tight')

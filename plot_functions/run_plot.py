@@ -451,7 +451,7 @@ def plot_map_indicator(gdf, ds, path_result, horizons, cbar_title, dict_shapefil
                        indicator_plot, cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,
                        font='sans-serif', title=None, vmin=None, vmax=None, edgecolor='k',
                        cbar_midpoint=None, markersize=50, alpha=1, cbar_values=None,
-                       start_cbar_ticks='', end_cbar_ticks=''):
+                       start_cbar_ticks='', end_cbar_ticks='', uncertainty=None):
 
     cols = {
             'names_coord': 'horizon',
@@ -491,7 +491,7 @@ def plot_map_indicator(gdf, ds, path_result, horizons, cbar_title, dict_shapefil
             bounds=bounds, cbar_values=cbar_values,
             discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
             font=font, vmax=vmax, vmin=vmin, markersize=markersize, alpha=alpha,
-            start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks)
+            start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks, uncertainty=uncertainty)
 
 def plot_map_narratives(gdf, ds, narratives, variables, path_result, cbar_title, dict_shapefiles, bounds,
                                cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,

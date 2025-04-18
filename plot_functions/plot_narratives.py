@@ -211,5 +211,5 @@ def plot_narratives(x_data, ds_stacked, representative_groups, labels, cluster_n
 
     # plt.subplots_adjust(hspace=0.12, wspace=0.32)
 
-    plt.savefig(path_result, bbox_inches='tight')
+    plt.savefig(path_result, bbox_inches='tight', dpi=300)
 
