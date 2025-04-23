@@ -73,7 +73,7 @@ def representative_item(X_cluster, centroids, cluster, cluster_id, indices_clust
 
 def compute_narratives(dict_paths, stations, files_setup, data_shp, horizons, path_narratives,
                        indicator_values=["QJXA", "QA", "VCN10"], threshold=0, narrative_method='closest',
-                       horizon_ref='horizon3'):
+                       horizon_ref='horizon3', quantiles=[0.5]):
 
     # path = f"/home/bcalmel/Documents/2_data/Extraction_variables_hydrologiques_Blaise/"
     # chaine = f"NorESM1-M_WRF381P_ADAMONT_"
@@ -109,8 +109,8 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp, horizons, pa
     datasets_list = []
     for indicator in indicator_values:
         # Open ncdf dataset
-        # path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_rcp85_YE_1991-2099_noeud_gestion.nc"
-        path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_rcp85_YE_TRACC_noeuds-gestion.nc"
+        path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_rcp85_YE_TRACC_all-BV.nc"
+        # path_ncdf = f"{dict_paths['folder_study_data']}{indicator}_rcp85_YE_TRACC_noeuds-gestion.nc"
         ds_stats  = xr.open_dataset(path_ncdf)
 
         # Compute stats
@@ -122,7 +122,7 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp, horizons, pa
     data_arrays = []
     for h in horizons:
         datasets = [ds_i[var_names[f'simulation-horizon_by-sims_deviation']].sel(
-            horizon=h, gid=stations) for ds_i in datasets_list]
+            horizon=h) for ds_i in datasets_list] #, gid=stations
         for i in range(len(datasets)):
             ds = datasets[i]
             for var_name, da in ds.data_vars.items():
@@ -147,28 +147,50 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp, horizons, pa
                 data_arrays.append(da_expanded)
     
     for var_random in ['hi']:
+        # # Combine DataArrays
+        # combined_da = xr.combine_by_coords(data_arrays)
+
+        # # Count stations per sim
+        # # count_stations = combined_da[["QA"]].count(dim="gid")['QA'].values.flatten()
+
+        # # Compute mean on selected stations
+        # # combined_da = combined_da.median(dim='gid')
+        # combined_da = combined_da.quantile(dim='gid', q=0.5)
+
+        # # # Weighted mean by cumulative distance between station
+        # # gdf = data_shp.loc[stations]
+        # # gdf["sum_distance"] = gdf.geometry.apply(lambda p: gdf.distance(p).sum())
+        # # gdf["sum_distance"] = gdf["sum_distance"] / gdf["sum_distance"].mean()
+        # #
+        # # combined_da = combined_da.assign_coords(weights=("gid", gdf.reindex(ds["gid"].values)["sum_distance"].values))
+        # # combined_da = combined_da.weighted(combined_da["weights"]).mean(dim="gid")
+
+        # # Flatten dataset and generate new coordinate named "sample"
+        # ds_stacked = combined_da.stack(sample=("gcm-rcm", "bc", "hm"))
+
+        # # Generate matrix
+        # X_imputed = np.column_stack([ds_stacked.sel(horizon=horizon_ref)[var].values for var in indicator_values])
+
+
         # Combine DataArrays
         combined_da = xr.combine_by_coords(data_arrays)
-
-        # Count stations per sim
-        # count_stations = combined_da[["QA"]].count(dim="gid")['QA'].values.flatten()
-
-        # Compute mean on selected stations
-        combined_da = combined_da.median(dim='gid')
-
-        # # Weighted mean by cumulative distance between station
-        # gdf = data_shp.loc[stations]
-        # gdf["sum_distance"] = gdf.geometry.apply(lambda p: gdf.distance(p).sum())
-        # gdf["sum_distance"] = gdf["sum_distance"] / gdf["sum_distance"].mean()
-        #
-        # combined_da = combined_da.assign_coords(weights=("gid", gdf.reindex(ds["gid"].values)["sum_distance"].values))
-        # combined_da = combined_da.weighted(combined_da["weights"]).mean(dim="gid")
-
-        # Flatten dataset and generate new coordinate named "sample"
+        # quantiles = [0.5, 0.1, 0.9]
+        # quantiles = [0.5]
+        str_quantiles = 'quant'+('-').join([f"{int(i*100)}" for i in  quantiles])
+        combined_da = combined_da.quantile(dim='gid', q=quantiles)
         ds_stacked = combined_da.stack(sample=("gcm-rcm", "bc", "hm"))
+        list_ds = []
+        # for var in indicator_values:
+        #         list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.5)[var].values)
+        # for var in indicator_values:
+        #     list_ds.append(
+        #         ds_stacked.sel(horizon=horizon_ref, quantile=0.9)[var].values - ds_stacked.sel(horizon=horizon_ref, quantile=0.1)[var].values
+        #     )
+        for q in quantiles:
+            for var in indicator_values:
+                list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=q)[var].values)
+        X_imputed = np.column_stack(list_ds)
 
-        # Generate matrix
-        X_imputed = np.column_stack([ds_stacked.sel(horizon=horizon_ref)[var].values for var in indicator_values])
         # Normalized data
         # scaler = StandardScaler()
         # X_imputed = scaler.fit_transform(X_imputed)
@@ -238,42 +260,23 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp, horizons, pa
         hm_performances = merged_performances.groupby(['HM']).agg({v: 'sum' for v in valid_performance})
 
         # # Normalize by stations available per HM
-        # hm_count_stations = merged_performances.groupby(['HM']).size()
+        # # hm_count_stations = merged_performances.groupby(['HM']).size()
+        # # hm_performances[[f'{i}_ratio' for i in valid_performance]] = hm_performances[valid_performance].div(
+        # #     hm_performances.index.map(hm_count_stations), axis=0) >= threshold
+        
+        # # Normalize by total station among area
         # hm_performances[[f'{i}_ratio' for i in valid_performance]] = hm_performances[valid_performance].div(
-        #     hm_performances.index.map(hm_count_stations), axis=0) >= threshold
+        #     count_stations, axis=0) >= threshold
         
-        # Normalize by total station among area
-        hm_performances[[f'{i}_ratio' for i in valid_performance]] = hm_performances[valid_performance].div(
-            count_stations, axis=0) >= threshold
-        
-        hm_performances['sum'] = hm_performances[[f'{i}_ratio' for i in valid_performance]].all(axis=1)
+        # hm_performances['sum'] = hm_performances[[f'{i}_ratio' for i in valid_performance]].all(axis=1)
         
         hydrological_models = ds_stacked["hm"].values
-        above_threshold = np.array([hm_performances.loc[hm]['sum'] for hm in hydrological_models])
+        # above_threshold = np.array([hm_performances.loc[hm]['sum'] for hm in hydrological_models])
 
-        # cluster_names = ['A', 'B', 'C', 'D']
+        # Bleunavy Orange Brun Turquoise https://www.canva.com/colors/color-palettes/freshly-sliced-fruit/
         cluster_names = ['Argousier', 'Cèdre', 'Séquoia', 'Genévrier']
         hex_colors = ["#E66912", "#016367", "#870000", "#0f063b"]
         # ["#E66912", "#016367", "#9E3A14", "#0B1C48"]
-        
-        # Rank clusters
-        # ranks = np.argsort(np.argsort(centroids, axis=0), axis=0) + 1
-        # cumulative_ranks = ranks[:, 0] + ranks[:, 2]
-        # mask = np.ones(ranks.shape, dtype=bool)
-        #
-        # extreme = np.argmin(cumulative_ranks)
-        # mask[extreme, :] = False
-        # dry = np.argmin(np.where(mask, ranks, np.inf)[:, 2])
-        # mask[dry, :] = False
-        # flood = np.argmax(np.where(mask, ranks, -np.inf)[:, 0])
-        # mask[flood, :] = False
-        # last = np.argmin(np.where(mask, ranks, np.inf)[:, 2])
-        #
-        # narra_idx = [flood, dry, last, extreme]
-        # narra_idx = [1, 2, 0, 3]
-        # hex_colors = ["#016367", "#9E3A14", "#E66912", "#0B1C48"]
-        # Bleunavy Orange Brun Turquoise https://www.canva.com/colors/color-palettes/freshly-sliced-fruit/
-        # hex_colors = [hex_colors[i] for i in narra_idx]
 
         rows = None
         if narrative_method is None:
@@ -291,8 +294,22 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp, horizons, pa
             for cluster in cluster_id:
                 # Index of cluster values
                 indices_cluster = np.where(labels == cluster)[0]
+
+                # Get performances for current cluster
+                cluster_hm = np.unique(hydrological_models[indices_cluster])
+                cluster_hm_performances = hm_performances.loc[cluster_hm]
+                cluster_hm_performances[[f'{i}_ratio' for i in valid_performance]] = cluster_hm_performances[valid_performance].div(count_stations, axis=0)
+                # Define threshold
+                # performance_threshold = min(np.median(cluster_hm_performances[[f'{i}_ratio' for i in valid_performance]], axis=0))
+                performance_threshold = np.quantile(cluster_hm_performances[[f'{i}_ratio' for i in valid_performance]], 0.25)
+                cluster_hm_performances[[f'{i}_bool' for i in valid_performance]] = cluster_hm_performances[[f'{i}_ratio' for i in valid_performance]] >= performance_threshold
+                cluster_hm_performances['sum'] = cluster_hm_performances[[f'{i}_bool' for i in valid_performance]].all(axis=1)
+                print(f"Cluster {cluster} thld: {np.round(performance_threshold,2)} {cluster_hm_performances[cluster_hm_performances['sum']].index.values}")
+                above_threshold = np.array([cluster_hm_performances.loc[hm]['sum'] if hm in cluster_hm_performances.index else False for hm in hydrological_models])
+               
                 # Filter indices for sim above threshold
                 indices_mask = above_threshold[indices_cluster]
+
                 if len(indices_mask) > 0:
                     indices_cluster = indices_cluster[indices_mask]
 
@@ -304,7 +321,24 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp, horizons, pa
 
                 cluster_distance_treshold = []
                 for h in horizons:
-                    X_imputed_h = np.column_stack([ds_stacked.sel(horizon=h)[var].values for var in indicator_values])
+                    if quantiles is not None:
+                        list_ds = []
+                        for q in quantiles:
+                            for var in indicator_values:
+                                list_ds.append(ds_stacked.sel(horizon=h, quantile=q)[var].values)
+                        X_imputed_h = np.column_stack(list_ds)
+                        # X_imputed_h = np.column_stack([ds_stacked.sel(horizon=h, quantile=q)[var].values for q in quantiles for var in indicator_values])
+                        # list_ds = []
+                        # for var in indicator_values:
+                        #         list_ds.append(ds_stacked.sel(horizon=h, quantile=0.5)[var].values)
+                        # for var in indicator_values:
+                        #     list_ds.append(
+                        #         ds_stacked.sel(horizon=h, quantile=0.9)[var].values - ds_stacked.sel(horizon=horizon_ref, quantile=0.1)[var].values
+                        #     )
+                        # X_imputed_h = np.column_stack(list_ds)
+                    else:
+                        X_imputed_h = np.column_stack([ds_stacked.sel(horizon=h)[var].values for var in indicator_values])
+                    
                     # scaler = StandardScaler()
                     # X_imputed_h = scaler.fit_transform(X_imputed_h)
 
@@ -418,18 +452,23 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp, horizons, pa
 
         # Plot for PCA
         print(f"Narrative PCA Plot [{h}]")
+        # x1 = (', ').join([f"{indicator_values[var_idx]}q{q}: {pc1_contributions[var_idx]:.1%}" for q in quantiles for var_idx, var in enumerate(indicator_values)])
+        # xlabel = f"Dim 1 {ratio1:.1%}: [{x1}]"
+        # y1 = (', ').join([f"{indicator_values[var_idx]}q{q}: {pc2_contributions[var_idx]:.1%}" for q in quantiles for var_idx, var in enumerate(indicator_values)])
+        # ylabel = f"Dim 2 {ratio2:.1%}: [{y1}]"
         xlabel = f"Dim 1 {ratio1:.1%} ({indicator_values[0]}: {pc1_contributions[0]:.1%}, {indicator_values[1]}: {pc1_contributions[1]:.1%}, {indicator_values[2]}: {pc1_contributions[2]:.1%})"
         ylabel = f"Dim 2 {ratio2:.1%} ({indicator_values[0]}: {pc2_contributions[0]:.1%}, \n{indicator_values[1]}: {pc2_contributions[1]:.1%}, {indicator_values[2]}: {pc2_contributions[2]:.1%})"
         title = "Clusters et points représentatifs (après PCA)"
-        path_result = f"/home/bcalmel/Documents/3_results/narratest_pca_comparatives_{horizon_ref}-fit.pdf"
+        path_result = f"/home/bcalmel/Documents/3_results/narratest_pca_comparatives_{horizon_ref}_{str_quantiles}_BV.pdf"
         plot_narratives(X_pca, ds_stacked, meth_list, labels, cluster_names,
                         path_result, xlabel, ylabel, title=None, centroids=centroids_pca, count_stations=None,
                         above_threshold=above_threshold, palette=hex_colors, n=4, rows=rows,
                         cols=None)
 
         # Plot comparison with every indicator
+        
         print(f"Narrative every indicators Plot {indicator_values} [{h}]")
-        path_result = f"/home/bcalmel/Documents/3_results/narratest_spatial_mean_comparatives_{horizon_ref}-fit.pdf"
+        path_result = f"/home/bcalmel/Documents/3_results/narratest_spatial_mean_comparatives_{horizon_ref}_{str_quantiles}_BV.pdf"
         plot_narratives(X_imputed, ds_stacked, meth_list, labels, cluster_names,
                         path_result, xlabel, ylabel, title, centroids=None, count_stations=None,
                         above_threshold=above_threshold, palette=hex_colors, n=4, rows=rows,

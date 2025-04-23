@@ -418,7 +418,7 @@ def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, bou
             cbar_title=cbar_title, title=title, dict_shapefiles=dict_shapefiles, cbar_midpoint=cbar_midpoint,
             bounds=bounds,
             discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
-            font=font, vmax=vmax, vmin=vmin, markersize=markersize, alpha=alpha)
+            font=font, vmax_user=vmax, vmin_user=vmin, markersize=markersize, alpha=alpha)
 
 def plot_map_indicator_narratives(gdf, ds, narratives, path_result, cbar_title, dict_shapefiles, bounds,
                                   variables, plot_type, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,
@@ -445,7 +445,7 @@ def plot_map_indicator_narratives(gdf, ds, narratives, path_result, cbar_title, 
             cbar_title=cbar_title, title=title, dict_shapefiles=dict_shapefiles, cbar_midpoint=cbar_midpoint,
             bounds=bounds,
             discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
-            font=font, vmax=vmax, vmin=vmin, markersize=markersize, alpha=alpha)
+            font=font, vmax_user=vmax, vmin_user=vmin, markersize=markersize, alpha=alpha)
 
 def plot_map_indicator(gdf, ds, path_result, horizons, cbar_title, dict_shapefiles, bounds,
                        indicator_plot, cbar_ticks=None, discretize=None, palette='BrBG', fontsize=14,
@@ -490,7 +490,7 @@ def plot_map_indicator(gdf, ds, path_result, horizons, cbar_title, dict_shapefil
             cbar_title=cbar_title, title=title, dict_shapefiles=dict_shapefiles, cbar_midpoint=cbar_midpoint,
             bounds=bounds, cbar_values=cbar_values,
             discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
-            font=font, vmax=vmax, vmin=vmin, markersize=markersize, alpha=alpha,
+            font=font, vmax_user=vmax, vmin_user=vmin, markersize=markersize, alpha=alpha,
             start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks, uncertainty=uncertainty)
 
 def plot_map_narratives(gdf, ds, narratives, variables, path_result, cbar_title, dict_shapefiles, bounds,
@@ -535,7 +535,7 @@ def plot_map_narratives(gdf, ds, narratives, variables, path_result, cbar_title,
             cbar_title=cbar_title, title=title, dict_shapefiles=dict_shapefiles, cbar_midpoint=cbar_midpoint,
             bounds=bounds, cbar_values=cbar_values,
             discretize=discretize, palette=palette, fontsize=fontsize, edgecolor=edgecolor,
-            font=font, vmax=vmax, vmin=vmin, markersize=markersize, alpha=alpha,
+            font=font, vmax_user=vmax, vmin_user=vmin, markersize=markersize, alpha=alpha,
             start_cbar_ticks=start_cbar_ticks, end_cbar_ticks=end_cbar_ticks)
 
 def plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bounds, path_global_figures,
@@ -562,7 +562,7 @@ def plot_map_HM_by_station(hydro_sim_points_gdf_simplified, dict_shapefiles, bou
             cols=cols_map, rows=rows,
             cbar_title=f"Simulation", title=None, dict_shapefiles=dict_shapefiles, percent=False, bounds=bounds,
             discretize=2, cbar_ticks='mid', palette='RdBu_r', cbar_midpoint='min', fontsize=fontsize, font='sans-serif', edgecolor='k',
-            vmin=-0.5, vmax=1.5, markersize=75,
+            vmin_user=-0.5, vmax_user=1.5, markersize=75,
             cbar_values=['Absente', 'Présente'])
 
 def plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles,
@@ -678,4 +678,4 @@ def plot_map_N_HM_ref_station(hydro_sim_points_gdf_simplified, dict_shapefiles,
             cols=None, rows=None, references=station_references_plot, cbar_ticks='mid', cbar_values=1,
             cbar_title=f"Nombre\nde HM", title=None, dict_shapefiles=dict_shapefiles, bounds=bounds,
             discretize=9, palette='RdBu_r', fontsize=fontsize-4, font='sans-serif', edgecolor='k',
-            cbar_midpoint='min', vmin=2, vmax=9, markersize=90)
+            cbar_midpoint='min', vmin_user=2, vmax_user=9, markersize=90)

@@ -20,6 +20,7 @@ from matplotlib.patches import Circle, Rectangle
 from plot_functions.plot_common import *
 import matplotlib.cm as cm
 import matplotlib.patches as mpatches
+import bisect
 # from adjustText import adjust_text
 
 def decimal_places(x):
@@ -49,18 +50,22 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         subplot_titles = rows['names_plot']
         rows_plot['names_plot'] = [None]
 
+    # Get vmax value
     if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
-        plot_vmax = abs(gdf[indicator_plot]).max()
+        plot_vmax = gdf[indicator_plot].max()
     else:
         if np.logical_not(isinstance(indicator_plot, list)):
-            plot_vmax = abs(ds[indicator_plot]).max().values
+            plot_vmax = ds[indicator_plot].max().values
         else:
-            plot_vmax = abs(ds[indicator_plot].to_array()).max().values
+            plot_vmax = ds[indicator_plot].to_array().max().values
+    
+    # Define vmax scalar 
     if vmax_user is None:
         vmax = plot_vmax
     else:
-        vmax =vmax_user
+        vmax = vmax_user
 
+    # Get vmin value
     if np.logical_not(isinstance(indicator_plot, list)) and indicator_plot in gdf.columns:
         plot_vmin = gdf[indicator_plot].min()
     else:
@@ -69,11 +74,10 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         else:
             plot_vmin = ds[indicator_plot].to_array().min().values
 
+    # Define vmin scalar
     if vmin_user is None:
-        if abs(plot_vmin) >= vmax:
-            vmin = plot_vmin
-        else:
-            vmin = -vmax
+        # if abs(plot_vmin) >= vmax:
+        vmin = plot_vmin
     else:
         vmin = vmin_user
     
@@ -84,22 +88,23 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     else:
         midpoint = 0
 
-    abs_max = max([vmax, -vmin])
-    n = 2*(abs_max-midpoint) / discretize
+    abs_max = max(np.abs([vmax, -vmin]))
+    if cbar_ticks == 'mid':
+        add_extrema = 1
+    else:
+        add_extrema = 0
+    # n = 2* (abs_max-midpoint) / (discretize)
+    n = ( 2*abs_max / (abs_max-midpoint)) * (abs_max-midpoint + add_extrema) / discretize
+    # n = 2*(vmax-vmin) / discretize
     # exponent = round(math.log10(n))
     exponent = round(np.floor(math.log10(n)))
     step = np.round(n, -exponent)
     if step == 0:
         step = n
+    elif step == 1:
+        step = int(step)
 
-    # if cbar_values is None:
-    #     cbar_values = decimal_places(step)
-    # else:
-    #     step = cbar_values
     levels = mirrored(maxval=abs_max, inc=step, val_center=midpoint)
-
-    # levels = np.arange(vmin, abs_max+1, 1)
-    # levels = np.round(levels, -exponent+1)
 
     if levels[0] > levels[-1]:
         levels = levels[::-1]
@@ -110,33 +115,36 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     # levels = np.linspace(vmin, vmax, discretize+1)
     extended_levels = copy.deepcopy(levels)
     if midpoint is not None:
-        midp = np.mean(np.c_[levels[:-1], levels[1:]], axis=1)
-        # vals = np.interp(midp, [midpoint-max(abs(vmin), abs(vmax)), midpoint, midpoint+max(abs(vmin), abs(vmax))],
+        # midp = np.mean(np.c_[levels[:-1], levels[1:]], axis=1)
+        # # vals = np.interp(midp, [midpoint-max(abs(vmin), abs(vmax)), midpoint, midpoint+max(abs(vmin), abs(vmax))],
+        # #                  [0, 0.5, 1])
+        # vals = np.interp(midp, [vmin, midpoint, vmax],
         #                  [0, 0.5, 1])
-        vals = np.interp(midp, [vmin, midpoint, vmax],
-                         [0, 0.5, 1])
-        colormap = getattr(plt.cm, palette)
-        colors = colormap(vals)
+        # colormap = getattr(plt.cm, palette)
+        # colors = colormap(vals)
 
         # Limit values to extrema        
-        extended_indices = ((levels >= min((plot_vmin, midpoint))) & (levels <= max((plot_vmax, midpoint))))
-        # extended_indices = np.where((levels >= vmin) & (levels <= vmax))[0]
-        import bisect
-        extended_levels = extended_levels[extended_indices]
-        if extended_levels[-1] < vmax:
-            if extended_indices[-1] < len(levels):
-                next_idx = bisect.bisect_right(levels.tolist(), extended_levels[-1])
-                extended_levels = np.append(extended_levels, levels[next_idx])
-        
-        if extended_levels[0] > vmin:
-            if extended_indices[0] < len(levels):
-                prev_idx = bisect.bisect_left(levels.tolist(), extended_levels[0])
-                extended_levels = np.append(levels[prev_idx], extended_levels)
+        # extended_indices = ((levels >= min((plot_vmin, midpoint))) & (levels <= max((plot_vmax, midpoint))))
 
+        extended_levels = levels[
+            bisect.bisect_right(levels.tolist(), min(plot_vmin, midpoint)) -1 : bisect.bisect_left(levels.tolist(), max(plot_vmax, midpoint)) + 1
+            ]
+        # extended_indices = np.where((levels >= vmin) & (levels <= vmax))[0]
+
+        # extended_levels = extended_levels[extended_indices]
+        if vmax_user is not None and extended_levels[-1] < vmax_user:
+            extended_levels = np.append(extended_levels,
+                                        levels[(levels >  extended_levels[-1]) & (levels <= vmax_user)])
+        
+        if vmin_user is not None and extended_levels[0] > vmin_user:               
+            extended_levels = np.append(levels[(levels <  extended_levels[0]) & (levels >= vmin_user)], 
+                                        extended_levels)
 
         midp = np.mean(np.c_[extended_levels[:-1], extended_levels[1:]], axis=1)
-        vals = np.interp(midp, [min(extended_levels), midpoint, max(extended_levels)],
+        vals = np.interp(midp, [midpoint - (max(np.abs([vmax, vmin])) - midpoint), midpoint, midpoint + (max(np.abs([vmax, vmin])) - midpoint)],
                          [0, 0.5, 1])
+        # vals = np.interp(midp, [vmin, midpoint, vmax],
+        #                  [0, 0.5, 1])
         colormap = getattr(plt.cm, palette)
         colors = colormap(vals)
         extended_colors = colors
@@ -159,18 +167,18 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
 
         if extended_levels[-1] < vmax and extended_levels[0] > vmin:
             cmap, norm = from_levels_and_colors(extended_levels, np.vstack([
-                colors[max([extended_indices[0]-1, 0])],
+                extended_colors[0],
                 extended_colors,
-                colors[min([extended_indices[-1]+1, len(colors)-1])]
+                extended_colors[-1]
             ]), extend='both')
         elif extended_levels[-1] < vmax:
             cmap, norm = from_levels_and_colors(extended_levels, np.vstack([
                 extended_colors,
-                colors[min([extended_indices[-1]+1, len(colors)-1])]
+                extended_colors[-1]
             ]), extend='max')
         elif extended_levels[0] > vmin:
             cmap, norm = from_levels_and_colors(extended_levels, np.vstack([
-                colors[max([extended_indices[0]-1, 0])],
+                 extended_colors[0],
                 extended_colors
             ]), extend='min')
         else:

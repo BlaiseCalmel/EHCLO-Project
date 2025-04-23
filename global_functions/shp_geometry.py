@@ -270,9 +270,9 @@ def define_plot_shapefiles(regions_shp_simplified, study_climate_shp_simplified,
                                            'linewidth': 1, 'zorder': 2, 'alpha': 1},}
     else:
         dict_shapefiles |= {'study_shp': {'shp': study_climate_shp_simplified, 'color': 'none',
-                                          'edgecolor': 'dimgray', 'zorder': 1, 'linewidth': 1.2},
+                                          'edgecolor': 'k', 'zorder': 19, 'linewidth': 0.4, 'alpha': 1},
                             'rivers_shp': {'shp': study_rivers_shp_simplified, 'color': 'navy',
-                                           'linewidth': 1, 'zorder': 20, 'alpha': 0.8},}
+                                           'linewidth': 1, 'zorder': 20, 'alpha': 1},}
 
     return dict_shapefiles
 
