@@ -55,15 +55,29 @@ def plot_narratives(x_data, ds_stacked, representative_groups, labels, cluster_n
     # plt.rcParams['font.size'] = 10
 
     # plt.figure(figsize=(10, 8))
-    if rows is None:
+
+
+    if isinstance(rows, int):
+        len_rows = rows
+        len_cols = round(len(cols) / len_rows)
         rows = [None]
-    if cols is None:
+    elif isinstance(cols, int):
+        len_cols = cols
+        len_rows = round(len(rows) / len_cols)
         cols = [None]
+    else:
+        if rows is None:
+            rows = [None]
+        if cols is None:
+            cols = [None]
+        len_rows = len(rows)
+        len_cols = len(cols)
+   
     # if len(rows) > 1:
     #     base_width = 1
     # else:
     #     base_width = 5
-    fig, axes = plt.subplots(nrows=len(rows), ncols=len(cols), figsize=(1 + len(cols) * 5, 2 + len(rows) * 4))
+    fig, axes = plt.subplots(nrows=len_rows, ncols=len_cols, figsize=(1 + len_cols * 5, 2 + len_rows * 4))
     # fig, axes = plt.subplots(nrows=len(rows), ncols=len(cols), figsize=(6 + len(cols) * 5, 2 + len(rows) * 4))
     plt.subplots_adjust(hspace=0.12, wspace=0.32)
     # Affichage des points représentatifs de chaque cluster

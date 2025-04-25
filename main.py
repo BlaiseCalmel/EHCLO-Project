@@ -91,9 +91,20 @@ with open('reference_stations.json') as ref_stations:
 
 flatten_reference_stations = {key: value for subdict in reference_stations.values() for key, value in subdict.items()}
 
+
+
+##### COMPUTE NARRATIVES FOR EACH REGION HYDRO
+path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
+for row in regions_shp.iterrows():
+    print(row)
+    row['CdRegionHy']
+
+    overlay_shapefile(shapefile=study_hydro_shp, data=sim_all_points_info)
+
 for data_type, path in dict_paths['dict_study_points_sim'].items():
     if not os.path.isfile(path):
         print(f'>> Find {data_type} data points in study area')
+        
         # sim_all_points_info = open_shp(f"/home/bcalmel/Documents/2_data/contours_all/points_sim_hydro/points_debit_simulation_Explore2.shp")
         sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
         if data_type == 'hydro':
@@ -220,14 +231,16 @@ if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
 
 #%% Visualize results
 narratives = None
-path_narratives = f"{dict_paths['folder_study_data']}narratives_{extended_name}_horizon3-BV.json"
+quantiles = [0.5, 0.1, 0.9]
+str_quantiles = 'quant'+('-').join([f"{int(i*100)}" for i in  quantiles])
+horizons_narrative = ['horizon2']
+horizon_ref='horizon2'
+path_narratives = f"{dict_paths['folder_study_data']}narratives_{extended_name}_{horizon_ref}_{str_quantiles}_BV-quantiles3.json"
 
 load_narratives = input("Compute new narrative ? (y/[n])")
 if load_narratives.lower().replace(" ", "") in ['y', 'yes']:
 
     # horizons_narrative = ['horizon1','horizon2', 'horizon3']
-    horizons_narrative = ['horizon3']
-
     print('> Define Narratives')
     # selected_points_narratives = open_shp('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp')
     # selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
@@ -237,10 +250,8 @@ if load_narratives.lower().replace(" ", "") in ['y', 'yes']:
     selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
     selected_points_narratives.index.names = ['name']
 
-    quantiles = [0.5, 0.1, 0.9]
-
     compute_narratives( dict_paths,
-                        stations=list(selected_points_narratives.index),
+                        stations=list(np.unique(selected_points_narratives.index)),
                         files_setup=files_setup,
                         data_shp=selected_points_narratives,
                         indicator_values=["QJXA", "QA", "VCN10"],
@@ -248,7 +259,7 @@ if load_narratives.lower().replace(" ", "") in ['y', 'yes']:
                         threshold=0.75,
                         narrative_method='combine',
                         path_narratives=path_narratives,
-                        horizon_ref='horizon3',
+                        horizon_ref=horizon_ref,
                         quantiles=quantiles
                         )
 
@@ -773,10 +784,12 @@ while run_plot:
         run_plot = False
 
 # Plot map of station for narratives computation
-mapplot(gdf=hydro_sim_points_gdf_simplified, indicator_plot='n', path_result='/home/bcalmel/Documents/3_results/stations_narrative_all-BV.pdf', ds=None,
+dict_shapefiles = define_plot_shapefiles(regions_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified,
+                                         "hydro_indicator", files_setup)
+mapplot(gdf=selected_points_narratives, indicator_plot='n', path_result='/home/bcalmel/Documents/3_results/stations_narrative_all-BV.pdf', ds=None,
             cols=None, rows=None,  cbar_ticks='mid', dict_shapefiles=dict_shapefiles, 
             cbar_title=f"Nombre\nde HM", title=None, palette='RdBu_r', font='sans-serif', edgecolor='k',
-            cbar_midpoint=4, vmin_user=4, vmax_user=9,  discretize=6, markersize=90)
+            vmin_user=1, vmax_user=9,  discretize=18, markersize=90)
 
 # print(f'################################ PLOT GLOBAL ################################', end='\n')
 # path_global_figures = dict_paths['folder_study_figures'] + 'global' + os.sep

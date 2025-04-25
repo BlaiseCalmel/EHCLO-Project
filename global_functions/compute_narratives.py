@@ -186,10 +186,17 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp, horizons, pa
         #     list_ds.append(
         #         ds_stacked.sel(horizon=horizon_ref, quantile=0.9)[var].values - ds_stacked.sel(horizon=horizon_ref, quantile=0.1)[var].values
         #     )
-        for q in quantiles:
-            for var in indicator_values:
-                list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=q)[var].values)
+        # for q in quantiles:
+        #     for var in indicator_values:
+        #         list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=q)[var].values)
+        
+        list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.5)['QA'].values)
+        list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.9)['QJXA'].values)
+        list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.1)['VCN10'].values)
         X_imputed = np.column_stack(list_ds)
+        
+        # 153 simulations, 3 indicateurs * 750 stations
+
 
         # Normalized data
         # scaler = StandardScaler()
@@ -289,6 +296,7 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp, horizons, pa
                 methods = narrative_method
         
         meth_list = []
+        above_threshold_array = np.tile(False, hydrological_models.shape)
         for narrative_method in methods:
             representative_groups = {}
             for cluster in cluster_id:
@@ -310,6 +318,8 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp, horizons, pa
                 # Filter indices for sim above threshold
                 indices_mask = above_threshold[indices_cluster]
 
+                above_threshold_array[indices_cluster] = indices_mask
+
                 if len(indices_mask) > 0:
                     indices_cluster = indices_cluster[indices_mask]
 
@@ -323,9 +333,12 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp, horizons, pa
                 for h in horizons:
                     if quantiles is not None:
                         list_ds = []
-                        for q in quantiles:
-                            for var in indicator_values:
-                                list_ds.append(ds_stacked.sel(horizon=h, quantile=q)[var].values)
+                        # for q in quantiles:
+                        #     for var in indicator_values:
+                        #         list_ds.append(ds_stacked.sel(horizon=h, quantile=q)[var].values)
+                        list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.5)['QA'].values)
+                        list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.9)['QJXA'].values)
+                        list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.1)['VCN10'].values)
                         X_imputed_h = np.column_stack(list_ds)
                         # X_imputed_h = np.column_stack([ds_stacked.sel(horizon=h, quantile=q)[var].values for q in quantiles for var in indicator_values])
                         # list_ds = []
@@ -343,7 +356,6 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp, horizons, pa
                     # X_imputed_h = scaler.fit_transform(X_imputed_h)
 
                     # Distance max from current centroid
-                    #TODO adapt with std
                     distances = (np.linalg.norm(X_imputed_h[indices_cluster, :] - centroids[cluster], axis=1))
                     distance_max = np.median(distances) + 2 * np.std(distances)
                     # distance_max = None
@@ -459,19 +471,19 @@ def compute_narratives(dict_paths, stations, files_setup, data_shp, horizons, pa
         xlabel = f"Dim 1 {ratio1:.1%} ({indicator_values[0]}: {pc1_contributions[0]:.1%}, {indicator_values[1]}: {pc1_contributions[1]:.1%}, {indicator_values[2]}: {pc1_contributions[2]:.1%})"
         ylabel = f"Dim 2 {ratio2:.1%} ({indicator_values[0]}: {pc2_contributions[0]:.1%}, \n{indicator_values[1]}: {pc2_contributions[1]:.1%}, {indicator_values[2]}: {pc2_contributions[2]:.1%})"
         title = "Clusters et points représentatifs (après PCA)"
-        path_result = f"/home/bcalmel/Documents/3_results/narratest_pca_comparatives_{horizon_ref}_{str_quantiles}_BV.pdf"
+        path_result = f"/home/bcalmel/Documents/3_results/narratest_pca_comparatives_{horizon_ref}_{str_quantiles}_BV-quantiles3.pdf"
         plot_narratives(X_pca, ds_stacked, meth_list, labels, cluster_names,
                         path_result, xlabel, ylabel, title=None, centroids=centroids_pca, count_stations=None,
-                        above_threshold=above_threshold, palette=hex_colors, n=4, rows=rows,
+                        above_threshold=above_threshold_array, palette=hex_colors, n=4, rows=rows,
                         cols=None)
 
         # Plot comparison with every indicator
         
         print(f"Narrative every indicators Plot {indicator_values} [{h}]")
-        path_result = f"/home/bcalmel/Documents/3_results/narratest_spatial_mean_comparatives_{horizon_ref}_{str_quantiles}_BV.pdf"
+        path_result = f"/home/bcalmel/Documents/3_results/narratest_spatial_mean_comparatives_{horizon_ref}_{str_quantiles}_BV-quantiles3.pdf"
         plot_narratives(X_imputed, ds_stacked, meth_list, labels, cluster_names,
                         path_result, xlabel, ylabel, title, centroids=None, count_stations=None,
-                        above_threshold=above_threshold, palette=hex_colors, n=4, rows=rows,
+                        above_threshold=above_threshold_array, palette=hex_colors, n=4, rows=rows,
                         cols=indicator_values)
 
         # # PLOT BY INDICATOR
