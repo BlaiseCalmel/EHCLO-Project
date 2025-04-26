@@ -49,7 +49,7 @@ print(f'> Load json inputs...', end='\n')
 with open('config.json') as config_file:
     config = json.load(config_file)
 
-with open('files_setup-tracc.json') as files_setup:
+with open('files_setup.json') as files_setup:
     files_setup = json.load(files_setup)
 
 settings_flatten = {}
@@ -60,7 +60,10 @@ for main_key in ['hydro_indicator', 'climate_indicator']:
             settings_flatten |= {subkey: subvalue}
 
 print(f'> Define paths...', end='\n')
-dict_paths = define_paths(config)
+path_data = r"D:\2_Travail\3_INRAE_EHCLO\20_data"
+folder_path_results = r"D:\2_Travail\3_INRAE_EHCLO"
+study_name = f"HMUC_Loire_Bretagne"
+dict_paths = define_paths(config, path_data, folder_path_results, study_name)
 
 ### Files names
 # Study folder

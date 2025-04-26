@@ -18,7 +18,6 @@
 import datetime as dt
 import pandas as pd
 import numpy as np
-import geopandas
 from tqdm import tqdm
 import xarray as xr
 import os

@@ -17,7 +17,6 @@
 """
 import geopandas
 import pandas as pd
-from pandas.core.arrays.categorical import contains
 from shapely.geometry import Point, Polygon, LineString, MultiLineString
 import os
 import numpy as np

@@ -17,31 +17,30 @@
 """
 import os
 
-def define_paths(config):
+def define_paths(config, path_data, folder_path_results, study_name):
 
     param_type = ['hydro', 'climate']
-    folder_data_contour = os.path.abspath(config['folder_path_contour_data']) + os.sep
+    folder_data_contour = path_data + os.sep + config['folder_path_contour_data'] + os.sep
 
-    # Main folders path
-    # folder_results = config['folder_path_results'] + os.sep
-    folder_results = os.path.abspath(config['folder_path_results'])  + os.sep
-    folder_study = folder_results + config['study_name'] + os.sep
+    # Results folders
+    folder_results = os.path.abspath(folder_path_results)  + os.sep
+    folder_study = folder_results + study_name + os.sep
     folder_study_figures = folder_study + 'figures' + os.sep
     folder_study_data = folder_study + 'data' + os.sep
 
     # File paths
-    # points_sim = config['param_type'] + '_points_sim.csv'
     dict_global_points_sim = {}
     dict_study_points_sim = {}
     for data_type in param_type:
         dict_global_points_sim[data_type] = folder_data_contour + data_type + '_points_sim.shp'
         dict_study_points_sim[data_type] = folder_study_data + 'shapefiles' + os.sep + data_type + '_points_sim.shp'
 
+    path_explore2 = path_data + os.sep + "Explore2" + os.sep
 
     dict_paths = {
-        'folder_hydro_data': os.path.abspath(config['folder_path_hydro_data']),
-        'folder_climate_data': os.path.abspath(config['folder_path_climate_data']),
-        'folder_raw_hydro_data': os.path.abspath(config['folder_path_raw_hydro_data']),
+        'folder_hydro_data': path_explore2 + os.sep + config['folder_path_hydro_data'] + os.sep,
+        'folder_climate_data': path_explore2 + os.sep + config['folder_path_climate_data'] + os.sep,
+        'folder_raw_hydro_data': path_explore2 + os.sep + config['folder_path_raw_hydro_data'] + os.sep,
         'folder_data_contour': folder_data_contour,
         'folder_study_results': folder_study,
         'folder_study_figures': folder_study_figures,
