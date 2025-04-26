@@ -33,7 +33,7 @@ def define_paths(config, path_data, folder_path_results, study_name):
     dict_study_points_sim = {}
     for data_type in param_type:
         dict_global_points_sim[data_type] = folder_data_contour + data_type + '_points_sim.shp'
-        dict_study_points_sim[data_type] = folder_study_data + 'shapefiles' + os.sep + data_type + '_points_sim.shp'
+        dict_study_points_sim[data_type] = folder_study_data + 'shapefiles' + os.sep + data_type + '_points_sim'
 
     path_explore2 = path_data + os.sep + "Explore2" + os.sep
 

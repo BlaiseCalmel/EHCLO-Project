@@ -87,36 +87,54 @@ print(f'################################ DEFINE STUDY AREA #####################
 print(f'> Load shapefiles...', end='\n')
 regions_shp, study_hydro_shp, study_climate_shp, rivers_shp = load_shp(dict_paths, files_setup)
 
-# Check if study area is already matched with sim points
+# Load stations of interest
 print(f'> Searching sim points in study area...', end='\n')
 with open('reference_stations.json') as ref_stations:
     reference_stations = json.load(ref_stations)
 
 flatten_reference_stations = {key: value for subdict in reference_stations.values() for key, value in subdict.items()}
 
-
-
-##### COMPUTE NARRATIVES FOR EACH REGION HYDRO
+# Select region area
 path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
-for row in regions_shp.iterrows():
-    print(row)
-    row['CdRegionHy']
 
-    overlay_shapefile(shapefile=study_hydro_shp, data=sim_all_points_info)
+select_region = input("Select code region [A-Y]:")
+region_input_list = re.split(r"[ ]", select_region)
+
+force_contains= None
+load_shapefiles = True
+while load_shapefiles:
+    # If empty, use Loire UGs
+    if len(select_region) == 0:
+        shapefile_hydro = study_hydro_shp
+        shapefile_climate = study_climate_shp
+        region_name = '_UG-Loire.shp'
+        force_contains = {'Suggesti_2': ['LA LOIRE', 'L\'ALLIER'],
+                          'Suggestion': flatten_reference_stations.keys()}
+    else:
+        selected_codes = []
+        for code in region_input_list:
+            if code in regions_shp['CdRegionHy'].values:
+                selected_codes.append(code)
+        shapefile_hydro = regions_shp[regions_shp['CdRegionHy'].isin(selected_codes)]
+        shapefile_climate = shapefile_hydro
+        region_name = '_' + '-'.join(selected_codes) + '.shp'
+
+    if len(shapefile_hydro) > 0:
+        load_shapefiles = False
 
 for data_type, path in dict_paths['dict_study_points_sim'].items():
+    path += region_name
+    dict_paths['dict_study_points_sim'][data_type] = path
     if not os.path.isfile(path):
         print(f'>> Find {data_type} data points in study area')
-        
         # sim_all_points_info = open_shp(f"/home/bcalmel/Documents/2_data/contours_all/points_sim_hydro/points_debit_simulation_Explore2.shp")
         sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
         if data_type == 'hydro':
-            overlay_shapefile(shapefile=study_hydro_shp, data=sim_all_points_info,
-                              path_result=path, force_contains={'Suggesti_2': ['LA LOIRE', 'L\'ALLIER'],
-                                                                'Suggestion': flatten_reference_stations.keys()})
+            overlay_shapefile(shapefile=shapefile_hydro, data=sim_all_points_info, path_result=path,
+                              force_contains={'Suggesti_2': ['LA LOIRE', 'L\'ALLIER'],
+                                              'Suggestion': flatten_reference_stations.keys()})
         else:
-            overlay_shapefile(shapefile=study_climate_shp, data=sim_all_points_info,
-                              path_result=path)
+            overlay_shapefile(shapefile=shapefile_climate, data=sim_all_points_info, path_result=path)
     else:
         print(f'>> {data_type.capitalize()} data points already in the study area')
 
