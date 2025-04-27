@@ -16,6 +16,7 @@
     along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import os
+import copy
 
 def define_paths(config, path_data, folder_path_results, study_name):
 
@@ -41,16 +42,23 @@ def define_paths(config, path_data, folder_path_results, study_name):
         'folder_hydro_data': path_explore2 + os.sep + config['folder_path_hydro_data'] + os.sep,
         'folder_climate_data': path_explore2 + os.sep + config['folder_path_climate_data'] + os.sep,
         'folder_raw_hydro_data': path_explore2 + os.sep + config['folder_path_raw_hydro_data'] + os.sep,
-        'folder_data_contour': folder_data_contour,
+        'folder_data_contour': folder_data_contour ,
+        'folder_hydro_performances': path_explore2 + os.sep + config['folder_hydro_performances'] + os.sep,
         'folder_study_results': folder_study,
         'folder_study_figures': folder_study_figures,
+        'folder_study_figures_narratives': folder_study_figures + 'narratives' + os.sep,
         'folder_study_data': folder_study_data,
+        'folder_study_data_ncdf': folder_study_data + 'ncdf' + os.sep,
+        'folder_study_data_formated-ncdf': folder_study_data + 'formated-ncdf' + os.sep,
+        'folder_study_data_narratives': folder_study_data + 'narratives' + os.sep,
         'file_regions_shp': folder_data_contour + config['regions_shp'],
         'file_rivers_shp': folder_data_contour + config['rivers_shp'],
         'file_hydro_shp': folder_data_contour + config['hydro_shp'],
         'file_climate_shp': folder_data_contour + config['climate_shp'],
+        'file_tracc': folder_data_contour + config['path_tracc'],
         'dict_global_points_sim': dict_global_points_sim,
-        'dict_study_points_sim': dict_study_points_sim,
+        'dict_study_points_sim_base': dict_study_points_sim,
+        'dict_study_points_sim': copy.deepcopy(dict_study_points_sim),
     }
 
     return dict_paths

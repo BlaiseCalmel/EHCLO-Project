@@ -80,7 +80,7 @@ def get_season(month):
     elif month in [9, 10, 11]:
         return 4
 
-def format_dataset(ds, data_type, files_setup, plot_function=None, return_period=None, tracc_year=None):
+def format_dataset(ds, data_type, files_setup, plot_function=None, return_period=None, path_result=None):
     other_dimension = None
     dimension_names = None
     if plot_function is not None:
@@ -217,6 +217,11 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
 
     if dimension_names is not None:
         ds = ds.assign_coords({plot_function: [dimension_names[m] for m in ds[plot_function].values]})
+
+    # Save formated ncdf
+    if path_result is not None:
+        print(f'>> Save formated ncdf...', end='\n')
+        ds.to_netcdf(path=f"{path_result}")
 
     return ds, columns
 

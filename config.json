@@ -3,6 +3,7 @@
   "folder_path_climate_data": "climatological-projection_daily-time-series_by-chain_netcdf",
   "folder_path_raw_hydro_data": "hydrological-projection_daily-time-series_by-chain_merged-netcdf",
   "folder_path_contour_data": "contours",
+  "folder_hydro_performances": "hydrological_performances",
   "regions_shp": "regionHydro.shp",
   "rivers_shp": "InfoVigiCru.geojson.json",
   "hydro_shp": "buffer_UG_axe_loire_simplifie.shp",

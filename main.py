@@ -65,6 +65,10 @@ folder_path_results = r"D:\2_Travail\3_INRAE_EHCLO"
 study_name = f"HMUC_Loire_Bretagne"
 dict_paths = define_paths(config, path_data, folder_path_results, study_name)
 
+# Get paths for selected sim
+print(f'> Load data paths...', end='\n')
+path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
+
 ### Files names
 # Study folder
 print(f'> Create output directories...', end='\n')
@@ -74,13 +78,20 @@ if not os.path.isdir(dict_paths['folder_study_results']):
 # Study figures folder
 if not os.path.isdir(dict_paths['folder_study_figures']):
     os.makedirs(dict_paths['folder_study_figures'])
+if not os.path.isdir(dict_paths['folder_study_figures_narratives']):
+    os.makedirs(dict_paths['folder_study_figures_narratives'])
 
 # Study data folder
 if not os.path.isdir(dict_paths['folder_study_data']):
     os.makedirs(dict_paths['folder_study_data'])
-
+if not os.path.isdir(dict_paths['folder_study_data_narratives']):
+    os.makedirs(dict_paths['folder_study_data_narratives'])
 if not os.path.isdir(dict_paths['folder_study_data'] + 'shapefiles'):
     os.makedirs(dict_paths['folder_study_data'] + 'shapefiles')
+if not os.path.isdir(dict_paths['folder_study_data_ncdf']):
+    os.makedirs(dict_paths['folder_study_data_ncdf'])
+if not os.path.isdir(dict_paths['folder_study_data_formated-ncdf']):
+    os.makedirs(dict_paths['folder_study_data_formated-ncdf'])
 
 #%% LOAD STUDY REGION SHAPEFILE
 print(f'################################ DEFINE STUDY AREA ################################', end='\n')
@@ -97,196 +108,212 @@ flatten_reference_stations = {key: value for subdict in reference_stations.value
 # Select region area
 path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
 
-select_region = input("Select code region [A-Y]:")
-region_input_list = re.split(r"[ ]", select_region)
+# Automatic run among each region
+auto_run = False
+if auto_run:
+    regions = regions_shp['CdRegionHy'].values
+else:
+    regions = [None]
 
-force_contains= None
-load_shapefiles = True
-while load_shapefiles:
-    # If empty, use Loire UGs
-    if len(select_region) == 0:
-        shapefile_hydro = study_hydro_shp
-        shapefile_climate = study_climate_shp
-        region_name = '_UG-Loire.shp'
-        force_contains = {'Suggesti_2': ['LA LOIRE', 'L\'ALLIER'],
-                          'Suggestion': flatten_reference_stations.keys()}
-    else:
+for region_id in regions:
+    load_shapefiles = True
+    while load_shapefiles:
+        # Ask region
+        if not auto_run:
+            region_id = input("Select code region [A-Y]:")
+        region_input_list = re.split(r"[ ]", region_id)
+        force_contains= None
+        # If empty, use Loire UGs
+        if len(region_id) == 0:
+            region_input_list = 'K L M'
+            force_contains = {'Suggesti_2': ['LA LOIRE', 'L\'ALLIER'],
+                              'Suggestion': flatten_reference_stations.keys()}
+
         selected_codes = []
         for code in region_input_list:
             if code in regions_shp['CdRegionHy'].values:
                 selected_codes.append(code)
+        print(f">> Load {' '.join(selected_codes)} region(s)")
         shapefile_hydro = regions_shp[regions_shp['CdRegionHy'].isin(selected_codes)]
         shapefile_climate = shapefile_hydro
-        region_name = '_' + '-'.join(selected_codes) + '.shp'
 
-    if len(shapefile_hydro) > 0:
-        load_shapefiles = False
+        region_name = '-'.join(selected_codes)
+        region_name_shp = region_name + '.shp'
 
-for data_type, path in dict_paths['dict_study_points_sim'].items():
-    path += region_name
-    dict_paths['dict_study_points_sim'][data_type] = path
-    if not os.path.isfile(path):
-        print(f'>> Find {data_type} data points in study area')
-        # sim_all_points_info = open_shp(f"/home/bcalmel/Documents/2_data/contours_all/points_sim_hydro/points_debit_simulation_Explore2.shp")
-        sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
-        if data_type == 'hydro':
-            overlay_shapefile(shapefile=shapefile_hydro, data=sim_all_points_info, path_result=path,
-                              force_contains={'Suggesti_2': ['LA LOIRE', 'L\'ALLIER'],
-                                              'Suggestion': flatten_reference_stations.keys()})
+        if len(shapefile_hydro) > 0:
+            load_shapefiles = False
         else:
-            overlay_shapefile(shapefile=shapefile_climate, data=sim_all_points_info, path_result=path)
-    else:
-        print(f'>> {data_type.capitalize()} data points already in the study area')
+            print(f">>> Invalid region selected ({region_id}), please select again")
 
-print(f'> Simplify shapefiles...', end='\n')
-study_hydro_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified, regions_shp_simplified, bounds = (
-    simplify_shapefiles(study_hydro_shp, study_climate_shp, rivers_shp, regions_shp, tolerance=1000, zoom=1000))
-
-hydro_sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
-# hydro_sim_points_gdf_simplified = open_shp(path_shp='/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_all-BV.shp')
-hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified[hydro_sim_points_gdf_simplified['n'] >= 4]
-hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified.reset_index(drop=True).set_index('Suggestion')
-hydro_sim_points_gdf_simplified.index.names = ['name']
-
-climate_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['climate'])
-climate_sim_points_gdf_simplified = climate_sim_points_gdf.loc[
-    climate_sim_points_gdf.groupby('name')['gid'].idxmin()].reset_index(drop=True)
-
-all_years = files_setup["historical"] + [year for key, values in files_setup["horizons"].items() for
-                                            year in values if key != "tracc" ]
-start_year = min(all_years)
-tracc_year = None
-if 'tracc' in files_setup.keys() and files_setup['tracc']:
-    if not 'tracc' in files_setup['horizons']:
-        files_setup['horizons']['tracc'] = [1.4, 2.1, 3.4]
-    print(f'> Load TRACC...', end='\n')
-    tracc_year = pd.read_csv(config['path_tracc'], sep=";")
-    tracc_year = tracc_year[tracc_year['Niveau_de_rechauffement'].isin(files_setup["horizons"]['tracc'])]
-    tracc_year = tracc_year.set_index('Niveau_de_rechauffement')
-    end_year = 2100
-    extended_name = f"TRACC"
-else:
-    end_year = max(all_years)
-    extended_name = f"{start_year}-{end_year}"
-
-
-#%% NCDF Loading
-load_ncdf = input("Load new NCDF ? (y/[n])")
-
-selected_points_narratives = open_shp('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp')
-selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
-
-# my_name = '_all-BV'
-
-if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
-    print(f'################################ RUN OVER NCDF ################################', end='\n')
-    # Get paths for selected sim
-    print(f'> Load ncdf data paths...', end='\n')
-    path_files = get_files_path(dict_paths=dict_paths, setup=files_setup)
-
-    rcp='rcp85'
-
-    data_input = input('What should I run ?')
-    data_input_list = re.split(r"[ ]", data_input)
-    if len(data_input_list) == 0:
-        path_dict = path_files
-    else:
-        path_dict = {'hydro': {rcp: {}}, 'climate': {rcp: {}}}
-        for key, value in settings_flatten.items():
-            if value['parent'] in data_input_list:
-                data_type = value['type'].split('_')[0]
-                path_dict[data_type][rcp][value['parent']] = path_files[data_type][rcp][value['parent']]
-
-    for data_type, subdict in path_dict.items():
-        # Load simulation points for current data type
-        # sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim'][data_type])
-
-        if data_type == "hydro":
-            sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
-            # sim_points_gdf_simplified = selected_points_narratives
+    for data_type, path in dict_paths['dict_study_points_sim_base'].items():
+        path += '_' + region_name_shp
+        dict_paths['dict_study_points_sim'][data_type] = path
+        if not os.path.isfile(path):
+            print(f'>> Find {data_type} data points in study area')
+            # sim_all_points_info = open_shp(f"/home/bcalmel/Documents/2_data/contours_all/points_sim_hydro/points_debit_simulation_Explore2.shp")
+            sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
+            if data_type == 'hydro':
+                overlay_shapefile(shapefile=shapefile_hydro, data=sim_all_points_info, path_result=path,
+                                  force_contains=None)
+            else:
+                overlay_shapefile(shapefile=shapefile_climate, data=sim_all_points_info, path_result=path)
         else:
-            sim_points_gdf_simplified = climate_sim_points_gdf_simplified
-            # sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
+            print(f'>> {data_type.capitalize()} data points already in the study area')
 
-        for rcp, subdict2 in subdict.items():
-            for indicator, paths in subdict2.items():
-                print(f'################################ RUN {data_type} {rcp} {indicator} ################################', end='\n')
-                for name_indicator, settings_dict in files_setup[f'{data_type}_indicator'][indicator].items():
-                    timestep = 'YE'
-                    function = None
-                    if 'timestep' in settings_dict:
-                        timestep = settings_dict['timestep']
+    print(f'> Simplify shapefiles...', end='\n')
+    study_hydro_shp_simplified, study_climate_shp_simplified, study_rivers_shp_simplified, regions_shp_simplified, bounds = (
+        simplify_shapefiles(study_hydro_shp, study_climate_shp, rivers_shp, regions_shp, tolerance=1000, zoom=1000))
 
-                    if 'extract_function' in settings_dict:
-                        function = settings_dict['extract_function']
+    hydro_sim_points_gdf_simplified = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro'])
+    # hydro_sim_points_gdf_simplified = open_shp(path_shp='/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_all-BV.shp')
+    hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified[hydro_sim_points_gdf_simplified['n'] >= 4]
+    hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified.reset_index(drop=True).set_index('Suggestion')
+    hydro_sim_points_gdf_simplified.index.names = ['name']
 
-                    name_join = name_indicator.replace(" ", "-").replace(".", "")
+    climate_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['climate'])
+    climate_sim_points_gdf_simplified = climate_sim_points_gdf.loc[
+        climate_sim_points_gdf.groupby('name')['gid'].idxmin()].reset_index(drop=True)
 
-                    path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{extended_name}{my_name}.nc"
-                    # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_narratest.nc"
+    all_years = files_setup["historical"] + [year for key, values in files_setup["horizons"].items() for
+                                                year in values if key != "tracc" ]
+    start_year = min(all_years)
+    tracc_year = None
+    if 'tracc' in files_setup.keys() and files_setup['tracc']:
+        if not 'tracc' in files_setup['horizons']:
+            files_setup['horizons']['tracc'] = [1.4, 2.1, 3.4]
+        print(f'> Load TRACC...', end='\n')
+        tracc_year = pd.read_csv(dict_paths['file_tracc'], sep=";")
+        tracc_year = tracc_year[tracc_year['Niveau_de_rechauffement'].isin(files_setup["horizons"]['tracc'])]
+        tracc_year = tracc_year.set_index('Niveau_de_rechauffement')
+        end_year = 2100
+        extended_name = f"TRACC"
+    else:
+        end_year = max(all_years)
+        extended_name = f"{start_year}-{end_year}"
 
-                    if not os.path.isfile(path_ncdf):
-                        print(f'> Create {indicator} export...', end='\n')
-                        if len(paths) > 0 :
-                            # paths = [
-                            #     '/home/bcalmel/Documents/2_data/historical-rcp85/HadGEM2-ES/ALADIN63/ADAMONT/SMASH/debit_France_MOHC-HadGEM2-ES_historical-rcp85_r1i1p1_CNRM-ALADIN63_v3_MF-ADAMONT-SAFRAN-1980-2011_INRAE-SMASH_day_20050801-20990731.nc'
-                            # ]
-                            # paths_data=paths
-                            # param_type=data_type
-                            # sim_points_gdf=sim_points_gdf_simplified
-                            #
-                            # path_result=path_ncdf
-                            # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{start}-{end}.csv"
-                            extract_ncdf_indicator(
-                                paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
-                                indicator=indicator, function=function, files_setup=files_setup, timestep=timestep, 
-                                start=start_year,
-                                end=end_year,
-                                tracc_year=tracc_year,
-                                path_result=path_ncdf,
-                            )
-                        else:
-                            print(f'> Invalid {indicator} name', end='\n')
-                    else:
-                        print(f'> {path_ncdf} already exists', end='\n')
+    #%% NCDF Loading
+    if not auto_run:
+        load_ncdf = input("Load new NCDF ? (y/[n])")
+    else:
+        load_ncdf = 'y'
 
-#%% Visualize results
-narratives = None
-quantiles = [0.5, 0.1, 0.9]
-str_quantiles = 'quant'+('-').join([f"{int(i*100)}" for i in  quantiles])
-horizons_narrative = ['horizon2']
-horizon_ref='horizon2'
-path_narratives = f"{dict_paths['folder_study_data']}narratives_{extended_name}_{horizon_ref}_{str_quantiles}_BV-quantiles3.json"
-
-load_narratives = input("Compute new narrative ? (y/[n])")
-if load_narratives.lower().replace(" ", "") in ['y', 'yes']:
-
-    # horizons_narrative = ['horizon1','horizon2', 'horizon3']
-    print('> Define Narratives')
-    # selected_points_narratives = open_shp('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp')
+    # selected_points_narratives = open_shp(dict_paths['folder_data_contour']+ os.sep + 'hydro_points_sim_noeud_gestion.shp')
     # selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
+    rcp = 'rcp85'
+    if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
+        print(f'################################ RUN OVER NCDF ################################', end='\n')
 
-    selected_points_narratives = open_shp(path_shp='/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_all-BV.shp')
-    selected_points_narratives = selected_points_narratives[selected_points_narratives['n'] >= 4]
-    selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
-    selected_points_narratives.index.names = ['name']
 
-    compute_narratives( dict_paths,
-                        stations=list(np.unique(selected_points_narratives.index)),
-                        files_setup=files_setup,
-                        data_shp=selected_points_narratives,
-                        indicator_values=["QJXA", "QA", "VCN10"],
-                        horizons=horizons_narrative,
-                        threshold=0.75,
-                        narrative_method='combine',
-                        path_narratives=path_narratives,
-                        horizon_ref=horizon_ref,
-                        quantiles=quantiles
-                        )
+        # Define indicator to load
+        if not auto_run:
+            data_input = input('What should I run ?')
+        else:
+            data_input = 'QA QJXA VCN10'
 
-print('> Load Narratives')
-with open(path_narratives, "r", encoding="utf-8") as f:
-    narratives = json.load(f) 
+        data_input_list = re.split(r"[ ]", data_input)
+        if len(data_input_list) == 0:
+            path_dict = path_files
+        else:
+            path_dict = {'hydro': {rcp: {}}, 'climate': {rcp: {}}}
+            for key, value in settings_flatten.items():
+                if value['parent'] in data_input_list or key in data_input_list:
+                    data_type = value['type'].split('_')[0]
+                    path_dict[data_type][rcp][value['parent']] = path_files[data_type][rcp][value['parent']]
+
+        for data_type, subdict in path_dict.items():
+            # Load simulation points for current data type
+            # sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim'][data_type])
+
+            if data_type == "hydro":
+                sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
+                # sim_points_gdf_simplified = selected_points_narratives
+            else:
+                sim_points_gdf_simplified = climate_sim_points_gdf_simplified
+                # sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
+
+            for rcp, subdict2 in subdict.items():
+                for indicator, paths in subdict2.items():
+                    print(f'################################ RUN {data_type} {rcp} {indicator} ################################', end='\n')
+                    for name_indicator, settings_dict in files_setup[f'{data_type}_indicator'][indicator].items():
+                        timestep = 'YE'
+                        function = None
+                        if 'timestep' in settings_dict:
+                            timestep = settings_dict['timestep']
+
+                        if 'extract_function' in settings_dict:
+                            function = settings_dict['extract_function']
+
+                        name_join = name_indicator.replace(" ", "-").replace(".", "")
+
+                        path_ncdf = f"{dict_paths['folder_study_data_ncdf']}{name_join}_{rcp}_{timestep}_{extended_name}_{region_name}.nc"
+                        # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_narratest.nc"
+
+                        if not os.path.isfile(path_ncdf):
+                            print(f'> Create {indicator} export...', end='\n')
+                            if len(paths) > 0 :
+                                # paths = [
+                                #     '/home/bcalmel/Documents/2_data/historical-rcp85/HadGEM2-ES/ALADIN63/ADAMONT/SMASH/debit_France_MOHC-HadGEM2-ES_historical-rcp85_r1i1p1_CNRM-ALADIN63_v3_MF-ADAMONT-SAFRAN-1980-2011_INRAE-SMASH_day_20050801-20990731.nc'
+                                # ]
+                                # paths_data=paths
+                                # param_type=data_type
+                                # sim_points_gdf=sim_points_gdf_simplified
+                                #
+                                # path_result=path_ncdf
+                                # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{start}-{end}.csv"
+                                extract_ncdf_indicator(
+                                    paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
+                                    indicator=indicator, function=function, files_setup=files_setup, timestep=timestep,
+                                    start=start_year,
+                                    end=end_year,
+                                    tracc_year=tracc_year,
+                                    path_result=path_ncdf,
+                                )
+                            else:
+                                print(f'> Invalid {indicator} name', end='\n')
+                        else:
+                            print(f'> {path_ncdf} already exists', end='\n')
+
+    #%% Visualize results
+    narratives = None
+    quantiles = [0.5]
+    str_quantiles = 'quant'+('-').join([f"{int(i*100)}" for i in  quantiles])
+    horizon_ref='horizon2'
+    path_narratives = f"{dict_paths['folder_study_data_narratives']}narratives_{extended_name}_{horizon_ref}_{str_quantiles}_{region_name}.json"
+
+    if not auto_run:
+        load_narratives = input("Compute new narrative ? (y/[n])")
+    else:
+        load_narratives = 'y'
+    if load_narratives.lower().replace(" ", "") in ['y', 'yes']:
+
+        # horizons_narrative = ['horizon1','horizon2', 'horizon3']
+        print('> Define Narratives')
+        # # selected_points_narratives = open_shp('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp')
+        # # selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
+        # selected_points_narratives = open_shp(path_shp='/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_all-BV.shp')
+        # selected_points_narratives = selected_points_narratives[selected_points_narratives['n'] >= 4]
+        # selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
+        # selected_points_narratives.index.names = ['name']
+
+        indicator_values = ["QJXA", "QA", "VCN10"]
+        paths_ds_narratives = [f"{dict_paths['folder_study_data_ncdf']}{indicator}_{rcp}_YE_{extended_name}_{region_name}.nc"
+                               for indicator in indicator_values]
+
+        compute_narratives( paths_ds_narratives,
+                            files_setup=files_setup,
+                            indicator_values=indicator_values,
+                            narrative_method='combine',
+                            path_narratives=path_narratives,
+                            path_figures=dict_paths['folder_study_figures_narratives']+region_name+'_',
+                            path_performances=dict_paths['folder_hydro_performances'],
+                            path_formated_ncdf=f"{dict_paths['folder_study_data_formated-ncdf']}",
+                            horizon_ref=horizon_ref,
+                            quantiles=quantiles
+                            )
+
+    print('> Load Narratives')
+    with open(path_narratives, "r", encoding="utf-8") as f:
+        narratives = json.load(f)
 
 # narratives = {'horizon2' : narratives['horizon2']}
 
@@ -420,8 +447,9 @@ while run_plot:
                     sim_points_gdf_simplified = sim_points_gdf_simplified.set_index('name')
                     edgecolor = None
 
+                # TODO load formated-ncdf
                 # Open ncdf dataset
-                path_ncdf = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}_{extended_name}.nc"
+                path_ncdf = f"{dict_paths['folder_study_data_ncdf']}{title_join}_{rcp}_{settings['timestep']}_{extended_name}_{region_name}.nc"
                 # path_ncdf2 = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}.nc"
                 ds_stats = xr.open_dataset(path_ncdf)
                 if data_type == 'hydro':
@@ -434,8 +462,7 @@ while run_plot:
                 # Compute stats
                 ds_stats, variables = format_dataset(ds=ds_stats, data_type=data_type, files_setup=files_setup,
                                                      plot_function=settings['additional_coordinates'],
-                                                     return_period=settings['return_period'],
-                                                     tracc_year=tracc_year)
+                                                     return_period=settings['return_period'])
                 # ds_stats.sel(gid=ds_stats["gid"] == b'----------')
                 # ds_stats = ds_stats.sel(gid=ds_stats["gid"] != b'----------')
 
