@@ -60,8 +60,10 @@ for main_key in ['hydro_indicator', 'climate_indicator']:
             settings_flatten |= {subkey: subvalue}
 
 print(f'> Define paths...', end='\n')
-path_data = r"D:\2_Travail\3_INRAE_EHCLO\20_data"
-folder_path_results = r"D:\2_Travail\3_INRAE_EHCLO"
+path_data = r"/media/bcalmel/One Touch/2_Travail/3_INRAE_EHCLO/20_data"
+folder_path_results = r"/media/bcalmel/One Touch/2_Travail/3_INRAE_EHCLO"
+# path_data = r"D:\2_Travail\3_INRAE_EHCLO\20_data"
+# folder_path_results = r"D:\2_Travail\3_INRAE_EHCLO"
 study_name = f"HMUC_Loire_Bretagne"
 dict_paths = define_paths(config, path_data, folder_path_results, study_name)
 
@@ -277,7 +279,7 @@ for region_id in regions:
     narratives = None
     quantiles = [0.5]
     str_quantiles = 'quant'+('-').join([f"{int(i*100)}" for i in  quantiles])
-    horizon_ref='horizon2'
+    horizon_ref='horizon3'
     path_narratives = f"{dict_paths['folder_study_data_narratives']}narratives_{extended_name}_{horizon_ref}_{str_quantiles}_{region_name}.json"
 
     if not auto_run:
@@ -302,6 +304,7 @@ for region_id in regions:
         compute_narratives( paths_ds_narratives,
                             files_setup=files_setup,
                             indicator_values=indicator_values,
+                            stations=hydro_sim_points_gdf_simplified[hydro_sim_points_gdf_simplified['REFERENCE'] == 1].index.values,
                             narrative_method='combine',
                             path_narratives=path_narratives,
                             path_figures=dict_paths['folder_study_figures_narratives']+region_name+'_',
@@ -438,7 +441,7 @@ while run_plot:
                     loire = sim_points_gdf_simplified[(sim_points_gdf_simplified['Suggesti_2'].str.contains('LA LOIRE ', case=False, na=False))]
                     value = compute_river_distance(rivers_shp, loire, river_name='loire',
                                                    start_from='last')
-                    hydro_sim_points_gdf_simplified["PK"] = value
+                    hydro_sim_points_gdf_simplified["PK"] = value                    
                     # sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7, 'PK'] = value
                     edgecolor = 'k'
                 else:
@@ -447,9 +450,17 @@ while run_plot:
                     sim_points_gdf_simplified = sim_points_gdf_simplified.set_index('name')
                     edgecolor = None
 
-                # TODO load formated-ncdf
+                # TODO load formated-ncdf                
                 # Open ncdf dataset
                 path_ncdf = f"{dict_paths['folder_study_data_ncdf']}{title_join}_{rcp}_{settings['timestep']}_{extended_name}_{region_name}.nc"
+                path_formated_ncdf=f"{dict_paths['folder_study_data_formated-ncdf']}formated-{path_ncdf.split(os.sep)[-1]}"
+                if os.path.isfile(path_formated_ncdf):
+                    ds_stats = xr.open_dataset(path_formated_ncdf)
+                    variables.keys()
+                    var_names = {}
+                    var_names[f'simulation-horizon_by-sims_deviation'] = [i for i in ds_stats.data_vars if '_by-horizon_deviation' in i]
+                    [i for i in ds_stats.data_vars if 'simulation_deviation' in i]
+
                 # path_ncdf2 = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}.nc"
                 ds_stats = xr.open_dataset(path_ncdf)
                 if data_type == 'hydro':
@@ -555,6 +566,7 @@ while run_plot:
                             elif indicator_setup['type'] == 'hydro_indicator':
                                 print(f">> {plot_type_name.title()} map plot by HM")
                                 median_by_hm = [s for sublist in variables[f'hydro-model_{plot_type}'].values() for s in sublist if "median" in s]
+                                sim_points_gdf_simplified['S_HYDRO'][np.isnan(sim_points_gdf_simplified['S_HYDRO'])] = 0
                                 label_df = sim_points_gdf_simplified['S_HYDRO'].astype(int).astype(str) + 'km² [' + sim_points_gdf_simplified['n'].astype(str) + 'HM]'
                                 # if settings['vmax'] is None:
                                 #     vmax = math.ceil(abs(ds[median_by_hm].to_array()).max() / 5) * 5

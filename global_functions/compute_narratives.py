@@ -70,9 +70,9 @@ def representative_item(X_cluster, centroids, cluster, cluster_id, indices_clust
     return idx
 
 
-def compute_narratives(paths_ds_narratives, files_setup, path_narratives,
+def compute_narratives(paths_ds_narratives, files_setup, path_narratives, stations,
                        path_performances, path_figures, path_formated_ncdf,
-                       indicator_values=["QJXA", "QA", "VCN10"], narrative_method='closest',
+                       indicator_values=["QJXA", "QA", "VCN10"],
                        horizon_ref='horizon3', quantiles=[0.5]):
 
     # Load selected indicators
@@ -97,7 +97,7 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives,
     data_arrays = []
     # for h in horizons:
     datasets = [ds_i[var_names[f'simulation-horizon_by-sims_deviation']].sel(
-        horizon=horizon_ref) for ds_i in datasets_list] #, gid=stations
+        horizon=horizon_ref, gid=stations) for ds_i in datasets_list] #, gid=stations
     for i in range(len(datasets)):
         ds = datasets[i]
         for var_name, da in ds.data_vars.items():
@@ -108,9 +108,7 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives,
 
             # Generate new DataArray with sim as dimension
             da_expanded = da.expand_dims({
-                # "indicator": [indicator_names[i]],
                 "gcm-rcm": [nom_gcmrcm],
-                # "rcm": [nom_rcm],
                 "bc":  [nom_bc],
                 "hm":  [nom_hm],
                 "horizon":  [horizon_ref],
@@ -122,60 +120,27 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives,
             data_arrays.append(da_expanded)
 
     print(f">> Compute KMeans clusters...", end='\n')
+    available_stations = data_arrays[0].gid.values
     # Combine DataArrays
     combined_da = xr.combine_by_coords(data_arrays)
-    # quantiles = [0.5, 0.1, 0.9]
-    # quantiles = [0.5]
     str_quantiles = 'quant'+('-').join([f"{int(i*100)}" for i in  quantiles])
     combined_da = combined_da.quantile(dim='gid', q=quantiles)
     ds_stacked = combined_da.stack(sample=("gcm-rcm", "bc", "hm"))
     list_ds = []
-    # for var in indicator_values:
-    #         list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.5)[var].values)
-    # for var in indicator_values:
-    #     list_ds.append(
-    #         ds_stacked.sel(horizon=horizon_ref, quantile=0.9)[var].values - ds_stacked.sel(horizon=horizon_ref, quantile=0.1)[var].values
-    #     )
-    # for q in quantiles:
-    #     for var in indicator_values:
-    #         list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=q)[var].values)
 
-    list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.5)['QA'].values)
-    list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.5)['QJXA'].values)
-    list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.5)['VCN10'].values)
+    for var in indicator_values:
+        list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.5)[var].values)
     X_imputed = np.column_stack(list_ds)
-
-    # 153 simulations, 3 indicateurs * 750 stations
-
-
-    # Normalized data
-    # scaler = StandardScaler()
-    # X_imputed = scaler.fit_transform(X_imputed)
-    # X_imputed = X_imputed / X_imputed.mean(axis=0)
 
     # KMeans clustering
     kmeans = KMeans(n_clusters=4, random_state=42)
     labels = kmeans.fit_predict(X_imputed)
 
-    # # Add labels to DataArray with sample dimension
-    # labels_da = xr.DataArray(labels, dims="sample", coords={"sample": ds_stacked.sample})
-
-    # # Unstack to same dimension as origin DataArray
-    # labels_unstacked = labels_da.unstack("sample")
-
-    # # Add labels as a new variable
-    # ds_clustered = combined_da.assign(cluster=labels_unstacked)
-
     # Find centroids
-    centroids = kmeans.cluster_centers_  # de forme (n_clusters, n_features)
+    centroids = kmeans.cluster_centers_  
 
-    # Create mask for sim above threshold
-    # above_threshold = count_stations > threshold
-    # Run on each cluster
+    # Identify clusters
     cluster_id = np.unique(labels)
-    # Cluster info
-    # colors = plt.get_cmap("Dark2", 4).colors
-    # hex_colors = [mcolors.to_hex(c) for c in colors]
 
     # # Load hm performances .fst files
     # # Run once to install the related R packages
@@ -185,7 +150,7 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives,
 
     print(f">> Get hydrological models performance...", end='\n')
     performances = ['Biais', 'Q10', 'Q90']
-    # path_performances = r"D:\2_Travail\3_INRAE_EHCLO\20_data\Explore2\hydrological_performances" + os.sep
+   
     # Baseflow performance
     df = open_fst(f"{path_performances}dataEX_Explore2_criteria_diagnostic_performance.fst")
     baseflow_criteria = df[['HM', 'code','Biais']]
@@ -198,6 +163,7 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives,
     df = open_fst(f"{path_performances}dataEX_Explore2_criteria_diagnostic_LF.fst")
     lowflow_criteria = df[['HM', 'code','Q90']]
 
+    # Merge in a single dataframe
     merged_performances = pd.merge(pd.merge(baseflow_criteria, lowflow_criteria, on=['HM', 'code']),
                                 highflow_criteria, on=['HM', 'code'])
 
@@ -205,7 +171,7 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives,
     performance_thresholds = {'Biais': 0.2, 'Q10': 0.2, 'Q90': 0.8}
 
     # Get selected stations
-    # merged_performances = merged_performances[merged_performances['code'].isin(data_shp.index)]
+    merged_performances = merged_performances[merged_performances['code'].isin(available_stations)]
     count_stations = len(np.unique(merged_performances['code']))
 
     # Compare to thresholds
@@ -218,19 +184,16 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives,
     # Compute percentage of station above threshold for each HM
     hm_performances = merged_performances.groupby(['HM']).agg({v: 'sum' for v in valid_performance})
 
-    # # Normalize by stations available per HM
-    # # hm_count_stations = merged_performances.groupby(['HM']).size()
-    # # hm_performances[[f'{i}_ratio' for i in valid_performance]] = hm_performances[valid_performance].div(
-    # #     hm_performances.index.map(hm_count_stations), axis=0) >= threshold
+    # Normalize by total station among area
+    hm_performances[[f'{i}_ratio' for i in valid_performance]] = hm_performances[valid_performance].div(
+        count_stations, axis=0)
 
-    # # Normalize by total station among area
-    # hm_performances[[f'{i}_ratio' for i in valid_performance]] = hm_performances[valid_performance].div(
-    #     count_stations, axis=0) >= threshold
-
-    # hm_performances['sum'] = hm_performances[[f'{i}_ratio' for i in valid_performance]].all(axis=1)
+    performance_threshold = np.quantile(hm_performances[[f'{i}_ratio' for i in valid_performance]], 0.5, axis=0)
+    hm_performances[[f'{i}_bool' for i in valid_performance]] = hm_performances[[f'{i}_ratio' for i in valid_performance]] >= performance_threshold
+    hm_performances['sum'] = hm_performances[[f'{i}_bool' for i in valid_performance]].all(axis=1)
 
     hydrological_models = ds_stacked["hm"].values
-    # above_threshold = np.array([hm_performances.loc[hm]['sum'] for hm in hydrological_models])
+    above_threshold = np.array([hm_performances.loc[hm]['sum'] for hm in hydrological_models])
 
     # Bleunavy Orange Brun Turquoise https://www.canva.com/colors/color-palettes/freshly-sliced-fruit/
     cluster_names = ['Argousier', 'Cèdre', 'Séquoia', 'Genévrier']
@@ -238,167 +201,77 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives,
     # ["#E66912", "#016367", "#9E3A14", "#0B1C48"]
 
     rows = None
-    if narrative_method is None:
-        methods = ['closest', 'furthest', 'combine']
-        rows = ['Proche', 'Lointain', 'Mixte']
-    else:
-        if isinstance(narrative_method, str):
-            methods = [narrative_method]
-        else:
-            methods = narrative_method
 
-    meth_list = []
     above_threshold_array = np.tile(False, hydrological_models.shape)
     print(f">> Define narrative simulation per cluster...", end='\n')
-    for narrative_method in methods:
-        representative_groups = {}
-        for cluster in cluster_id:
-            # Index of cluster values
-            indices_cluster = np.where(labels == cluster)[0]
+    representative_groups = {}
+    for cluster in cluster_id:
+        # Index of cluster values
+        indices_cluster = np.where(labels == cluster)[0]
 
-            # Get performances for current cluster
-            cluster_hm = np.unique(hydrological_models[indices_cluster])
-            cluster_hm_performances = hm_performances.loc[cluster_hm]
-            cluster_hm_performances[[f'{i}_ratio' for i in valid_performance]] = cluster_hm_performances[valid_performance].div(count_stations, axis=0)
-            # Define threshold
-            # performance_threshold = min(np.median(cluster_hm_performances[[f'{i}_ratio' for i in valid_performance]], axis=0))
-            performance_threshold = np.quantile(cluster_hm_performances[[f'{i}_ratio' for i in valid_performance]], 0.25)
-            cluster_hm_performances[[f'{i}_bool' for i in valid_performance]] = cluster_hm_performances[[f'{i}_ratio' for i in valid_performance]] >= performance_threshold
-            cluster_hm_performances['sum'] = cluster_hm_performances[[f'{i}_bool' for i in valid_performance]].all(axis=1)
-            # print(f"Cluster {cluster} thld: {np.round(performance_threshold,2)} {cluster_hm_performances[cluster_hm_performances['sum']].index.values}")
-            above_threshold = np.array([cluster_hm_performances.loc[hm]['sum'] if hm in cluster_hm_performances.index else False for hm in hydrological_models])
+        # # Get performances for current cluster
+        # cluster_hm = np.unique(hydrological_models[indices_cluster])
+        # cluster_hm_performances = hm_performances.loc[cluster_hm]
+        # cluster_hm_performances[[f'{i}_ratio' for i in valid_performance]] = cluster_hm_performances[valid_performance].div(count_stations, axis=0)
+        # # Define threshold
+        # # performance_threshold = np.quantile(cluster_hm_performances[[f'{i}_ratio' for i in valid_performance]], 0.25)
+        # # TODO add max count threshold to prevent crash
+        # performance_threshold = np.quantile(cluster_hm_performances[[f'{i}_ratio' for i in valid_performance]], 0.5, axis=0)
+        # cluster_hm_performances[[f'{i}_bool' for i in valid_performance]] = cluster_hm_performances[[f'{i}_ratio' for i in valid_performance]] >= performance_threshold
+        # cluster_hm_performances['sum'] = cluster_hm_performances[[f'{i}_bool' for i in valid_performance]].all(axis=1)
+        # # print(f"Cluster {cluster} thld: {np.round(performance_threshold,2)} {cluster_hm_performances[cluster_hm_performances['sum']].index.values}")
+        # above_threshold = np.array([cluster_hm_performances.loc[hm]['sum'] if hm in cluster_hm_performances.index else False for hm in hydrological_models])
 
-            # Filter indices for sim above threshold
-            indices_mask = above_threshold[indices_cluster]
+        # Filter indices for sim above threshold
+        indices_mask = above_threshold[indices_cluster]
 
-            above_threshold_array[indices_cluster] = indices_mask
+        above_threshold_array[indices_cluster] = indices_mask
 
-            if len(indices_mask) > 0:
-                indices_cluster = indices_cluster[indices_mask]
+        if len(indices_mask) > 0:
+            indices_cluster = indices_cluster[indices_mask]
 
-            # # Distance max from current centroid
-            # distance_max = 2 * np.median(np.linalg.norm(X_imputed[indices_cluster, :] - centroids[cluster], axis=1))
+        # Get vector of these sims
+        X_cluster = X_imputed[indices_cluster, :]
 
-            # Get vector of these sims
-            X_cluster = X_imputed[indices_cluster, :]
+        # Compute distance from cluster centroid
+        distances_cluster = np.linalg.norm(X_cluster[indices_cluster, :] - centroids[cluster], axis=1)
 
-            cluster_distance_treshold = []
-            # for h in horizons:
-            if quantiles is not None:
-                list_ds = []
-                # for q in quantiles:
-                #     for var in indicator_values:
-                #         list_ds.append(ds_stacked.sel(horizon=h, quantile=q)[var].values)
-                list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.5)['QA'].values)
-                list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.5)['QJXA'].values)
-                list_ds.append(ds_stacked.sel(horizon=horizon_ref, quantile=0.5)['VCN10'].values)
-                X_imputed_h = np.column_stack(list_ds)
-                # X_imputed_h = np.column_stack([ds_stacked.sel(horizon=h, quantile=q)[var].values for q in quantiles for var in indicator_values])
-                # list_ds = []
-                # for var in indicator_values:
-                #         list_ds.append(ds_stacked.sel(horizon=h, quantile=0.5)[var].values)
-                # for var in indicator_values:
-                #     list_ds.append(
-                #         ds_stacked.sel(horizon=h, quantile=0.9)[var].values - ds_stacked.sel(horizon=horizon_ref, quantile=0.1)[var].values
-                #     )
-                # X_imputed_h = np.column_stack(list_ds)
-            else:
-                X_imputed_h = np.column_stack([ds_stacked.sel(horizon=horizon_ref)[var].values for var in indicator_values])
+        # Distance max from current centroid
+        distance_max = np.median(distances_cluster) + 2 * np.std(distances_cluster)
+        sum_cluster_distance_treshold = np.sum(distances_cluster <= distance_max, axis=0)
+        mask_cluster = (sum_cluster_distance_treshold == max(sum_cluster_distance_treshold))
+        # ds_stacked['hm'].isel(sample=indices_cluster).values
 
-            # scaler = StandardScaler()
-            # X_imputed_h = scaler.fit_transform(X_imputed_h)
+        # Compute distance from other cluster centroids
+        distances_list = []
+        for c in cluster_id:
+            if c != cluster:
+                distances_list.append(np.linalg.norm(X_cluster - centroids[c], axis=1))
+        distances_other = np.min(distances_list, axis=0)
 
-            # Distance max from current centroid
-            distances = (np.linalg.norm(X_imputed_h[indices_cluster, :] - centroids[cluster], axis=1))
-            distance_max = np.median(distances) + 2 * np.std(distances)
-            # distance_max = None
+        if np.any(distances_other) and np.any(mask_cluster):
+            idx = indices_cluster[mask_cluster][np.argmax(distances_other[mask_cluster])]
 
-            # Compute distance from cluster centroid
-            distances_cluster = np.linalg.norm(X_imputed_h[indices_cluster, :] - centroids[cluster], axis=1)
+        if idx is not None:
 
-            cluster_distance_treshold.append(distances_cluster <= distance_max)
+            # Extract coordinate (gcm-rcm, bc, hm) of selected sim
+            coords_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx).values
+            coords_bc      = ds_stacked["bc"].isel(sample=idx).values
+            coords_hm      = ds_stacked["hm"].isel(sample=idx).values
 
-            sum_cluster_distance_treshold = np.sum(cluster_distance_treshold, axis=0)
-            mask_cluster = (sum_cluster_distance_treshold == max(sum_cluster_distance_treshold))
-
-            # Compute distance from other cluster centroids
-            distances_list = []
-            for c in cluster_id:
-                if c != cluster:
-                    distances_list.append(np.linalg.norm(X_cluster - centroids[c], axis=1))
-            distances_other = np.min(distances_list, axis=0)
-
-            # min_distances = np.minimum.reduce([distances_other[0], distances_other[1], distances_other[2]])
-            if np.any(distances_other) and np.any(mask_cluster):
-                idx = indices_cluster[mask_cluster][np.argmax(distances_other[mask_cluster])]
-
-            # idx = representative_item(
-            #     X_cluster, centroids, cluster, cluster_id, indices_cluster, method=narrative_method, distance_max=distance_max)
-
-            # # Compute distance from cluster centroid
-            # distances_cluster = np.linalg.norm(X_cluster - centroids[cluster], axis=1)
-            # if distance_max is not None:
-            #     mask_cluster = distances_cluster <= distance_max
-            # else:
-            #     mask_cluster = np.logical_not(np.isnan(distances_cluster))
-            # # mask_cluster = np.tile(True, distances_cluster.shape)
-
-            # # Get closest cluster for horizon reference
-            # distances_list = []
-            # other_clusters = [i for i in cluster_id if i != cluster]
-            # for c in other_clusters:
-            #     distances_list.append(np.linalg.norm(X_cluster - centroids[c], axis=1))
-            # closest_cluster = [other_clusters[min_dist_idx] for min_dist_idx in np.argmin(distances_list, axis=0)]
-
-            # # Compute distance to the closest other centroid
-            # distances_list_horizons = []
-            # for h in horizons:
-            #     X_imputed_h = np.column_stack([ds_stacked.sel(horizon=h)[var].values for var in indicator_values])
-            #     X_imputed_h = X_imputed_h / X_imputed_h.mean(axis=0)
-            #     X_cluster_h = X_imputed[indices_cluster, :]
-            #     distances_other = np.linalg.norm(X_cluster_h - [centroids[idx_centroid] for idx_centroid in closest_cluster], axis=1)
-            #     distances_list_horizons.append(distances_other)
-
-            # distances_sum = np.sum(distances_list_horizons, axis=0)
-            # idx = indices_cluster[mask_cluster][np.argmax(distances_sum[mask_cluster])]
-
-            if idx is not None:
-
-                # Extract coordinate (gcm-rcm, bc, hm) of selected sim
-                coords_gcm_rcm = ds_stacked["gcm-rcm"].isel(sample=idx).values
-                coords_bc      = ds_stacked["bc"].isel(sample=idx).values
-                coords_hm      = ds_stacked["hm"].isel(sample=idx).values
-
-                # Save result in dict
-                representative_groups[cluster] = {
-                    "gcm-rcm": coords_gcm_rcm,
-                    "bc": coords_bc,
-                    "hm": coords_hm,
-                    # "distance": distances[np.argmin(distances)],
-                    "idx": idx,
-                    "color": hex_colors[cluster],
-                    "name": cluster_names[cluster],
-                    "method": narrative_method
-                }
-        meth_list.append(representative_groups)
+            # Save result in dict
+            representative_groups[cluster] = {
+                "gcm-rcm": coords_gcm_rcm,
+                "bc": coords_bc,
+                "hm": coords_hm,
+                "idx": idx,
+                "color": hex_colors[cluster],
+                "name": cluster_names[cluster]
+            }
 
     narratives |= {horizon_ref : {f"{value['gcm-rcm']}_{value['bc']}_{value['hm']}": {'color': value['color'], 'zorder': 10,
     'label': f"{value['name'].title()}",
     'linewidth': 2} for key, value in rp.items()} for i, rp in enumerate(meth_list)}
-
-    # # Generate dataframe to export
-    # df = ds_stacked.to_dataframe()
-    # df = df.reset_index(drop=True)
-    # df["cluster"] = [cluster_names[i] for i in labels]
-    # for key in narratives.keys():
-    #     df[key] = None
-    #     for id_row, row in df.iterrows():
-    #         # print(row)
-    #         name = f"{row.loc['gcm-rcm']}_{row['bc']}_{row['hm']}"
-    #         if name in narratives[key].keys():
-    #             print()
-    #             df.loc[id_row, key] = narratives[key][name]['label']
-    # df.to_csv(f"/home/bcalmel/Documents/3_results/test.csv", sep=";")
 
     # PCA for 2D visualisation
     pca = PCA(n_components=2)
