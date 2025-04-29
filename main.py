@@ -127,20 +127,26 @@ for region_id in regions:
         force_contains= None
         # If empty, use Loire UGs
         if len(region_id) == 0:
-            region_input_list = 'K L M'
+            region_input_list = 'UG-Loire'
+            
             force_contains = {'Suggesti_2': ['LA LOIRE', 'L\'ALLIER'],
                               'Suggestion': flatten_reference_stations.keys()}
 
-        selected_codes = []
-        for code in region_input_list:
-            if code in regions_shp['CdRegionHy'].values:
-                selected_codes.append(code)
-        print(f">> Load {' '.join(selected_codes)} region(s)")
-        shapefile_hydro = regions_shp[regions_shp['CdRegionHy'].isin(selected_codes)]
-        shapefile_climate = shapefile_hydro
+            selected_codes = []
+            for code in region_input_list:
+                if code in regions_shp['CdRegionHy'].values:
+                    selected_codes.append(code)
+            print(f">> Load {' '.join(selected_codes)} region(s)")
+            shapefile_hydro = regions_shp[regions_shp['CdRegionHy'].isin(selected_codes)]
+            shapefile_climate = shapefile_hydro
 
         region_name = '-'.join(selected_codes)
         region_name_shp = region_name + '.shp'
+        if len(region_id) == 0:
+            region_narrative = 'K'
+        else:
+            region_narrative = region_name
+        dict_paths['dict_study_points_sim']['hydro_narrative'] = dict_paths['dict_study_points_sim_base']['hydro'] + '_' + region_narrative + '.shp'
 
         if len(shapefile_hydro) > 0:
             load_shapefiles = False
@@ -204,8 +210,6 @@ for region_id in regions:
     rcp = 'rcp85'
     if load_ncdf.lower().replace(" ", "") in ['y', 'yes']:
         print(f'################################ RUN OVER NCDF ################################', end='\n')
-
-
         # Define indicator to load
         if not auto_run:
             data_input = input('What should I run ?')
@@ -213,7 +217,7 @@ for region_id in regions:
             data_input = 'QA QJXA VCN10'
 
         data_input_list = re.split(r"[ ]", data_input)
-        if len(data_input_list) == 0:
+        if len(data_input) == 0:
             path_dict = path_files
         else:
             path_dict = {'hydro': {rcp: {}}, 'climate': {rcp: {}}}
@@ -280,7 +284,10 @@ for region_id in regions:
     quantiles = [0.5]
     str_quantiles = 'quant'+('-').join([f"{int(i*100)}" for i in  quantiles])
     horizon_ref='horizon3'
-    path_narratives = f"{dict_paths['folder_study_data_narratives']}narratives_{extended_name}_{horizon_ref}_{str_quantiles}_{region_name}.json"
+    if region_input_list == 'K L M':
+        path_narratives = f"{dict_paths['folder_study_data_narratives']}narratives_{extended_name}_{horizon_ref}_{str_quantiles}_K.json"
+    else:
+        path_narratives = f"{dict_paths['folder_study_data_narratives']}narratives_{extended_name}_{horizon_ref}_{str_quantiles}_{region_name}.json"
 
     if not auto_run:
         load_narratives = input("Compute new narrative ? (y/[n])")
@@ -290,24 +297,21 @@ for region_id in regions:
 
         # horizons_narrative = ['horizon1','horizon2', 'horizon3']
         print('> Define Narratives')
-        # # selected_points_narratives = open_shp('/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_noeud_gestion.shp')
-        # # selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
-        # selected_points_narratives = open_shp(path_shp='/home/bcalmel/Documents/3_results/HMUC_Loire_Bretagne/data/shapefiles/hydro_points_sim_all-BV.shp')
-        # selected_points_narratives = selected_points_narratives[selected_points_narratives['n'] >= 4]
-        # selected_points_narratives = selected_points_narratives.reset_index(drop=True).set_index('Suggestion')
-        # selected_points_narratives.index.names = ['name']
+        hydro_narrative_gdf_simplified = open_shp(path_shp=dict_paths['dict_study_points_sim']['hydro_narrative'])
+        hydro_narrative_gdf_simplified = hydro_narrative_gdf_simplified[hydro_narrative_gdf_simplified['n'] >= 4]
+        hydro_narrative_gdf_simplified = hydro_narrative_gdf_simplified.reset_index(drop=True).set_index('Suggestion')
+        hydro_narrative_gdf_simplified.index.names = ['name']
 
         indicator_values = ["QJXA", "QA", "VCN10"]
-        paths_ds_narratives = [f"{dict_paths['folder_study_data_ncdf']}{indicator}_{rcp}_YE_{extended_name}_{region_name}.nc"
+        paths_ds_narratives = [f"{dict_paths['folder_study_data_ncdf']}{indicator}_{rcp}_YE_{extended_name}_{region_narrative}.nc"
                                for indicator in indicator_values]
 
         compute_narratives( paths_ds_narratives,
                             files_setup=files_setup,
                             indicator_values=indicator_values,
-                            stations=hydro_sim_points_gdf_simplified[hydro_sim_points_gdf_simplified['REFERENCE'] == 1].index.values,
-                            narrative_method='combine',
+                            stations=hydro_narrative_gdf_simplified[hydro_narrative_gdf_simplified['REFERENCE'] == 1].index.values,
                             path_narratives=path_narratives,
-                            path_figures=dict_paths['folder_study_figures_narratives']+region_name+'_',
+                            path_figures=dict_paths['folder_study_figures_narratives']+region_narrative+'_',
                             path_performances=dict_paths['folder_hydro_performances'],
                             path_formated_ncdf=f"{dict_paths['folder_study_data_formated-ncdf']}",
                             horizon_ref=horizon_ref,

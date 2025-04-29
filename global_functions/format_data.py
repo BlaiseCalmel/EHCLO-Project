@@ -204,10 +204,10 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
 
     columns |= {'simulation_cols': simulation_cols, # raw value
                 'simulation_deviation': simulation_deviation, # deviation from averaged historical reference
-                'simulation_difference': simulation_difference, # difference from AHR
+                'simulation_difference': simulation_difference, # difference from averaged historical reference
                 'simulation_horizon': simulation_horizon, # mean value per horizon
-                'simulation-horizon_by-sims_deviation': simulation_horizon_deviation_by_sims, # Horz deviation from AHR
-                'simulation-horizon_by-sims_difference': simulation_horizon_difference_by_sims, # Horz difference from AHR
+                'simulation-horizon_by-sims_deviation': simulation_horizon_deviation_by_sims, # Horz deviation from averaged historical reference
+                'simulation-horizon_by-sims_difference': simulation_horizon_difference_by_sims, # Horz difference from averaged historical reference
                 'horizon_deviation': horizon_deviation, # mean horizon deviation among sims
                 'horizon_difference': horizon_difference,
                 'horizon_matching': horizon_matching,
