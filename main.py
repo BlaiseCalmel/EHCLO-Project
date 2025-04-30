@@ -60,10 +60,10 @@ for main_key in ['hydro_indicator', 'climate_indicator']:
             settings_flatten |= {subkey: subvalue}
 
 print(f'> Define paths...', end='\n')
-path_data = r"/media/bcalmel/One Touch/2_Travail/3_INRAE_EHCLO/20_data"
-folder_path_results = r"/media/bcalmel/One Touch/2_Travail/3_INRAE_EHCLO"
-# path_data = r"D:\2_Travail\3_INRAE_EHCLO\20_data"
-# folder_path_results = r"D:\2_Travail\3_INRAE_EHCLO"
+# path_data = r"/media/bcalmel/One Touch/2_Travail/3_INRAE_EHCLO/20_data"
+# folder_path_results = r"/media/bcalmel/One Touch/2_Travail/3_INRAE_EHCLO"
+path_data = r"D:\2_Travail\3_INRAE_EHCLO\20_data"
+folder_path_results = r"D:\2_Travail\3_INRAE_EHCLO"
 study_name = f"HMUC_Loire_Bretagne"
 dict_paths = define_paths(config, path_data, folder_path_results, study_name)
 
@@ -131,7 +131,13 @@ for region_id in regions:
             
             force_contains = {'Suggesti_2': ['LA LOIRE', 'L\'ALLIER'],
                               'Suggestion': flatten_reference_stations.keys()}
+            shapefile_hydro = study_hydro_shp
+            shapefile_climate = study_climate_shp
 
+            region_name = region_input_list
+            region_narrative = 'K'
+
+        else:
             selected_codes = []
             for code in region_input_list:
                 if code in regions_shp['CdRegionHy'].values:
@@ -140,12 +146,11 @@ for region_id in regions:
             shapefile_hydro = regions_shp[regions_shp['CdRegionHy'].isin(selected_codes)]
             shapefile_climate = shapefile_hydro
 
-        region_name = '-'.join(selected_codes)
-        region_name_shp = region_name + '.shp'
-        if len(region_id) == 0:
-            region_narrative = 'K'
-        else:
+            region_name = '-'.join(selected_codes)
             region_narrative = region_name
+
+        region_name_shp = region_name + '.shp'
+
         dict_paths['dict_study_points_sim']['hydro_narrative'] = dict_paths['dict_study_points_sim_base']['hydro'] + '_' + region_narrative + '.shp'
 
         if len(shapefile_hydro) > 0:
@@ -237,6 +242,7 @@ for region_id in regions:
                 sim_points_gdf_simplified = climate_sim_points_gdf_simplified
                 # sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
 
+            ds = xr.open_dataset(r"D:\2_Travail\3_INRAE_EHCLO\HMUC_Loire_Bretagne\data\ncdf\QA_rcp85_YE_TRACC_UG-Loire.nc")
             for rcp, subdict2 in subdict.items():
                 for indicator, paths in subdict2.items():
                     print(f'################################ RUN {data_type} {rcp} {indicator} ################################', end='\n')
