@@ -139,7 +139,6 @@ def plot_narratives(x_data, ds_stacked, representative_groups, labels, cluster_n
 
             rg = representative_groups[row_idx]
             for cluster, values in rg.items():
-
                 idx = values['idx']
 
                 # Récupérer les coordonnées d'origine (gcm-rcm, bc, hm)
@@ -203,8 +202,10 @@ def plot_narratives(x_data, ds_stacked, representative_groups, labels, cluster_n
                 cbar.ax.invert_yaxis()
 
                 if len(axes_flatten) > 1:
-                    ax.legend(handles=representative_legends, loc='center left', bbox_to_anchor=(1.7, 0.5),
-                              title="Narratifs", ncol=1)
+                    # ax.legend(handles=representative_legends, loc='center left', bbox_to_anchor=(1.7, 0.5),
+                    #           title="Narratifs", ncol=1)
+                    fig.legend(handles=representative_legends, loc='upper left', bbox_to_anchor=(0.51, 0.1), 
+                               title="Narratifs", ncol=2)
                 else:
                     ax.legend(handles=representative_legends, loc='center left', bbox_to_anchor=(1.5, 0.28),
                               title="Narratifs", ncol=1)
@@ -214,8 +215,10 @@ def plot_narratives(x_data, ds_stacked, representative_groups, labels, cluster_n
             fig.legend(handles=hm_legends, loc='upper left', bbox_to_anchor=(0.0, 0.07),
                        title="Modèles Hydro", ncol=2+len(cols))
         elif len(rows) == 1:
-            fig.legend(handles=hm_legends, loc='upper center', bbox_to_anchor=(0.5, 0.1),
-                       title="Modèles Hydro", ncol=2+len(cols))
+            # fig.legend(handles=hm_legends, loc='upper center', bbox_to_anchor=(0.5, 0.1),
+            #            title="Modèles Hydro", ncol=2+len(cols))
+            fig.legend(handles=hm_legends, loc='upper left', bbox_to_anchor=(0.06, 0.1),
+                title="Modèles Hydro", ncol=3)
         else:
             fig.legend(handles=hm_legends, loc='upper center', bbox_to_anchor=(0.5, 0.06),
                        title="Modèles Hydro", ncol=2+len(cols))

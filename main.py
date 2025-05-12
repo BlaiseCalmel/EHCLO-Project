@@ -60,10 +60,10 @@ for main_key in ['hydro_indicator', 'climate_indicator']:
             settings_flatten |= {subkey: subvalue}
 
 print(f'> Define paths...', end='\n')
-# path_data = r"/media/bcalmel/One Touch/2_Travail/3_INRAE_EHCLO/20_data"
-# folder_path_results = r"/media/bcalmel/One Touch/2_Travail/3_INRAE_EHCLO"
-path_data = r"D:\2_Travail\3_INRAE_EHCLO\20_data"
-folder_path_results = r"D:\2_Travail\3_INRAE_EHCLO"
+path_data = r"/media/bcalmel/One Touch/2_Travail/3_INRAE_EHCLO/20_data"
+folder_path_results = r"/media/bcalmel/One Touch/2_Travail/3_INRAE_EHCLO"
+# path_data = r"D:\2_Travail\3_INRAE_EHCLO\20_data"
+# folder_path_results = r"D:\2_Travail\3_INRAE_EHCLO"
 study_name = f"HMUC_Loire_Bretagne"
 dict_paths = define_paths(config, path_data, folder_path_results, study_name)
 
@@ -167,7 +167,7 @@ for region_id in regions:
             sim_all_points_info = open_shp(path_shp=dict_paths['dict_global_points_sim'][data_type])
             if data_type == 'hydro':
                 overlay_shapefile(shapefile=shapefile_hydro, data=sim_all_points_info, path_result=path,
-                                  force_contains=None)
+                                  force_contains=force_contains)
             else:
                 overlay_shapefile(shapefile=shapefile_climate, data=sim_all_points_info, path_result=path)
         else:
@@ -182,6 +182,7 @@ for region_id in regions:
     hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified[hydro_sim_points_gdf_simplified['n'] >= 4]
     hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified.reset_index(drop=True).set_index('Suggestion')
     hydro_sim_points_gdf_simplified.index.names = ['name']
+    hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified[~hydro_sim_points_gdf_simplified.index.duplicated(keep='first')]
 
     climate_sim_points_gdf = open_shp(path_shp=dict_paths['dict_study_points_sim']['climate'])
     climate_sim_points_gdf_simplified = climate_sim_points_gdf.loc[
@@ -242,7 +243,6 @@ for region_id in regions:
                 sim_points_gdf_simplified = climate_sim_points_gdf_simplified
                 # sim_points_gdf['weight'] = sim_points_gdf['surface'] / sim_points_gdf['total_surf']
 
-            ds = xr.open_dataset(r"D:\2_Travail\3_INRAE_EHCLO\HMUC_Loire_Bretagne\data\ncdf\QA_rcp85_YE_TRACC_UG-Loire.nc")
             for rcp, subdict2 in subdict.items():
                 for indicator, paths in subdict2.items():
                     print(f'################################ RUN {data_type} {rcp} {indicator} ################################', end='\n')
@@ -260,37 +260,35 @@ for region_id in regions:
                         path_ncdf = f"{dict_paths['folder_study_data_ncdf']}{name_join}_{rcp}_{timestep}_{extended_name}_{region_name}.nc"
                         # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_narratest.nc"
 
-                        if not os.path.isfile(path_ncdf):
-                            print(f'> Create {indicator} export...', end='\n')
-                            if len(paths) > 0 :
-                                # paths = [
-                                #     '/home/bcalmel/Documents/2_data/historical-rcp85/HadGEM2-ES/ALADIN63/ADAMONT/SMASH/debit_France_MOHC-HadGEM2-ES_historical-rcp85_r1i1p1_CNRM-ALADIN63_v3_MF-ADAMONT-SAFRAN-1980-2011_INRAE-SMASH_day_20050801-20990731.nc'
-                                # ]
-                                # paths_data=paths
-                                # param_type=data_type
-                                # sim_points_gdf=sim_points_gdf_simplified
-                                #
-                                # path_result=path_ncdf
-                                # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{start}-{end}.csv"
-                                extract_ncdf_indicator(
-                                    paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
-                                    indicator=indicator, function=function, files_setup=files_setup, timestep=timestep,
-                                    start=start_year,
-                                    end=end_year,
-                                    tracc_year=tracc_year,
-                                    path_result=path_ncdf,
-                                )
-                            else:
-                                print(f'> Invalid {indicator} name', end='\n')
+                        print(f'> Create {indicator} export...', end='\n')
+                        if len(paths) > 0 :
+                            # paths = [
+                            #     '/home/bcalmel/Documents/2_data/historical-rcp85/HadGEM2-ES/ALADIN63/ADAMONT/SMASH/debit_France_MOHC-HadGEM2-ES_historical-rcp85_r1i1p1_CNRM-ALADIN63_v3_MF-ADAMONT-SAFRAN-1980-2011_INRAE-SMASH_day_20050801-20990731.nc'
+                            # ]
+                            # paths_data=paths
+                            # param_type=data_type
+                            # sim_points_gdf=sim_points_gdf_simplified
+                            #
+                            # path_result=path_ncdf
+                            # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_{start}-{end}.csv"
+                            extract_ncdf_indicator(
+                                paths_data=paths, param_type=data_type, sim_points_gdf=sim_points_gdf_simplified,
+                                indicator=indicator, function=function, files_setup=files_setup, timestep=timestep,
+                                start=start_year,
+                                end=end_year,
+                                tracc_year=tracc_year,
+                                path_result=path_ncdf,
+                            )
                         else:
-                            print(f'> {path_ncdf} already exists', end='\n')
+                            print(f'> Invalid {indicator} name', end='\n')
+
 
     #%% Visualize results
     narratives = None
     quantiles = [0.5]
     str_quantiles = 'quant'+('-').join([f"{int(i*100)}" for i in  quantiles])
-    horizon_ref='horizon3'
-    if region_input_list == 'K L M':
+    horizon_ref='horizon2'
+    if region_input_list == 'UG-Loire':
         path_narratives = f"{dict_paths['folder_study_data_narratives']}narratives_{extended_name}_{horizon_ref}_{str_quantiles}_K.json"
     else:
         path_narratives = f"{dict_paths['folder_study_data_narratives']}narratives_{extended_name}_{horizon_ref}_{str_quantiles}_{region_name}.json"
@@ -315,7 +313,6 @@ for region_id in regions:
         compute_narratives( paths_ds_narratives,
                             files_setup=files_setup,
                             indicator_values=indicator_values,
-                            stations=hydro_narrative_gdf_simplified[hydro_narrative_gdf_simplified['REFERENCE'] == 1].index.values,
                             path_narratives=path_narratives,
                             path_figures=dict_paths['folder_study_figures_narratives']+region_narrative+'_',
                             path_performances=dict_paths['folder_hydro_performances'],
@@ -378,7 +375,7 @@ while run_plot:
     # data_to_plot = {name: files_setup['hydro_indicator'][name]}
     # data_to_plot = (files_setup['climate_indicator'] | files_setup['hydro_indicator'])
     if len(data_to_plot) > 0:
-        overwrite = True
+        overwrite = False
         rcp = 'rcp85'
         runned_data = []
         if narratives is None:
@@ -425,10 +422,11 @@ while run_plot:
 
             # Define horizons
             if tracc_year is not None:
-                horizons = {'horizon1': 'Horizon +2.0°C | 2030',
+                horizons_tracc = {'horizon1': 'Horizon +2.0°C | 2030',
                             'horizon2': 'Horizon +2.7°C | 2050',
                             'horizon3': 'Horizon +4.0°C | 2100',
                 }
+                horizons = {key: value for key, value in horizons_tracc.items() if key == horizon_ref}
             else:
                 horizons = {'horizon1': 'Horizon 1 (2021-2050)',
                             'horizon2': 'Horizon 2 (2041-2070)',
@@ -446,11 +444,13 @@ while run_plot:
                 # Compute PK
                 if indicator_setup['type']  == 'hydro_indicator':
                     data_type = 'hydro'
-                    sim_points_gdf_simplified = hydro_sim_points_gdf_simplified
+                    sim_points_gdf_simplified = hydro_sim_points_gdf_simplified = hydro_sim_points_gdf_simplified[~hydro_sim_points_gdf_simplified.index.duplicated(keep='first')]
+                    
                     # loire = sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7]
                     loire = sim_points_gdf_simplified[(sim_points_gdf_simplified['Suggesti_2'].str.contains('LA LOIRE ', case=False, na=False))]
                     value = compute_river_distance(rivers_shp, loire, river_name='loire',
                                                    start_from='last')
+
                     hydro_sim_points_gdf_simplified["PK"] = value                    
                     # sim_points_gdf_simplified.loc[sim_points_gdf_simplified['gid'] < 7, 'PK'] = value
                     edgecolor = 'k'
@@ -463,27 +463,28 @@ while run_plot:
                 # TODO load formated-ncdf                
                 # Open ncdf dataset
                 path_ncdf = f"{dict_paths['folder_study_data_ncdf']}{title_join}_{rcp}_{settings['timestep']}_{extended_name}_{region_name}.nc"
-                path_formated_ncdf=f"{dict_paths['folder_study_data_formated-ncdf']}formated-{path_ncdf.split(os.sep)[-1]}"
-                if os.path.isfile(path_formated_ncdf):
+                path_formated_ncdf = f"{dict_paths['folder_study_data_formated-ncdf']}formated-{path_ncdf.split(os.sep)[-1]}"
+                path_variables = f"{dict_paths['folder_study_data_formated-ncdf']}{indicator_setup['type']}_variables.json"
+                if os.path.isfile(path_formated_ncdf) and os.path.isfile(path_variables):
                     ds_stats = xr.open_dataset(path_formated_ncdf)
-                    variables.keys()
-                    var_names = {}
-                    var_names[f'simulation-horizon_by-sims_deviation'] = [i for i in ds_stats.data_vars if '_by-horizon_deviation' in i]
-                    [i for i in ds_stats.data_vars if 'simulation_deviation' in i]
+                    
+                    with open(path_variables, "r", encoding="utf-8") as f:
+                        variables = json.load(f)
+                else:
+                    
+                    ds_stats = xr.open_dataset(path_ncdf)
+                    if data_type == 'hydro':
+                        ds_stats['gid'] = ds_stats['gid'].astype(str)
+                    gid_values = np.unique([code for code in sim_points_gdf_simplified.index.values])
+                    codes_to_select = [code for code in gid_values if code in ds_stats['gid'].values]
+                    if len(codes_to_select) > 0:
+                        ds_stats = ds_stats.sel(gid=codes_to_select)
 
-                # path_ncdf2 = f"{dict_paths['folder_study_data']}{title_join}_{rcp}_{settings['timestep']}.nc"
-                ds_stats = xr.open_dataset(path_ncdf)
-                if data_type == 'hydro':
-                    ds_stats['gid'] = ds_stats['gid'].astype(str)
-                gid_values = np.unique([code for code in sim_points_gdf_simplified.index.values])
-                codes_to_select = [code for code in gid_values if code in ds_stats['gid'].values]
-                if len(codes_to_select) > 0:
-                    ds_stats = ds_stats.sel(gid=codes_to_select)
-
-                # Compute stats
-                ds_stats, variables = format_dataset(ds=ds_stats, data_type=data_type, files_setup=files_setup,
-                                                     plot_function=settings['additional_coordinates'],
-                                                     return_period=settings['return_period'])
+                    # Compute stats
+                    ds_stats, variables = format_dataset(ds=ds_stats, data_type=data_type, files_setup=files_setup,
+                                                        path_result=path_formated_ncdf, path_variables=path_variables,
+                                                        plot_function=settings['additional_coordinates'],
+                                                        return_period=settings['return_period'])
                 # ds_stats.sel(gid=ds_stats["gid"] == b'----------')
                 # ds_stats = ds_stats.sel(gid=ds_stats["gid"] != b'----------')
 
@@ -742,6 +743,7 @@ while run_plot:
                                                 
                                                 print(f"{name_indicator} >> Strip plot {plot_type} for {river} selected stations with narratives")
                                                 plot_boxplot_station_narrative_tracc(   ds=ds[variables[f'simulation-horizon_by-sims_{plot_type}']],
+                                                                                        horizons=horizons,
                                                                                         station_references=extended_station_name,
                                                                                         narratives=narratives,
                                                                                         title=coordinate_value,

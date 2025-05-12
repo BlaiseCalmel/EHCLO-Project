@@ -70,7 +70,7 @@ def representative_item(X_cluster, centroids, cluster, cluster_id, indices_clust
     return idx
 
 
-def compute_narratives(paths_ds_narratives, files_setup, path_narratives, stations,
+def compute_narratives(paths_ds_narratives, files_setup, path_narratives, 
                        path_performances, path_figures, path_formated_ncdf,
                        indicator_values=["QJXA", "QA", "VCN10"],
                        horizon_ref='horizon3', quantiles=[0.5]):
@@ -97,7 +97,7 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives, statio
     data_arrays = []
     # for h in horizons:
     datasets = [ds_i[var_names[f'simulation-horizon_by-sims_deviation']].sel(
-        horizon=horizon_ref, gid=stations) for ds_i in datasets_list] #, gid=stations
+        horizon=horizon_ref) for ds_i in datasets_list] #, gid=stations
     for i in range(len(datasets)):
         ds = datasets[i]
         for var_name, da in ds.data_vars.items():
@@ -196,15 +196,23 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives, statio
     above_threshold = np.array([hm_performances.loc[hm]['sum'] for hm in hydrological_models])
 
     # Bleunavy Orange Brun Turquoise https://www.canva.com/colors/color-palettes/freshly-sliced-fruit/
-    cluster_names = ['Argousier', 'Cèdre', 'Séquoia', 'Genévrier']
-    hex_colors = ["#E66912", "#016367", "#870000", "#0f063b"]
+    cluster_names = ['Argousier', 'Genévrier', 'Erable', 'Cèdre']
+    hex_colors = ["#E66912", "#0f063b","#870000", "#016367"]
     # ["#E66912", "#016367", "#9E3A14", "#0B1C48"]
+
+    # labels_sorted = np.tile(np.nan, labels.shape)
+    # centroids_sorted = np.tile(np.nan, centroids.shape)
+    # for key, value in sorted_cluster.items():
+    #     mask = labels==value
+    #     labels_sorted[mask] = key
+    #     centroids_sorted[value] = centroids[key]
 
     rows = None
 
     above_threshold_array = np.tile(False, hydrological_models.shape)
     print(f">> Define narrative simulation per cluster...", end='\n')
     representative_groups = {}
+    coordinates_narratives = []
     for cluster in cluster_id:
         # Index of cluster values
         indices_cluster = np.where(labels == cluster)[0]
@@ -234,11 +242,11 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives, statio
         X_cluster = X_imputed[indices_cluster, :]
 
         # Compute distance from cluster centroid
-        distances_cluster = np.linalg.norm(X_cluster[indices_cluster, :] - centroids[cluster], axis=1)
+        distances_cluster = np.linalg.norm(X_cluster - centroids[cluster], axis=1)
 
         # Distance max from current centroid
         distance_max = np.median(distances_cluster) + 2 * np.std(distances_cluster)
-        sum_cluster_distance_treshold = np.sum(distances_cluster <= distance_max, axis=0)
+        sum_cluster_distance_treshold = distances_cluster <= distance_max
         mask_cluster = (sum_cluster_distance_treshold == max(sum_cluster_distance_treshold))
         # ds_stacked['hm'].isel(sample=indices_cluster).values
 
@@ -248,7 +256,7 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives, statio
             if c != cluster:
                 distances_list.append(np.linalg.norm(X_cluster - centroids[c], axis=1))
         distances_other = np.min(distances_list, axis=0)
-
+        
         if np.any(distances_other) and np.any(mask_cluster):
             idx = indices_cluster[mask_cluster][np.argmax(distances_other[mask_cluster])]
 
@@ -265,13 +273,82 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives, statio
                 "bc": coords_bc,
                 "hm": coords_hm,
                 "idx": idx,
-                "color": hex_colors[cluster],
-                "name": cluster_names[cluster]
+                # "color": hex_colors[cluster],
+                # "name": cluster_names[cluster]
             }
+        coordinates_narratives.append(X_imputed[idx])
 
-    narratives |= {horizon_ref : {f"{value['gcm-rcm']}_{value['bc']}_{value['hm']}": {'color': value['color'], 'zorder': 10,
-    'label': f"{value['name'].title()}",
-    'linewidth': 2} for key, value in rp.items()} for i, rp in enumerate(meth_list)}
+    array_coordinates_narratives = np.array(coordinates_narratives)
+    decreasing_ranks = np.argsort(np.argsort(array_coordinates_narratives, axis=0), axis=0) + 1
+    increasing_ranks = array_coordinates_narratives.shape[0] + 1 - decreasing_ranks
+    # Match color to cluster
+    used_cluster = []
+    qjxa_idx = indicator_values.index("QJXA")
+    qa_idx = indicator_values.index("QA")
+    vcn10_idx = indicator_values.index("VCN10")
+    
+    # Extrema intensify (E)
+    id_e = np.argmax(decreasing_ranks[:, qjxa_idx] + increasing_ranks[:, vcn10_idx])
+    used_cluster.append(id_e)
+
+    # QA decrease and severe drought (A)
+    mask2 = np.ones(array_coordinates_narratives.shape[0], dtype=bool)
+    mask2[used_cluster] = False
+    _temp_id_a = np.argmax(increasing_ranks[mask2, qa_idx] + increasing_ranks[mask2, vcn10_idx])
+    id_a = cluster_id[mask2][_temp_id_a]
+    used_cluster.append(id_a)
+
+    # QA increase and intense high flow (G)
+    mask3 = np.ones(array_coordinates_narratives.shape[0], dtype=bool)
+    mask3[used_cluster] = False
+    _temp_id_g = np.argmax(decreasing_ranks[mask3, qa_idx] + decreasing_ranks[mask3, qjxa_idx])
+    id_g = cluster_id[mask3][_temp_id_g]
+    used_cluster.append(id_g)
+
+    # Moderate (C)
+    id_c = (set(cluster_id) - set(used_cluster)).pop()
+
+    sorted_cluster = {0: id_a, 1: id_g, 2: id_e, 3: id_c}
+    # sorted_cluster = {id_a: 0, id_g: 1, id_e: 2, id_c: 3}
+    
+    # # Min VCN10
+    # id1 = np.argmin(array_coordinates_narratives[:, indicator_values.index("VCN10")])
+    # used_cluster.append(id1)
+    # # Max QJXA
+    # mask2 = np.ones(array_coordinates_narratives.shape[0], dtype=bool)
+    # mask2[used_cluster] = False
+    # _temp_id2 = np.argmax(array_coordinates_narratives[mask2, indicator_values.index("QJXA")])
+    # id2 = cluster_id[mask2][_temp_id2]
+    # used_cluster.append(id2)
+    # # Second min VCN10
+    # mask3 = np.ones(array_coordinates_narratives.shape[0], dtype=bool)
+    # mask3[used_cluster] = False
+    # _temp_id3 = np.argmin(array_coordinates_narratives[mask3, indicator_values.index("VCN10")])
+    # id3 = cluster_id[mask3][_temp_id3]
+    # used_cluster.append(id3)
+    # # Last value
+    # id4 = (set(cluster_id) - set(used_cluster)).pop()
+    # # Sorted cluster id to match color
+    # sorted_cluster = {0: id3, 1: id4, 2: id1, 3: id2}
+    # # ['Argousier', 'Cèdre', 'Érable', 'Genévrier']
+
+    meth_list = [{id_colord: representative_groups[id_label] for id_colord, id_label in sorted_cluster.items()}]
+
+    narratives |= {horizon_ref : {f"{value['gcm-rcm']}_{value['bc']}_{value['hm']}": {'color': hex_colors[i], 'zorder': 10,   
+                   'label': f"{cluster_names[i].title()}", 
+                   'linewidth': 2} for key, value in rg.items() } for rg in meth_list }
+    
+    idx = -1
+    for key, value in narratives[horizon_ref].items():
+        idx += 1
+        narratives[horizon_ref][key]['color'] = hex_colors[idx]
+        narratives[horizon_ref][key]['label'] = f"{cluster_names[idx].title()}"
+    
+    labels_sorted = np.tile(np.nan, labels.shape)
+    for key, value in sorted_cluster.items():
+        mask = labels==value
+        labels_sorted[mask] = key
+
 
     # PCA for 2D visualisation
     pca = PCA(n_components=2)
@@ -298,7 +375,7 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives, statio
     ylabel = f"Dim 2 {ratio2:.1%} ({indicator_values[0]}: {pc2_contributions[0]:.1%}, \n{indicator_values[1]}: {pc2_contributions[1]:.1%}, {indicator_values[2]}: {pc2_contributions[2]:.1%})"
     title = "Clusters et points représentatifs (après PCA)"
     path_result = f"{path_figures}narratest_pca-comparatives_{horizon_ref}_{str_quantiles}.pdf"
-    plot_narratives(X_pca, ds_stacked, meth_list, labels, cluster_names,
+    plot_narratives(X_pca, ds_stacked, meth_list, labels_sorted, cluster_names,
                     path_result, xlabel, ylabel, title=None, centroids=centroids_pca, count_stations=None,
                     above_threshold=above_threshold_array, palette=hex_colors, n=4, rows=rows,
                     cols=None)
@@ -307,7 +384,7 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives, statio
 
     print(f">> Narrative every indicators Plot {indicator_values} [{horizon_ref}]", end='\n')
     path_result = f"{path_figures}narratest_indicator-comparatives_{horizon_ref}_{str_quantiles}.pdf"
-    plot_narratives(X_imputed, ds_stacked, meth_list, labels, cluster_names,
+    plot_narratives(X_imputed, ds_stacked, meth_list, labels_sorted, cluster_names,
                     path_result, xlabel, ylabel, title, centroids=None, count_stations=None,
                     above_threshold=above_threshold_array, palette=hex_colors, n=4, rows=rows,
                     cols=indicator_values)

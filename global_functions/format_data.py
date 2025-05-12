@@ -80,7 +80,8 @@ def get_season(month):
     elif month in [9, 10, 11]:
         return 4
 
-def format_dataset(ds, data_type, files_setup, plot_function=None, return_period=None, path_result=None):
+def format_dataset(ds, data_type, files_setup, plot_function=None, return_period=None, path_result=None,
+                   path_variables=None):
     other_dimension = None
     dimension_names = None
     if plot_function is not None:
@@ -222,6 +223,9 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
     if path_result is not None:
         print(f'>> Save formated ncdf...', end='\n')
         ds.to_netcdf(path=f"{path_result}")
+    if path_variables is not None:
+        with open(path_variables, "w", encoding="utf-8") as f:
+            json.dump(columns, f, ensure_ascii=False, indent=4)
 
     return ds, columns
 

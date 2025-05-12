@@ -186,7 +186,10 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
                     i += 1
                     current_position = [i + (len(y_axis['names_plot']) - ignore + 2 * blank_space) * j for j in
                                         range(len(x_axis['names_plot']))]
-                    width = 0.5 * (current_position[1] - current_position[0])
+                    if len(current_position) > 1:
+                        width = 0.5 * (current_position[1] - current_position[0])
+                    else: 
+                        width = 1
                     for cell_idx, cell in enumerate(cell_boxplots):
                         bp = ax.hlines(y=cell, xmin=[current_position[cell_idx] - width/2] * len(cell), 
                                        xmax=[current_position[cell_idx] + width/2] * len(cell), 
@@ -203,7 +206,10 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
                     # w = 1
                     # if 'widths' in kwargs:
                     #     w = kwargs['widths']
-                    width = 0.5 * (current_position[1] - current_position[0])
+                    if len(current_position) > 1:
+                        width = 0.5 * (current_position[1] - current_position[0])
+                    else:
+                        width = 1
                     hline_values = plot_selection(ds_selection=cell_data, names_var=x_axis['names_coord'], value=x_axis['values_var'])
                     for ref, ref_args in references.items():
                         ax.hlines(y=hline_values[ref].values, xmin=[val - width/2 for val in current_position], 

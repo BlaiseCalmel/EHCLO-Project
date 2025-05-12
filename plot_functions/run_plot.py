@@ -310,7 +310,7 @@ def plot_boxplot_station_narrative(ds, station_references, narratives, reference
     boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=True,
              title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=0.25)
 
-def plot_boxplot_station_narrative_tracc(ds, station_references, narratives, path_result, name_y_axis='', percent=False,
+def plot_boxplot_station_narrative_tracc(ds, station_references, narratives, path_result, horizons, name_y_axis='', percent=False,
                                    title=None, fontsize=14, font='sans-serif'):
 
     simulations = list(ds.data_vars)
@@ -330,6 +330,9 @@ def plot_boxplot_station_narrative_tracc(ds, station_references, narratives, pat
     dict_sims['simulations'] = {'values': simulations, 'kwargs': {'color': 'lightgray', 'alpha': 0.35, 'zorder': 0,
                                                                   'linewidth': 1, 'label': 'Ensemble des projections'}}
 
+    horizons_tracc = {'horizon1': '+2.0°C', 'horizon2': '+2.7°C', 'horizon3': '+4.0°C'}    
+    selected_horizons = {key: value for key, value in horizons_tracc.items() if key in horizons.keys()}                                                       
+
     # indicator_plot = [dict_sims]
     y_axis = {'names_coord': 'indicator',
               'values_var': dict_sims, #indicator_plot
@@ -339,8 +342,8 @@ def plot_boxplot_station_narrative_tracc(ds, station_references, narratives, pat
 
     x_axis = {
         'names_coord': 'horizon',
-        'values_var': ['horizon1', 'horizon2', 'horizon3'],
-        'names_plot': ['+2°C', '+2.7°C', '+4°C']
+        'values_var': list(selected_horizons.keys()),
+        'names_plot': list(selected_horizons.values())
     }
 
     cols = 2
@@ -425,7 +428,8 @@ def plot_map_indicator_narratives(gdf, ds, narratives, path_result, cbar_title, 
                                   vmin=None, vmax=None, edgecolor='k', cbar_midpoint=None, markersize=50, alpha=1):
 
     narr = [key for narr_values in narratives.values() for key in narr_values.keys()]
-    stats_by_narr = [sim for sim in variables[f'simulation-horizon_by-sims_{plot_type}'] if any(n in sim for n in narr)]
+    # stats_by_narr = [sim for sim in variables[f'simulation-horizon_by-sims_{plot_type}'] if any(n in sim for n in narr)]
+    stats_by_narr = [n+'_by-horizon_deviation' for n in narr]
 
     # rows = {
     #     'names_coord': 'indicator',

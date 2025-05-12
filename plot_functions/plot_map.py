@@ -126,8 +126,12 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         # Limit values to extrema        
         # extended_indices = ((levels >= min((plot_vmin, midpoint))) & (levels <= max((plot_vmax, midpoint))))
 
+        start_idx = bisect.bisect_right(levels.tolist(), min(plot_vmin, midpoint)) -1
+        if start_idx < 0:
+            start_idx = 0
+
         extended_levels = levels[
-            bisect.bisect_right(levels.tolist(), min(plot_vmin, midpoint)) -1 : bisect.bisect_left(levels.tolist(), max(plot_vmax, midpoint)) + 1
+             start_idx : bisect.bisect_left(levels.tolist(), max(plot_vmax, midpoint)) + 1
             ]
         # extended_indices = np.where((levels >= vmin) & (levels <= vmax))[0]
 
@@ -215,7 +219,7 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
         subtitles_lines = 0
         if isinstance(cols, dict) and 'names_plot' in cols.keys():
             subtitles_lines = max(s.count('\n') for s in cols['names_plot'])
-        figsize= (figsize[0], figsize[1] * (1 + 0.02 * len_rows) + subtitles_lines)
+            figsize= (figsize[0], figsize[1] * (1 + 0.02 * len_rows) + subtitles_lines)
     
     # if len_rows == 1:
     #     figsize= (figsize[0] * 1.05, figsize[1])
