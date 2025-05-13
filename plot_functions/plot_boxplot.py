@@ -63,10 +63,14 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
 
     if ymin is None:
         # ymin = ds.to_array().quantile(0.01).item()
-        ymin = ds.to_array().min().item()
+        ymin_vline = ds.to_array().min().item()
+    else:
+        ymin_vline = ymin
     if ymax is None:
         # ymax = ds.to_array().quantile(0.99).item()
-        ymax = ds.to_array().max().item()
+        ymax_vline = ds.to_array().max().item()
+    else:
+        ymax_vline = ymax
 
     # if y_axis['names_coord'] == 'indicator':
     #     list_of_sims = [subdict['values'] for subdict in y_axis['values_var'].values()]
@@ -120,7 +124,7 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
 
     # Main title
     if title is not None:
-        fig.suptitle(title)
+        fig.suptitle(title, fontsize=plt.rcParams['font.size'], weight='bold')
 
     idx = -1
     for row_idx, row in enumerate(rows_plot['values_var']):
@@ -163,7 +167,10 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
 
                 cell_boxplots = []
                 for x_var in x_axis['values_var']:
-                    boxplot_values = plot_selection(ds_selection=cell_data, names_var=x_axis['names_coord'], value=x_var)
+                    if x_var is not None:
+                        boxplot_values = plot_selection(ds_selection=cell_data, names_var=x_axis['names_coord'], value=x_var)
+                    else:
+                        boxplot_values = cell_data
                     data_list = []
                     for data_name in boxplot_values.data_vars:
                         data_list.append(boxplot_values[data_name].values.flatten())
@@ -189,7 +196,7 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
                     if len(current_position) > 1:
                         width = 0.5 * (current_position[1] - current_position[0])
                     else: 
-                        width = 1
+                        width = 0.8
                     for cell_idx, cell in enumerate(cell_boxplots):
                         bp = ax.hlines(y=cell, xmin=[current_position[cell_idx] - width/2] * len(cell), 
                                        xmax=[current_position[cell_idx] + width/2] * len(cell), 
@@ -218,8 +225,9 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
                         # ax.hlines(y=hline_values[ref].values, xmin=[j+w/1.5 for j in current_position], xmax=[j+w+blank_space for j in current_position], **ref_args)
                         # ax.scatter(x=[j+w+blank_space for j in current_position], y=hline_values[ref].values, s=25, **ref_args)
 
-                y_temp_max.append(np.nanmax(cell_boxplots))
-                y_temp_min.append(np.nanmin(cell_boxplots))
+                if  any(mask):
+                    y_temp_max.append(np.nanmax(cell_boxplots))
+                    y_temp_min.append(np.nanmin(cell_boxplots))
 
                 if 'label' in kwargs:
                     label = kwargs['label']
@@ -250,7 +258,7 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
 
             if vlines is not None:
                 ax.vlines(x=vlines,
-                          ymin=ymin, ymax=ymax,
+                          ymin=ymin_vline, ymax=ymax_vline,
                           color='lightgray', linewidth=2, alpha=0.6)
 
             # plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.1, alpha=0.4)
@@ -258,6 +266,9 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
             ax.yaxis.grid(True, linestyle="--", color='lightgray', linewidth=0.1, alpha=0.4)
 
             ax.spines[['right', 'top']].set_visible(False)
+
+            if x_axis['names_coord'] is None:
+                ax.set_xticks([])
 
             if percent:
                 ax.yaxis.set_major_formatter(mtick.PercentFormatter())
@@ -276,17 +287,17 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
     if ymax is None:
         ymax = np.nanmax(max_values)
 
-    abs_max = max([ymax, -ymin])
-    n = abs_max / 3
-    exponent = round(math.log10(n))
-    step = np.round(n, -exponent+1)
-    if step == 0:
-        step = n
-    ticks = mirrored(abs_max, inc=step, val_center=0)
-    for ax in axes_flatten:
-        ax.set_yticks(ticks)
-
     if common_yaxes:
+        abs_max = max([ymax, -ymin])
+        n = abs_max / 3
+        exponent = round(math.log10(n))
+        step = np.round(n, -exponent+1)
+        if step == 0:
+            step = n
+        ticks = mirrored(abs_max, inc=step, val_center=0)
+        for ax in axes_flatten:
+            ax.set_yticks(ticks)
+        
         for ax_idx, ax in enumerate(axes_flatten):
             ax.set_ylim(np.round(ymin, -exponent+1), np.round(ymax, -exponent+1))
             sbs = ax.get_subplotspec()

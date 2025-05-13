@@ -67,8 +67,28 @@ def load_settings(indicator_setup, name_indicator):
         start_cbar_ticks = f" {settings['start_cbar_ticks']}"
     if settings['end_cbar_ticks'] != '':
         end_cbar_ticks = f" {settings['end_cbar_ticks']}"
+                    
+    if plot_type_name in ['difference']:
+        var_gender = 'f'
+    else:
+        var_gender = 'm'
+    
+    if var_gender == 'f':
+        function_name = "médiane"
+    else:
+        function_name = "médian"
+    
+    settings['title'] = title
+    settings['units'] = units
+    settings['plot_type'] = plot_type
+    settings['plot_type_name'] = plot_type_name
+    settings['percent'] = percent
+    settings['start_cbar_ticks'] = start_cbar_ticks
+    settings['end_cbar_ticks'] = end_cbar_ticks
+    settings['var_gender'] = var_gender
+    settings['function_name'] = function_name
 
-    return settings, title, units, plot_type, plot_type_name, percent, start_cbar_ticks, end_cbar_ticks
+    return settings
 
 def get_season(month):
     if month in [12, 1, 2]:

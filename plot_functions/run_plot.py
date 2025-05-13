@@ -18,6 +18,288 @@
 from plot_functions.plot_map import *
 from plot_functions.plot_lineplot import *
 from plot_functions.plot_boxplot import *
+from global_functions.format_data import *
+
+def plot_climate(ds, sim_points_gdf_simplified, horizons, narratives, settings, coordinate_value, path_indicator_figures):
+    print(f"{settings['name_indicator']} >> {settings['plot_type_name'].title()} map plot")
+    plot_map_indicator(gdf=sim_points_gdf_simplified, ds=ds, indicator_plot=f'horizon_{settings["plot_type"]}-median',
+                        path_result=path_indicator_figures+f"{settings['title_join']}_map_{settings['plot_type']}.pdf", horizons=horizons,
+                        cbar_title=f"{settings['plot_type_name'].title()} {settings['function_name']} {settings['title']}{settings['units']}", 
+                        cbar_ticks=settings['cbar_ticks'],
+                        title=coordinate_value, dict_shapefiles=settings['dict_shapefiles'],
+                        bounds=settings['bounds'], palette=settings['palette'], cbar_midpoint='zero', cbar_values=settings['cbar_values'],
+                        start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
+                        fontsize=settings['fontsize']-2, alpha=1,
+                        font=settings['font'], discretize=settings['discretize'], edgecolor=settings['edgecolor'], markersize=75,
+                        vmin=settings['vmin'], vmax=settings['vmax'], uncertainty='horizon_matching')
+    if len(narratives) == 1:
+        # Climate Narratives
+        if len(list(list(narratives.values())[0].keys())[0].split("_")) == 3:
+            if 'season' in ds.coords:
+                for key, value in horizons.items():
+                    print(f"{settings['name_indicator']} >>>  {settings['plot_type_name'].title()} narratives map plot {value}")
+                    plot_map_narratives(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key), narratives=narratives, 
+                        variables=variables[f"simulation-horizon_by-sims_{settings['plot_type']}"],
+                        path_result=path_indicator_figures+f"{settings['title_join']}_narrative_map_{key}.pdf",
+                        cbar_title=f"{settings['plot_type_name'].title()} {settings['function_name']} {settings['title']}{settings['units']}", 
+                        cbar_ticks=settings['cbar_ticks'],
+                        title=value, dict_shapefiles=settings['dict_shapefiles'],
+                        bounds=settings['bounds'], palette=settings['palette'], cbar_midpoint='zero', cbar_values=settings['cbar_values'],
+                        start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
+                        fontsize=settings['fontsize'], alpha=1,
+                        font=settings['font'], discretize=settings['discretize'], edgecolor=settings['edgecolor'], markersize=75,
+                        vmin=settings['vmin'], vmax=settings['vmax'])
+            else:
+                print(f"{settings['name_indicator']} >>>  {settings['plot_type_name'].title()} narratives map plot")
+                plot_map_narratives(gdf=sim_points_gdf_simplified, ds=ds, narratives=narratives, 
+                    variables=variables[f"simulation-horizon_by-sims_{settings['plot_type']}"],
+                    path_result=path_indicator_figures+f"{settings['title_join']}_narrative_map.pdf",
+                    cbar_title=f"{settings['plot_type_name'].title()} {settings['function_name']} {settings['title']}{settings['units']}", 
+                    cbar_ticks=settings['cbar_ticks'],
+                    title=coordinate_value, dict_shapefiles=settings['dict_shapefiles'],
+                    bounds=settings['bounds'], palette=settings['palette'], cbar_midpoint='zero', cbar_values=settings['cbar_values'],
+                    start_cbar_ticks=settings['start_cbar_ticks'], end_cbar_ticks=settings['end_cbar_ticks'],
+                    fontsize=settings['fontsize'], alpha=1,
+                    font=settings['font'], discretize=settings['discretize'], edgecolor=settings['edgecolor'], markersize=75,
+                    vmin=settings['vmin'], vmax=settings['vmax'])           
+
+def plot_hydro_narraclimate(ds, variables, sim_points_gdf_simplified, horizons, narratives, 
+                            settings, coordinate_value, path_indicator_figures, reference_stations):
+    median_by_hm = [s for sublist in variables[f"hydro-model_{settings['plot_type']}"].values() for s in sublist if "median" in s]
+    sim_points_gdf_simplified['S_HYDRO'][np.isnan(sim_points_gdf_simplified['S_HYDRO'])] = 0
+    label_df = sim_points_gdf_simplified['S_HYDRO'].astype(int).astype(str) + 'km² [' + sim_points_gdf_simplified['n'].astype(str) + 'HM]'
+    # Map per horizon
+    for key, value in horizons.items():
+        print(f"{settings['name_indicator']} >>> Narratives map {value}")
+        if coordinate_value is not None:
+            map_title = f"{value}: {coordinate_value} "
+        else:
+            map_title = f"{value}"
+            plot_map_indicator_narratives(gdf=sim_points_gdf_simplified, ds=ds.sel(horizon=key),
+                                            narratives=narratives, variables=variables, plot_type=settings['plot_type'],
+                                            path_result=path_indicator_figures+f"{settings['title_join']}_map_{settings['plot_type']}_narratives_{key}.pdf",
+                                            cbar_title=f"{settings['plot_type_name'].title()} {settings['function_name']} {settings['title']}{settings['units']}", 
+                                            title=map_title,
+                                            cbar_midpoint='zero',
+                                            dict_shapefiles=settings['dict_shapefiles'], bounds=settings['bounds'], edgecolor=settings['edgecolor'],
+                                            markersize=170, discretize=settings['discretize'], palette=settings['palette'],
+                                            fontsize=settings['fontsize'],
+                                            font=settings['font'], alpha=settings['alpha'],
+                                            vmin=settings['vmin'], vmax=settings['vmax'])
+
+    print(f"> Linear plot...")
+    if 'PK' in sim_points_gdf_simplified.columns:
+        ds = ds.assign(PK=("gid", sim_points_gdf_simplified.loc[ds.gid.values, "PK"]))
+
+        villes = ['Villerest', 'Nevers', 'Orleans', 'Tours', 'Saumur', 'Nantes'] #'Blois',
+        regex = "|".join(villes)
+        vlines = sim_points_gdf_simplified[sim_points_gdf_simplified['Suggesti_2'].str.contains(regex, case=False, na=False)]
+        vlines.loc[: ,'color'] = 'none'
+        cities = [i.split(' A ')[-1].split(' [')[0] for i in vlines['Suggesti_2']]
+        vlines.insert(loc=0, column='label', value=cities)
+        vlines['annotate'] = 0.02
+        vlines['fontsize'] = settings['fontsize'] - 2
+
+        # Limit size of y axis label
+        name_y_axis = optimize_label_length(f"{settings['plot_type'].title()} {settings['title']}{settings['units']}", settings)
+
+        print(f"{name_indicator} >> Linear {plot_type} PK for Narrative & Horizon")
+        plot_linear_pk(ds,
+                        simulations=variables[f"simulation-horizon_by-sims_{settings['plot_type']}"],
+                        narratives=narratives,
+                        horizons=horizons,
+                        title=coordinate_value,
+                        name_x_axis=f'PK (km)',
+                        name_y_axis=name_y_axis,
+                        percent=settings['percent'],
+                        vlines=vlines,
+                        fontsize=settings['fontsize'],
+                        font=settings['font'],
+                        path_result=path_indicator_figures+f"{settings['title_join']}_lineplot_{settings['plot_type']}_PK_narratives_horizon.pdf")
+    
+    for river, river_stations in reference_stations.items():
+        extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
+        for key, value in extended_station_name.items():
+            extended_station_name[key] = optimize_label_length(value, settings, length=30)
+        
+        print(f"{name_indicator} >> Strip plot {settings['plot_type']} for {river} selected stations with narratives")
+
+        plot_boxplot_station_narrative(ds=ds[variables[f"simulation-horizon_by-sims_{settings['plot_type']}"]],
+                                        station_references=extended_station_name,
+                                        narratives=narratives,
+                                        title=coordinate_value,
+                                        references=None,
+                                        name_y_axis=name_y_axis,
+                                        percent=settings['percent'],
+                                        fontsize=settings['fontsize'],
+                                        font=settings['font'],
+                                        path_result=path_indicator_figures+f"{settings['title_join']}_boxplot_{settings['plot_type']}_stations-{river}_horizons_narratives.pdf",)
+
+        # plot_boxplot_station_narrative_tracc(   ds=ds[variables[f"simulation-horizon_by-sims_{settings['plot_type']}"]],
+        #                                         horizons=horizons,
+        #                                         station_references=extended_station_name,
+        #                                         narratives=narratives,
+        #                                         title=coordinate_value,
+        #                                         name_y_axis=name_y_axis,
+        #                                         percent=SETTINGS['percent'],
+        #                                         fontsize=settings['fontsize'],
+        #                                         font=settings['font'],
+        #                                         path_result=path_indicator_figures+f"{settings['title_join']}_boxplot_{settings['plot_type']}_stations-{river}_horizons_narratives.pdf",)
+                                    
+def plot_hydro_narrahydro(ds, variables, sim_points_gdf_simplified, horizons, narratives, 
+                          settings, coordinate_value, path_indicator_figures, reference_stations):
+    median_by_hm = [s for sublist in variables[f"hydro-model_{settings['plot_type']}"].values() for s in sublist if "median" in s]
+    sim_points_gdf_simplified.loc[np.isnan(sim_points_gdf_simplified['S_HYDRO'])]['S_HYDRO'] = 0
+    label_df = sim_points_gdf_simplified['S_HYDRO'].astype(int).astype(str) + 'km² [' + sim_points_gdf_simplified['n'].astype(str) + 'HM]'
+    # Map per horizon
+    for key, value in horizons.items():
+        print(f"{settings['name_indicator']} >>> Map {value}")
+        if coordinate_value is not None:
+            map_title = f"{value}: {coordinate_value} "
+        else:
+            map_title = f"{value}"
+        plot_map_indicator_narratives(gdf=sim_points_gdf_simplified, 
+                                      ds=ds.sel(horizon=key),
+                                      narratives=narratives, 
+                                      variables=variables, 
+                                      plot_type=settings['plot_type'],
+                                      path_result=path_indicator_figures+f"{settings['title_join']}_map_{settings['plot_type']}_narratives_{key}.pdf",
+                                      cbar_title=f"{settings['plot_type_name'].title()} {settings['function_name']} {settings['title']}{settings['units']}", 
+                                      title=map_title,
+                                      cbar_midpoint='zero',
+                                      dict_shapefiles=settings['dict_shapefiles'], 
+                                      bounds=settings['bounds'], 
+                                      edgecolor=settings['edgecolor'],
+                                      markersize=170, 
+                                      discretize=settings['discretize'], 
+                                      palette=settings['palette'],
+                                      fontsize=settings['fontsize'],
+                                      font=settings['font'], 
+                                      alpha=settings['alpha'],
+                                      vmin=settings['vmin'], 
+                                      vmax=settings['vmax'])
+
+    print(f"> Linear plot...")
+    if 'PK' in sim_points_gdf_simplified.columns:
+        ds = ds.assign(PK=("gid", sim_points_gdf_simplified.loc[ds.gid.values, "PK"]))
+
+        villes = ['Villerest', 'Nevers', 'Orleans', 'Tours', 'Saumur', 'Nantes'] #'Blois',
+        regex = "|".join(villes)
+        vlines = sim_points_gdf_simplified[sim_points_gdf_simplified['Suggesti_2'].str.contains(regex, case=False, na=False)]
+        vlines.loc[: ,'color'] = 'none'
+        cities = [i.split(' A ')[-1].split(' [')[0] for i in vlines['Suggesti_2']]
+        vlines.insert(loc=0, column='label', value=cities)
+        vlines['annotate'] = 0.02
+        vlines['fontsize'] = settings['fontsize'] - 2
+
+        # Limit size of y axis label
+        name_y_axis = optimize_label_length(f"{settings['plot_type_name'].title()} {settings['title']}{settings['units']}", settings)
+        settings['title_join']
+
+        plot_linear_pk_narrative(ds,
+                                    simulations=variables[f"simulation-horizon_by-sims_{settings['plot_type']}"],
+                                    narratives=narratives,
+                                    title=coordinate_value,
+                                    name_x_axis=f'PK (km)',
+                                    name_y_axis=name_y_axis,
+                                    percent=settings['percent'],
+                                    vlines=vlines,
+                                    fontsize=settings['fontsize'],
+                                    font=settings['font'],
+                                    path_result=path_indicator_figures+f"{settings['title_join']}_lineplot_{settings['plot_type']}_PK_horizon.pdf")
+
+    # Plot for selected hydro stations per river
+    for river, river_stations in reference_stations.items():
+        extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
+        for key, value in extended_station_name.items():
+            extended_station_name[key] = optimize_label_length(value, settings, length=30)
+
+        print(f"{settings['name_indicator']} >> Boxplot {settings['plot_type']} by horizon and selected stations")
+        plot_boxplot_station_narrative_tracc(ds=ds[variables[f"simulation_deviation"]].sel(time=getattr(ds, list(horizons.keys())[0])), 
+                                             station_references=extended_station_name, 
+                                             narratives=narratives, 
+                                             horizons=horizons, 
+                                             name_y_axis=name_y_axis, 
+                                             percent=settings['percent'],
+                                             title=list(horizons.values())[0], 
+                                             fontsize=settings['fontsize'], 
+                                             font=settings['font'],
+                                             path_result=path_indicator_figures+f"{settings['title_join']}_boxplot_{settings['plot_type']}_stations-{river}_horizons_narratives.pdf",
+                                             )
+
+def plot_monthly(ds_stats, variables, sim_points_gdf_simplified, horizons, narratives, 
+                 settings, path_indicator, reference_stations):
+    label_df = sim_points_gdf_simplified['S_HYDRO'].astype(int).astype(str) + 'km² [' + sim_points_gdf_simplified['n'].astype(str) + 'HM]'
+    # horizon_boxes = {
+    #     "historical": {'color': '#f5f5f5', 'zorder': 10, 'label': 'Historique (1991-2020)',
+    #                    'linewidth': 1},
+    #     "horizon1": {'color': '#80cdc1', 'zorder': 10, 'label': 'Horizon 1 (2021-2050)',
+    #                  'linewidth': 1},
+    #     "horizon2": {'color': '#dfc27d', 'zorder': 10, 'label': 'Horizon 2 (2041-2070)',
+    #                  'linewidth': 1},
+    #     "horizon3": {'color': '#a6611a', 'zorder': 10, 'label': 'Horizon 3 (2070-2099)',
+    #                  'linewidth': 1},
+    # }
+
+    horizon_boxes = {
+        "historical": {'color': '#f5f5f5', 'zorder': 10, 'label': 'Historique (1991-2020)',
+                        'linewidth': 1}
+    }
+    color_boxes = {'horizon1': '#80cdc1',  'horizon2': '#dfc27d', 'horizon3': '#a6611a'}
+    horizon_boxes |= {key: {'zorder': 10, 'label': val,
+                        'linewidth': 1, 'color': color_boxes[key]} for key, val in horizons.items()}
+
+    for river, river_stations in reference_stations.items():
+        extended_station_name = {key : f"{value}: {label_df.loc[key]}" for key, value in river_stations.items()}
+        for key, value in extended_station_name.items():
+            extended_station_name[key] = optimize_label_length(value, settings, length=28)
+        print(f"> Box plot...")
+        print(f">> Boxplot normalized {settings['title_join']} by month and horizon")
+        name_y_axis = optimize_label_length(f"{settings['title_join']} normalisé", settings)
+        plot_boxplot_station_month_horizon(ds=ds_stats[variables['simulation_horizon']],
+                                            station_references=extended_station_name,
+                                            narratives=horizon_boxes,
+                                            title=None,
+                                            name_y_axis=name_y_axis,
+                                            normalized=True,
+                                            percent=False,
+                                            common_yaxes=True,
+                                            fontsize=settings['fontsize'],
+                                            font=settings['font'],
+                                            path_result=path_indicator+f"{settings['title_join']}_boxplot_normalized_{river}_month.pdf")
+        
+        print(f">> Boxplot {settings['plot_type']} by month and horizon")
+        name_y_axis = optimize_label_length(f"{settings['plot_type_name'].title()} {settings['title']}{settings['units']}", settings,
+                                            length=18)
+
+        plot_boxplot_station_month_horizon(ds=ds_stats[variables[f"simulation-horizon_by-sims_{settings['plot_type']}"]],
+                                            station_references=extended_station_name,
+                                            narratives={key: value for key, value in horizon_boxes.items() if key!='historical'},
+                                            title=None,
+                                            name_y_axis=name_y_axis,
+                                            percent=settings['percent'],
+                                            common_yaxes=True,
+                                            ymin=settings['vmin'],
+                                            ymax=settings['vmax'],
+                                            fontsize=settings['fontsize'],
+                                            font=settings['font'],
+                                            path_result=path_indicator+f"{settings['title_join']}_boxplot_{settings['plot_type']}_{river}_month.pdf")
+
+        for key, value in horizons.items():
+            print(f"{settings['name_indicator']} >> Linear {settings['plot_type']} month per station {value}")
+            plot_linear_month(ds=ds_stats.sel(horizon=key),
+                            station_references=extended_station_name,
+                            simulations=variables[f"simulation-horizon_by-sims_{settings['plot_type']}"],
+                            narratives=narratives,
+                            title=value,
+                            name_x_axis=f'Mois',
+                            name_y_axis=name_y_axis,
+                            percent=settings['percent'],
+                            vlines=None,
+                            fontsize=settings['fontsize'],
+                            font=settings['font'],
+                            path_result=path_indicator+f"{settings['title_join']}_lineplot_{settings['plot_type']}_{river}_month_narratives_{key}.pdf")
+
 
 def plot_linear_pk_hm(ds, simulations, path_result, narratives=None,
                    name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None,
@@ -188,7 +470,6 @@ def plot_linear_pk(ds, simulations, path_result, horizons, narratives=None,
              legend_items=unique_legend_items, title=title, percent=percent, ymax=ymax, xmax=xmax,
              fontsize=fontsize, font=font)
 
-
 def plot_linear_time(ds, simulations, path_result, station_references, narratives=None,
                      name_x_axis='', name_y_axis='', percent=False, vlines=None, title=None,
                      fontsize=14, font='sans-serif'):
@@ -315,21 +596,27 @@ def plot_boxplot_station_narrative_tracc(ds, station_references, narratives, pat
 
     simulations = list(ds.data_vars)
 
-    references = {key: {'color': value['color'], 'alpha': 0.9, 'zorder': 1, 'label': value['label'], 'linewidth': 2} 
+    references = {key: {'color': value['color'], 'alpha': 0.9, 'zorder': 1, 'label': value['label'][0], 'linewidth': 2} 
                   for narr_value in narratives.values() for key, value in narr_value.items()}
     
-    references = {}
-    for n in narratives.values():
-        for narr_name, kwargs in n.items():
-            # dict_sims[narr_name] = {'values': [], 'kwargs': kwargs}
-            for sim_name in simulations:
-                if narr_name in sim_name:
-                    references[sim_name] = {'color': kwargs['color'], 'alpha': 0.9, 'zorder': 10, 'label': kwargs['label'], 'linewidth': 3} 
-
     dict_sims = {}
     dict_sims['simulations'] = {'values': simulations, 'kwargs': {'color': 'lightgray', 'alpha': 0.35, 'zorder': 0,
                                                                   'linewidth': 1, 'label': 'Ensemble des projections'}}
-
+    
+    for narr_name, kwargs in references.items():
+        dict_sims[narr_name] = {'values': [], 'kwargs': kwargs}
+        for sim_name in simulations:
+            if narr_name in sim_name:
+                dict_sims[narr_name]['values'].append(sim_name)
+        
+    # references = {}
+    # for n in narratives.values():
+    #     for narr_name, kwargs in n.items():
+    #         # dict_sims[narr_name] = {'values': [], 'kwargs': kwargs}
+    #         for sim_name in simulations:
+    #             if narr_name in sim_name:
+    #                 references[sim_name] = {'color': kwargs['color'], 'alpha': 0.9, 'zorder': 10, 'label': kwargs['label'], 'linewidth': 3} 
+                                                                  
     horizons_tracc = {'horizon1': '+2.0°C', 'horizon2': '+2.7°C', 'horizon3': '+4.0°C'}    
     selected_horizons = {key: value for key, value in horizons_tracc.items() if key in horizons.keys()}                                                       
 
@@ -340,11 +627,17 @@ def plot_boxplot_station_narrative_tracc(ds, station_references, narratives, pat
               'name_axis': name_y_axis
               }
 
+    # x_axis = {
+    #     'names_coord': 'horizon',
+    #     'values_var': list(selected_horizons.keys()),
+    #     'names_plot': list(selected_horizons.values())
+    # }
     x_axis = {
-        'names_coord': 'horizon',
-        'values_var': list(selected_horizons.keys()),
-        'names_plot': list(selected_horizons.values())
+        'names_coord': None,
+        'values_var': [None],
+        'names_plot': [None]
     }
+
 
     cols = 2
     rows = {
@@ -353,8 +646,8 @@ def plot_boxplot_station_narrative_tracc(ds, station_references, narratives, pat
         'names_plot': list(station_references.values())
     }
 
-    boxplot(ds, x_axis, y_axis, path_result=path_result, references=references, cols=cols, rows=rows, vlines=False,
-             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=0.1, strip=True)
+    boxplot(ds, x_axis, y_axis, path_result=path_result, references=None, cols=cols, rows=rows, vlines=False,
+             title=title, percent=percent, fontsize=fontsize, font=font, ymax=None, blank_space=0.1, strip=True, common_yaxes=True)
 
 def plot_boxplot_station_month_horizon(ds, station_references, narratives, path_result, name_y_axis='', percent=False,
                                        title=None, fontsize=14, font='sans-serif', common_yaxes=False, normalized=False,
@@ -393,6 +686,7 @@ def plot_boxplot_station_month_horizon(ds, station_references, narratives, path_
 
     boxplot(ds, x_axis, y_axis, path_result=path_result, cols=cols, rows=rows, vlines=True, common_yaxes=common_yaxes,
             title=title, percent=percent, fontsize=fontsize, font=font, ymin=ymin, ymax=ymax, blank_space=0.25)
+
 
 def plot_map_indicator_hm(gdf, ds, path_result, cbar_title, dict_shapefiles, bounds,
                           variables, plot_type, discretize=None, palette='BrBG', fontsize=14, font='sans-serif', title=None,
