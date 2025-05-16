@@ -115,27 +115,15 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     # levels = np.linspace(vmin, vmax, discretize+1)
     extended_levels = copy.deepcopy(levels)
     if midpoint is not None:
-        # midp = np.mean(np.c_[levels[:-1], levels[1:]], axis=1)
-        # # vals = np.interp(midp, [midpoint-max(abs(vmin), abs(vmax)), midpoint, midpoint+max(abs(vmin), abs(vmax))],
-        # #                  [0, 0.5, 1])
-        # vals = np.interp(midp, [vmin, midpoint, vmax],
-        #                  [0, 0.5, 1])
-        # colormap = getattr(plt.cm, palette)
-        # colors = colormap(vals)
 
-        # Limit values to extrema        
-        # extended_indices = ((levels >= min((plot_vmin, midpoint))) & (levels <= max((plot_vmax, midpoint))))
+        # start_idx = bisect.bisect_right(levels.tolist(), min(plot_vmin, midpoint)) -1
+        # if start_idx < 0:
+        #     start_idx = 0
 
-        start_idx = bisect.bisect_right(levels.tolist(), min(plot_vmin, midpoint)) -1
-        if start_idx < 0:
-            start_idx = 0
+        # extended_levels = levels[
+        #      start_idx : bisect.bisect_left(levels.tolist(), max(plot_vmax, midpoint)) + 1
+        #     ]
 
-        extended_levels = levels[
-             start_idx : bisect.bisect_left(levels.tolist(), max(plot_vmax, midpoint)) + 1
-            ]
-        # extended_indices = np.where((levels >= vmin) & (levels <= vmax))[0]
-
-        # extended_levels = extended_levels[extended_indices]
         if vmax_user is not None and extended_levels[-1] < vmax_user:
             extended_levels = np.append(extended_levels,
                                         levels[(levels >  extended_levels[-1]) & (levels <= vmax_user)])
@@ -203,7 +191,7 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
 
     fig_dim = 4
     # ratio = fontsize / 18
-    figsize = (fig_dim * len_cols, len_rows * fig_dim)
+    figsize = (fig_dim * len_cols, len_rows * fig_dim * 0.93)
     # if bounds is not None:
     #     x_y_ratio = abs((bounds[2] - bounds[0]) / (bounds[3] - bounds[1]))
     #     if x_y_ratio > 1:
@@ -215,7 +203,7 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
 
     if title:
         figsize = (figsize[0], figsize[1] * 1.02)
-    if subplot_titles:
+    if subplot_titles and not isinstance(subplot_titles[0], dict):
         subtitles_lines = 0
         if isinstance(cols, dict) and 'names_plot' in cols.keys():
             subtitles_lines = max(s.count('\n') for s in cols['names_plot'])
@@ -223,7 +211,6 @@ def mapplot(gdf, indicator_plot, path_result, cols=None, rows=None, ds=None,
     
     # if len_rows == 1:
     #     figsize= (figsize[0] * 1.05, figsize[1])
-
     fig, axes = plt.subplots(len_rows, len_cols, figsize=figsize, constrained_layout=True)
     # hspace = 0.03
     # wspace = 0.01

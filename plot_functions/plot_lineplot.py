@@ -20,8 +20,8 @@ from matplotlib.lines import Line2D
 from plot_functions.plot_common import *
 
 def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines=None, legend_items= None,
-             xmin=None, xmax=None, ymin=None, ymax=None,
-             title=None, percent=True, fontsize=14, font='sans-serif'):
+             xmin=None, xmax=None, ymin=None, ymax=None, common_axes=True, remove_xticks=True,
+             title=None, percent=True, fontsize=14, font='sans-serif', references=None):
 
     ds_plot = copy.deepcopy(ds)
     len_cols, cols_plot, ds_plot = init_grid(cols, ds_plot)
@@ -89,7 +89,7 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
 
     # Main title
     if title is not None:
-        fig.suptitle(title)
+        fig.suptitle(title, fontsize=plt.rcParams['font.size'], weight='bold')
 
     if legend_items is None:
         legend_items = []
@@ -123,7 +123,10 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
                 temp_dict |= {rows_plot['names_coord']: row}
 
             ds_selection = ds_plot.sel(temp_dict)
-            ds_selection = ds_selection.sortby(x_axis['names_coord'])
+            if 'names_sorted' in x_axis.keys():
+                ds_selection.sel(**{f"{x_axis['names_coord']}": x_axis['names_sorted']})
+            else:
+                ds_selection = ds_selection.sortby(x_axis['names_coord'])
 
             for key, value in current_indicator.items():
                 if np.issubdtype(ds_selection[key].values.dtype, np.floating):
@@ -137,6 +140,9 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
                 
                 valid = valid_1 & valid_2                
                 
+                # if 'names_plot' in x_axis.keys():
+                #     ax.plot([v for v, m in zip(x_axis['names_plot'], valid) if m], ds_selection[key].values[valid], **value)
+                # else:
                 ax.plot(ds_selection[x_axis['names_coord']].values[valid], ds_selection[key].values[valid], **value)
 
                 if value not in legend_items:
@@ -170,8 +176,17 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
                             alpha=vlines.iloc[i]['alpha'], fontsize=vlines.iloc[i]['fontsize'])
 
             # Plot data as line
-            ax.plot([xmin, xmax], [0, 0], color='k', linestyle='--', linewidth=0.5, dashes=(10,10),
+            ax.axhline(y=0, color='k', linestyle='--', linewidth=0.5, dashes=(10,10),
                     zorder=1000)
+            
+            if references is not None:
+                ref_args = {'color': 'k', 'alpha': 1, 'zorder': 20, 'label': 'Référence', 'linestyle': ':', 'linewidth': 2}
+                for var in references.data_vars:
+                    ax.plot(references[x_axis['names_coord']].values, references[var].sel(temp_dict).values,
+                    **ref_args)
+                
+                if ref_args not in legend_items:
+                    legend_items.append(value)
 
             if subplot_title:
                 ax.set_title(subplot_title)
@@ -182,38 +197,68 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
                 ax.yaxis.set_major_formatter(mtick.PercentFormatter())
 
             # Headers and axes label
-            add_header(ax, rows_plot, cols_plot, ylabel=y_title, xlabel=x_title)
+            add_header(ax, rows_plot, cols_plot, ylabel=y_title, xlabel=x_title, del_axes=del_axes)
 
-
-    abs_max = max([ymax, -ymin])
-    n = 2*abs_max / 4
-    exponent = round(math.log10(n))
-    step = np.round(n, -exponent+1)
-    if step == 0:
-        step = n
-    ticks = mirrored(abs_max, inc=step, val_center=0)
-
-    for ax in axes_flatten:
-        ax.set_yticks(ticks)
-        ax.set_xlim(xmin, xmax)
-        ax.set_ylim(ymin, ymax)
-        # plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.1, alpha=0.4)
-        ax.grid(True, linestyle="--", color='lightgray', linewidth=0.1, alpha=0.4)
+    if common_axes:
+        abs_max = max([ymax, -ymin])
+        # n = 2*abs_max / 4
+        n = (ymax - ymin) / 4
+        exponent = round(math.log10(n))
+        step = np.round(n, -exponent+1)
+        if step == 0:
+            step = n
+        ticks = mirrored(abs_max, inc=step, val_center=0)
+        
+        for ax in axes_flatten:
+            ax.set_yticks(ticks)
+            ax.set_ylim(ymin, ymax)
 
         sbs = ax.get_subplotspec()
-        remove_x = True
+        if not sbs.is_first_col():
+            ax.set_yticklabels([])
+    else:
+        for ax in axes_flatten:
+            ax_ymin, ax_ymax = ax.get_ylim()
+            abs_max = max([ymax, -ymin])
+            n = (ax_ymax - ax_ymin) / 4
+            exponent = round(math.log10(n))
+            step = np.round(n, -exponent+1)
+            if step == 0:
+                step = n
+            ticks = mirrored(abs_max, inc=step, val_center=0)
+            ax.set_yticks(ticks)
+            ax.set_ylim(ax_ymin, ax_ymax)
+    
+    for ax in axes_flatten:
+        ax.grid(True, linestyle="--", color='lightgray', linewidth=0.1, alpha=0.4)
+        sbs = ax.get_subplotspec()
+        if not sbs.is_last_row():
+            remove_x = True
+        else: 
+            remove_x = False
+        
         if del_axes:
             n_rows, n_cols = sbs.get_geometry()[:2]
             c_row, c_col = sbs.rowspan.stop, sbs.colspan.stop
             if c_row == n_rows - 1 and c_col > n_cols-del_axes:
                 remove_x = False
 
-        if not sbs.is_first_col():
-            ax.set_yticklabels([])
-        if not sbs.is_last_row() and remove_x:
+        if remove_x and remove_xticks:
             ax.set_xticklabels([])
         elif 'names_plot' in x_axis:
-            ax.set_xticklabels(x_axis['names_plot'])
+            if isinstance(x_axis['names_plot'][0], str):
+                ax.set_xticks([int(i) for i in ds_selection[x_axis['names_coord']].values])
+                ax.set_xticklabels(x_axis['names_plot'])
+            elif np.issubdtype(ds[x_axis['names_coord']].values.dtype, np.datetime64):
+                n_labels = 8
+                step = len(ds[x_axis['names_coord']].values) // (n_labels - 1)
+                indices = list(range(0, len(ds[x_axis['names_coord']].values), step))
+                selected_dates = [ds[x_axis['names_coord']].values[i] for i in indices]
+                selected_labels = [x_axis['names_plot'][i] for i in indices]
+                ax.set_xticks(selected_dates)
+                ax.set_xticklabels(selected_labels)
+        
+        ax.set_xlim(xmin, xmax)
 
     # Legend
     legend_handles = []

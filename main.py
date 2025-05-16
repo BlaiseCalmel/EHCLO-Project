@@ -80,8 +80,6 @@ if not os.path.isdir(dict_paths['folder_study_results']):
 # Study figures folder
 if not os.path.isdir(dict_paths['folder_study_figures']):
     os.makedirs(dict_paths['folder_study_figures'])
-if not os.path.isdir(dict_paths['folder_study_figures_narratives']):
-    os.makedirs(dict_paths['folder_study_figures_narratives'])
 
 # Study data folder
 if not os.path.isdir(dict_paths['folder_study_data']):
@@ -309,6 +307,9 @@ for region_id in regions:
         indicator_values = ["QJXA", "QA", "VCN10"]
         paths_ds_narratives = [f"{dict_paths['folder_study_data_ncdf']}{indicator}_{rcp}_YE_{extended_name}_{region_narrative}.nc"
                                for indicator in indicator_values]
+
+        if not os.path.isdir(dict_paths['folder_study_figures_narratives']):
+            os.makedirs(dict_paths['folder_study_figures_narratives'])
 
         compute_narratives( paths_ds_narratives,
                             files_setup=files_setup,

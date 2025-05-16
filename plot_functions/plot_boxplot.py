@@ -62,13 +62,27 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
         y_title = None
 
     if ymin is None:
-        # ymin = ds.to_array().quantile(0.01).item()
-        ymin_vline = ds.to_array().min().item()
+        if 'values_flatten' in y_axis.keys():
+            _temp_y_values = ds[y_axis['values_flatten']].to_array()
+        else:
+            _temp_y_values = ds.to_array()
+        ymin_vline = _temp_y_values.min().item()
+        # yquant = _temp_y_values.quantile(0.05) - 2 * _temp_y_values.std()
+        # if yquant > ymin_vline:
+        #   ymin_vline =  _temp_y_values.quantile(0.05)
+        ymin = ymin_vline
     else:
         ymin_vline = ymin
     if ymax is None:
-        # ymax = ds.to_array().quantile(0.99).item()
-        ymax_vline = ds.to_array().max().item()
+        if 'values_flatten' in y_axis.keys():
+            _temp_y_values = ds[y_axis['values_flatten']].to_array()
+        else:
+            _temp_y_values = ds.to_array()
+        ymax_vline = _temp_y_values.max().item()
+        # yquant = _temp_y_values.quantile(0.95) + 2 * _temp_y_values.std()
+        # if yquant < ymax_vline:
+        #   ymax_vline =  _temp_y_values.quantile(0.95)
+        ymax = ymax_vline
     else:
         ymax_vline = ymax
 
@@ -210,20 +224,42 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
                                     flierprops=dict(marker='.', markersize=4, markerfacecolor='k'), **kwargs)
                 
                 if references is not None:
-                    # w = 1
-                    # if 'widths' in kwargs:
-                    #     w = kwargs['widths']
                     if len(current_position) > 1:
                         width = 0.5 * (current_position[1] - current_position[0])
                     else:
-                        width = 1
-                    hline_values = plot_selection(ds_selection=cell_data, names_var=x_axis['names_coord'], value=x_axis['values_var'])
-                    for ref, ref_args in references.items():
-                        ax.hlines(y=hline_values[ref].values, xmin=[val - width/2 for val in current_position], 
-                                       xmax=[val + width/1.75 for val in current_position], **ref_args)
-                        ax.scatter(x=[val + width/1.75 for val in current_position], y=hline_values[ref].values, s=25, **ref_args)
-                        # ax.hlines(y=hline_values[ref].values, xmin=[j+w/1.5 for j in current_position], xmax=[j+w+blank_space for j in current_position], **ref_args)
-                        # ax.scatter(x=[j+w+blank_space for j in current_position], y=hline_values[ref].values, s=25, **ref_args)
+                        width = 0.9
+                    is_dict_of_dicts = (isinstance(references, dict) and all(isinstance(v, dict) for v in references.values()))
+                    if is_dict_of_dicts:
+                        if name in references.keys():
+                            ref_data = references[name]
+                            for ref, ref_args in ref_data.items():
+                                # hline_values = ds_selection[ref].values
+                                hline_values = plot_selection(ds_selection=cell_data, names_var=x_axis['names_coord'], value=x_axis['values_var'])
+                                if not np.isnan(hline_values[ref]).all():
+                                    if 'function' in ref_args.keys():
+                                        str_to_func = {
+                                                        "mean": np.nanmean,
+                                                        "median": np.nanmedian,
+                                                        "sum": np.nansum,
+                                                        "min": np.nanmin,
+                                                        "max": np.nanmax,
+                                                    }
+                                        hline_plot = str_to_func[ref_args['function']](hline_values[ref])
+                                        ref_args = {key: value for key, value in ref_args.items() if key != "function"}
+                                    else:
+                                        hline_plot = hline_values[ref]
+
+                                    ax.hlines(y=hline_plot.values, xmin=[val - width/2 for val in current_position], 
+                                            xmax=[val + width/1.75 for val in current_position], **ref_args)
+                                    ax.scatter(x=[val + width/1.75 for val in current_position], y=hline_plot.values, s=25, **ref_args)
+                    else:
+                        hline_values = plot_selection(ds_selection=cell_data, names_var=x_axis['names_coord'], value=x_axis['values_var'])
+                        for ref, ref_args in references.items():
+                            ax.hlines(y=hline_values[ref].values, xmin=[val - width/2 for val in current_position], 
+                                        xmax=[val + width/1.75 for val in current_position], **ref_args)
+                            ax.scatter(x=[val + width/1.75 for val in current_position], y=hline_values[ref].values, s=25, **ref_args)
+                            # ax.hlines(y=hline_values[ref].values, xmin=[j+w/1.5 for j in current_position], xmax=[j+w+blank_space for j in current_position], **ref_args)
+                            # ax.scatter(x=[j+w+blank_space for j in current_position], y=hline_values[ref].values, s=25, **ref_args)
 
                 if  any(mask):
                     y_temp_max.append(np.nanmax(cell_boxplots))
@@ -267,7 +303,7 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
 
             ax.spines[['right', 'top']].set_visible(False)
 
-            if x_axis['names_coord'] is None:
+            if x_axis['names_coord'] is None or ('names_plot' in x_axis.keys() and all(x is None for x in x_axis['names_plot'])):
                 ax.set_xticks([])
 
             if percent:
@@ -309,7 +345,7 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
         for ax_idx, ax in enumerate(axes_flatten):
             ax.set_ylim(min_values[ax_idx], max_values[ax_idx])
    
-    if references is not None:
+    if references is not None and not isinstance(references, dict):
         for key, value in references.items():
             handle = Line2D([0], [0], color=value['color'], linewidth=5, alpha=1)
             legend_items.append(handle)

@@ -335,7 +335,7 @@ def compute_narratives(paths_ds_narratives, files_setup, path_narratives,
     meth_list = [{id_colord: representative_groups[id_label] for id_colord, id_label in sorted_cluster.items()}]
 
     narratives |= {horizon_ref : {f"{value['gcm-rcm']}_{value['bc']}_{value['hm']}": {'color': hex_colors[i], 'zorder': 10,   
-                   'label': f"{cluster_names[i].title()}", 
+                   'label': f"{cluster_names[i].title()[0]}",
                    'linewidth': 2} for key, value in rg.items() } for rg in meth_list }
     
     idx = -1

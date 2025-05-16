@@ -163,7 +163,7 @@ def define_cbar(fig, axes_flatten, len_rows, len_cols, cmap, bounds_cmap,
 
     return cbar
 
-def add_header(ax, rows_plot, cols_plot, ylabel='', xlabel=''):
+def add_header(ax, rows_plot, cols_plot, ylabel='', xlabel='', del_axes=None):
     sbs = ax.get_subplotspec()
 
     # Labels of horizontal and vertical axes
@@ -210,10 +210,23 @@ def add_header(ax, rows_plot, cols_plot, ylabel='', xlabel=''):
                             **{'weight': 'bold'},
                             **col_kwargs
                         )
+    if not sbs.is_last_row():
+        remove_x = True
+    else: 
+        remove_x = False
+    
+    if del_axes:
+        n_rows, n_cols = sbs.get_geometry()[:2]
+        c_row, c_col = sbs.rowspan.stop, sbs.colspan.stop
+        if c_row == n_rows - 1 and c_col > n_cols-del_axes:
+            remove_x = False
 
-    if sbs.is_last_row():
-        if xlabel and len(xlabel) > 0:
-            ax.set_xlabel(f"{xlabel}")
+    if not remove_x and xlabel and len(xlabel) > 0:
+        ax.set_xlabel(f"{xlabel}")
+
+    # if sbs.is_last_row():
+    #     if xlabel and len(xlabel) > 0:
+    #         ax.set_xlabel(f"{xlabel}")
 
 
 def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax):
@@ -231,6 +244,10 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
                 var_names = [i for subdict in indicator_plot for i in subdict]
                 data_x = ds_plot[var_names].to_array()
                 xmin = math.ceil((ds_plot[var_names]).min())
+
+                xquant = np.nanquantile(data_x, 0.01)
+                if xquant - 2* np.std(data_x) > xmin:
+                    xmin = xquant
         except ValueError:
             xmin = min(x_min_temp)
         except KeyError:
@@ -248,6 +265,10 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
                 var_names = [i for subdict in indicator_plot for i in subdict]
                 data_x = ds_plot[var_names].to_array()
                 xmax = math.ceil((ds_plot[var_names]).max())
+
+                xquant = np.nanquantile(data_x, 0.99)
+                if xquant + 2 * np.std(data_x) < xmin:
+                    xmin = xquant
         except ValueError:
             xmax = max(x_max_temp)
         except KeyError:
@@ -275,6 +296,10 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
                 var_names = [i for subdict in indicator_plot for i in subdict]
                 data_y = ds_plot[var_names].to_array()
                 ymin = math.ceil(data_y.min())
+
+                yquant = np.nanquantile(data_y, 0.01)
+                if yquant - 2* np.std(data_y) > ymin:
+                    ymin = yquant
         except ValueError:
             ymin = min(y_min_temp)
         except KeyError:
@@ -293,6 +318,11 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
                 var_names = [i for subdict in indicator_plot for i in subdict]
                 data_y = ds_plot[var_names].to_array()
                 ymax = math.ceil(data_y.max())
+
+                yquant = np.nanquantile(data_y, 0.99)
+                if yquant + 2* np.std(data_y) < ymax:
+                    ymax = yquant
+
         except ValueError:
             ymax = max(y_max_temp)
         except KeyError:
@@ -328,6 +358,8 @@ def plot_selection(ds_selection, names_var, value):
             ds_selection = ds_selection.sel(time=ds_selection.time.dt.month == value)
     elif names_var == 'indicator':
         ds_selection = ds_selection[value]
+    elif names_var == 'horizon' and 'horizon' not in ds_selection.coords:
+        ds_selection = ds_selection.sel(time=getattr(ds_selection, value))
     else:
         temp_dict = {names_var: value}
         ds_selection = ds_selection.sel(temp_dict)

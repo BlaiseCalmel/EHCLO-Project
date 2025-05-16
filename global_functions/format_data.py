@@ -40,7 +40,6 @@ def load_settings(indicator_setup, name_indicator):
 
     settings = {key: value if value != 'None' else None for key, value in settings.items()}
 
-
     # Define variable name for axis
     if settings['label'] is None:
         title = name_indicator
@@ -67,8 +66,9 @@ def load_settings(indicator_setup, name_indicator):
         start_cbar_ticks = f" {settings['start_cbar_ticks']}"
     if settings['end_cbar_ticks'] != '':
         end_cbar_ticks = f" {settings['end_cbar_ticks']}"
-                    
-    if plot_type_name in ['difference']:
+
+    plot_label = 'changement'    
+    if plot_label in ['difference']:
         var_gender = 'f'
     else:
         var_gender = 'm'
@@ -82,6 +82,7 @@ def load_settings(indicator_setup, name_indicator):
     settings['units'] = units
     settings['plot_type'] = plot_type
     settings['plot_type_name'] = plot_type_name
+    settings['plot_label'] = plot_label
     settings['percent'] = percent
     settings['start_cbar_ticks'] = start_cbar_ticks
     settings['end_cbar_ticks'] = end_cbar_ticks
@@ -89,7 +90,6 @@ def load_settings(indicator_setup, name_indicator):
     settings['function_name'] = function_name
 
     return settings
-
 def get_season(month):
     if month in [12, 1, 2]:
         return 1
@@ -104,6 +104,7 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
                    path_variables=None):
     other_dimension = None
     dimension_names = None
+    simulation_cols = [i for i in list(ds.data_vars)]
     if plot_function is not None:
         # TODO Define HM as secondary dimension
         if plot_function == 'min':
@@ -119,11 +120,13 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
         elif plot_function == 'month':
             ds = ds.assign_coords(month=ds['time.month'])
             other_dimension = 'month'
-            dimension_names = {
-                1: "Janvier", 2: "Février", 3: "Mars", 4: "Avril",
-                5: "Mai", 6: "Juin", 7: "Juillet", 8: "Août",
-                9: "Septembre", 10: "Octobre", 11: "Novembre", 12: "Décembre",
-            }
+            # month_name = {
+            #     1: "Janvier", 2: "Février", 3: "Mars", 4: "Avril",
+            #     5: "Mai", 6: "Juin", 7: "Juillet", 8: "Août",
+            #     9: "Septembre", 10: "Octobre", 11: "Novembre", 12: "Décembre",
+            # }
+            # ds = ds.assign(month_name=("time", [month_name[m] for m in ds["month"].values]))
+            dimension_names = {i: i for i in np.arange(1,13)}
         elif plot_function == 'season':
             seasons = [get_season(date) for date in ds["time.month"]]
             ds = ds.assign_coords(season=("time", seasons))
@@ -152,7 +155,6 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
 
     # Define horizons
     ds = define_horizon(ds, files_setup)
-    simulation_cols = [i for i in list(ds.data_vars)]
 
     # Return period
     if return_period is not None:
@@ -180,6 +182,8 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
 
     # Compute statistic among all sims
     print(f'>> Compute stats by horizon among simulations...', end='\n')
+    ds, horizon_value = run_stats(ds, cols=simulation_horizon, function=files_setup['function'],
+                                quantile=files_setup['quantile'], name="horizon_value")
     ds, horizon_deviation = run_stats(ds, cols=simulation_horizon_deviation_by_sims, function=files_setup['function'],
                                       quantile=files_setup['quantile'], name="horizon_deviation")
     ds, horizon_difference = run_stats(ds, cols=simulation_horizon_difference_by_sims, function=files_setup['function'],
@@ -229,6 +233,7 @@ def format_dataset(ds, data_type, files_setup, plot_function=None, return_period
                 'simulation_horizon': simulation_horizon, # mean value per horizon
                 'simulation-horizon_by-sims_deviation': simulation_horizon_deviation_by_sims, # Horz deviation from averaged historical reference
                 'simulation-horizon_by-sims_difference': simulation_horizon_difference_by_sims, # Horz difference from averaged historical reference
+                'horizon_value': horizon_value,
                 'horizon_deviation': horizon_deviation, # mean horizon deviation among sims
                 'horizon_difference': horizon_difference,
                 'horizon_matching': horizon_matching,
