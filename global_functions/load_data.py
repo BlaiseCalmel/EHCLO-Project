@@ -350,6 +350,7 @@ def extract_ncdf_indicator(paths_data, param_type, sim_points_gdf, indicator, fi
     if path_result is not None:
         if path_result[-2:] == 'nc':
             combined_dataset.to_netcdf(path=f"{path_result}")
+
             del combined_dataset
             del ds
             # Delete temporary directory

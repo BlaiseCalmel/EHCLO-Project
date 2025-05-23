@@ -315,7 +315,7 @@ def find_extrema(ds_plot, x_axis, y_axis, indicator_plot, xmin, xmax, ymin, ymax
                 y_max_temp = data_y.max().values
                 ymax = np.nanmax(y_max_temp)
             else:
-                var_names = [i for subdict in indicator_plot for i in subdict]
+                var_names = set(i for subdict in indicator_plot for i in subdict)
                 data_y = ds_plot[var_names].to_array()
                 ymax = math.ceil(data_y.max())
 

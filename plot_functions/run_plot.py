@@ -792,7 +792,7 @@ def plot_map_indicator_narratives(gdf, ds, narratives, path_result, cbar_title, 
 
     narr = [key for narr_values in narratives.values() for key in narr_values.keys()]
     # stats_by_narr = [sim for sim in variables[f'simulation-horizon_by-sims_{plot_type}'] if any(n in sim for n in narr)]
-    stats_by_narr = [n+'_by-horizon_deviation' for n in narr]
+    stats_by_narr = [n+f'_by-horizon_{plot_type}' for n in narr]
 
     # rows = {
     #     'names_coord': 'indicator',

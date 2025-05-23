@@ -43,9 +43,7 @@
           "label": "du QMN5",
           "additional_coordinates": "month",
           "return_period": 5,
-          "timestep": "ME",
-          "vmin": -75,
-          "vmax": 100
+          "timestep": "ME"
         },
         "Qm": {
           "units": "m3/s",
@@ -67,9 +65,7 @@
           "units": "en jours",
           "label": "de date de début des basses eaux",
           "plot_type": "difference",
-          "palette": "PuOr",
-          "vmin": -30,
-          "vmax": 20
+          "palette": "PuOr"
         }
       },
     "endLF_yr": {
@@ -97,9 +93,7 @@
         "plot_type": "difference",
         "additional_coordinates": "season",
         "palette": "RdBu_r",
-        "cbar_values": 0,
-        "discretize": 12,
-        "vmin": 0
+        "discretize": 12
       },
       "T moy.": {
         "units": "°C",
@@ -107,9 +101,7 @@
         "timestep": "ME",
         "plot_type": "difference",
         "palette": "RdBu_r",
-        "cbar_values": 0,
-        "discretize": 12,
-        "vmin": 0
+        "discretize": 12
       },
       "NJ<0": {
         "units": "",

@@ -95,6 +95,8 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
         legend_items = []
 
     idx = -1
+
+    key = 'HadGEM2-ES_CCLM4-8-17_ADAMONT_MORDOR-TS_by-horizon'
     for row_idx, row in enumerate(rows_plot['values_var']):
         for col_idx, col in enumerate(cols_plot['values_var']):
             # idx = len_cols * row_idx + col_idx
@@ -213,9 +215,9 @@ def lineplot(ds, indicator_plot, x_axis, y_axis, path_result, cols, rows, vlines
             ax.set_yticks(ticks)
             ax.set_ylim(ymin, ymax)
 
-        sbs = ax.get_subplotspec()
-        if not sbs.is_first_col():
-            ax.set_yticklabels([])
+            sbs = ax.get_subplotspec()
+            if not sbs.is_first_col():
+                ax.set_yticklabels([])
     else:
         for ax in axes_flatten:
             ax_ymin, ax_ymax = ax.get_ylim()

@@ -225,8 +225,14 @@ for region_id in regions:
             path_dict = path_files
         else:
             path_dict = {'hydro': {rcp: {}}, 'climate': {rcp: {}}}
+            if data_input == 'climate':
+                indicator_type =  'climate_indicator'
+            elif data_inpu == 'hydro':
+                indicator_type =  'hydro_indicator'
+            else: 
+                indicator_type = None
             for key, value in settings_flatten.items():
-                if value['parent'] in data_input_list or key in data_input_list:
+                if value['parent'] in data_input_list or key in data_input_list or indicator_type == value['type']:
                     data_type = value['type'].split('_')[0]
                     path_dict[data_type][rcp][value['parent']] = path_files[data_type][rcp][value['parent']]
 
@@ -254,12 +260,13 @@ for region_id in regions:
                             function = settings_dict['extract_function']
 
                         name_join = name_indicator.replace(" ", "-").replace(".", "")
+                        name_join = name_join.replace('>', 'sup').replace('<', 'inf')
 
                         path_ncdf = f"{dict_paths['folder_study_data_ncdf']}{name_join}_{rcp}_{timestep}_{extended_name}_{region_name}.nc"
                         # path_ncdf = f"{dict_paths['folder_study_data']}{name_join}_{rcp}_{timestep}_narratest.nc"
 
                         print(f'> Create {indicator} export...', end='\n')
-                        if len(paths) > 0 :
+                        if len(paths) > 0 and not os.path.isfile(path_ncdf):
                             # paths = [
                             #     '/home/bcalmel/Documents/2_data/historical-rcp85/HadGEM2-ES/ALADIN63/ADAMONT/SMASH/debit_France_MOHC-HadGEM2-ES_historical-rcp85_r1i1p1_CNRM-ALADIN63_v3_MF-ADAMONT-SAFRAN-1980-2011_INRAE-SMASH_day_20050801-20990731.nc'
                             # ]
@@ -285,7 +292,7 @@ for region_id in regions:
     narratives = None
     quantiles = [0.5]
     str_quantiles = 'quant'+('-').join([f"{int(i*100)}" for i in  quantiles])
-    horizon_ref='horizon3'
+    horizon_ref='horizon2'
     if region_input_list == 'UG-Loire':
         path_narratives = f"{dict_paths['folder_study_data_narratives']}narratives_{extended_name}_{horizon_ref}_{str_quantiles}_K.json"
     else:
@@ -418,7 +425,10 @@ while run_plot:
                             'horizon3': 'Horizon +4.0°C | 2100',
                 }
                 # Get selected tracc horizon
-                horizons = {key: value for key, value in horizons_tracc.items() if key == horizon_ref}
+                if indicator_setup['type']  == 'hydro_indicator':
+                    horizons = {key: value for key, value in horizons_tracc.items() if key == horizon_ref}
+                else:
+                    horizons = horizons_tracc
             else:
                 horizons = {'horizon1': 'Horizon 1 (2021-2050)',
                             'horizon2': 'Horizon 2 (2041-2070)',
@@ -426,8 +436,8 @@ while run_plot:
                 }
 
             # Create folder
-            title_join = name_indicator.replace(" ", "-").replace(".", "")
-            path_indicator = dict_paths['folder_study_figures'] + title_join + os.sep
+            title_join = name_indicator.replace(" ", "-").replace(".", "").replace('>', 'sup').replace('<', 'inf')
+            path_indicator = (dict_paths['folder_study_figures'] + title_join + os.sep)
             if not os.path.isdir(path_indicator):
                 os.makedirs(path_indicator)
                 write_fig = True
@@ -458,8 +468,8 @@ while run_plot:
 
                 # TODO load formated-ncdf                
                 # Open ncdf dataset
-                path_ncdf = f"{dict_paths['folder_study_data_ncdf']}{settings['title_join']}_{rcp}_{settings['timestep']}_{extended_name}_{region_name}.nc"
-                path_formated_ncdf = f"{dict_paths['folder_study_data_formated-ncdf']}formated-{path_ncdf.split(os.sep)[-1]}"
+                path_ncdf = f"{dict_paths['folder_study_data_ncdf']}{settings['title_join']}_{rcp}_{settings['timestep']}_{extended_name}_{region_name}.nc".replace('>', 'sup').replace('<', 'inf')
+                path_formated_ncdf = f"{dict_paths['folder_study_data_formated-ncdf']}formated-{path_ncdf.split(os.sep)[-1]}".replace('>', 'sup').replace('<', 'inf')
                 path_variables = f"{dict_paths['folder_study_data_formated-ncdf']}{indicator_setup['type']}_variables.json"
                 if os.path.isfile(path_formated_ncdf) and os.path.isfile(path_variables):
                     # Get saved dataset and var names

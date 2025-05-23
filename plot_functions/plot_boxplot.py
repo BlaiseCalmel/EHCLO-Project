@@ -61,30 +61,31 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
     else:
         y_title = None
 
-    if ymin is None:
-        if 'values_flatten' in y_axis.keys():
-            _temp_y_values = ds[y_axis['values_flatten']].to_array()
-        else:
-            _temp_y_values = ds.to_array()
-        ymin_vline = _temp_y_values.min().item()
-        # yquant = _temp_y_values.quantile(0.05) - 2 * _temp_y_values.std()
-        # if yquant > ymin_vline:
-        #   ymin_vline =  _temp_y_values.quantile(0.05)
-        ymin = ymin_vline
-    else:
-        ymin_vline = ymin
-    if ymax is None:
-        if 'values_flatten' in y_axis.keys():
-            _temp_y_values = ds[y_axis['values_flatten']].to_array()
-        else:
-            _temp_y_values = ds.to_array()
-        ymax_vline = _temp_y_values.max().item()
-        # yquant = _temp_y_values.quantile(0.95) + 2 * _temp_y_values.std()
-        # if yquant < ymax_vline:
-        #   ymax_vline =  _temp_y_values.quantile(0.95)
-        ymax = ymax_vline
-    else:
-        ymax_vline = ymax
+    # if ymin is None:
+    #     if 'values_flatten' in y_axis.keys():
+    #         _temp_y_values = ds[y_axis['values_flatten']].to_array()
+    #     else:
+    #         _temp_y_values = ds.to_array()
+    #     ymin_vline = _temp_y_values.min().item()
+    #     # yquant = _temp_y_values.quantile(0.05) - 2 * _temp_y_values.std()
+    #     # if yquant > ymin_vline:
+    #     #   ymin_vline =  _temp_y_values.quantile(0.05)
+    #     ymin = ymin_vline
+    # else:
+    #     ymin_vline = ymin
+    # if ymax is None:
+    #     if 'values_flatten' in y_axis.keys():
+    #         _temp_y_values = ds[y_axis['values_flatten']] #.sel(time=getattr(ds, 'horizon2'), gid=rows['values_var']).to_array()
+    #         # ds['IPSL-CM5A-MR_RCA4_ADAMONT_MORDOR-SD_deviation'].sel(time=getattr(ds, 'horizon2'), gid='K055001010').values
+    #     else:
+    #         _temp_y_values = ds.to_array()
+    #     ymax_vline = _temp_y_values.max().item()
+    #     # yquant = _temp_y_values.quantile(0.95) + 2 * _temp_y_values.std()
+    #     # if yquant < ymax_vline:
+    #     #   ymax_vline =  _temp_y_values.quantile(0.95)
+    #     ymax = ymax_vline
+    # else:
+    #     ymax_vline = ymax
 
     # if y_axis['names_coord'] == 'indicator':
     #     list_of_sims = [subdict['values'] for subdict in y_axis['values_var'].values()]
@@ -124,6 +125,7 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
     fig, axes = plt.subplots(len_rows, len_cols, figsize=(16, 1 + len_rows * fig_dim), constrained_layout=True)
     max_values = []
     min_values = []
+    _y_values = []
     if del_axes:
         for i in range(del_axes):
             fig.delaxes(fig.axes[-1])
@@ -165,8 +167,9 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
             #     print(y_values)
             #     for name, value in y_values.items():
             #         print(name)
-            y_temp_max = []
-            y_temp_min = []
+            # y_temp_max = []
+            # y_temp_min = []
+
             for name, y_var in y_axis['values_var'].items():
                 if y_axis['names_coord'] == 'indicator':
                     name_sims = y_var['values']
@@ -261,9 +264,10 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
                             # ax.hlines(y=hline_values[ref].values, xmin=[j+w/1.5 for j in current_position], xmax=[j+w+blank_space for j in current_position], **ref_args)
                             # ax.scatter(x=[j+w+blank_space for j in current_position], y=hline_values[ref].values, s=25, **ref_args)
 
-                if  any(mask):
-                    y_temp_max.append(np.nanmax(cell_boxplots))
-                    y_temp_min.append(np.nanmin(cell_boxplots))
+                if any(mask):
+                    _y_values.append(cell_boxplots)
+                    # y_temp_max.append(np.nanmax(cell_boxplots))
+                    # y_temp_min.append(np.nanmin(cell_boxplots))
 
                 if 'label' in kwargs:
                     label = kwargs['label']
@@ -292,9 +296,9 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
             ax.plot([xmin, xmax], [0, 0], color='k', linestyle='--', linewidth=0.5, dashes=(10,10),
                     zorder=1000)
 
-            if vlines is not None:
-                ax.vlines(x=vlines,
-                          ymin=ymin_vline, ymax=ymax_vline,
+            if vlines is not None and len(vlines) > 0:
+                ax.axvline(x=vlines,
+                        #   ymin=ymin_vline, ymax=ymax_vline,
                           color='lightgray', linewidth=2, alpha=0.6)
 
             # plt.rc('grid', linestyle="dashed", color='lightgray', linewidth=0.1, alpha=0.4)
@@ -315,13 +319,14 @@ def boxplot(ds, x_axis, y_axis, path_result, references=None, cols=None, rows=No
             # Headers and axes label
             add_header(ax, rows_plot, cols_plot, ylabel=y_title, xlabel=x_title)
             ax.set_xlim(xmin, xmax)
-            max_values.append(np.nanmax(y_temp_max))
-            min_values.append(np.nanmin(y_temp_min))
+            # max_values.append(np.nanmax(y_temp_max))
+            # min_values.append(np.nanmin(y_temp_min))
 
+    _y_flatten = np.concatenate([arr for sublist in _y_values for arr in sublist])
     if ymin is None:
-        ymin = np.nanmin(min_values)
+        ymin = np.nanmin(_y_flatten)
     if ymax is None:
-        ymax = np.nanmax(max_values)
+        ymax = np.nanmax(_y_flatten)
 
     if common_yaxes:
         abs_max = max([ymax, -ymin])
